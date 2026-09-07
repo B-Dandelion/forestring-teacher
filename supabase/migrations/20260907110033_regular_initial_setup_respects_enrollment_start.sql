@@ -1,0 +1,12 @@
+-- Historical production migration ledger placeholder.
+--
+-- This migration was applied directly to production during the 2026-09-07
+-- incident response but the SQL file was not committed at the time.
+-- Its effective-start behavior is fully superseded by
+-- 20260907122903_stage_student_registration_until_semester_setup.sql, which
+-- finalizes the enrollment period first and derives setup_start from that
+-- enrollment period in both regular and flex initialization paths.
+--
+-- Keeping this versioned placeholder makes the repository migration history
+-- match the production migration ledger without re-introducing an obsolete
+-- intermediate implementation.
