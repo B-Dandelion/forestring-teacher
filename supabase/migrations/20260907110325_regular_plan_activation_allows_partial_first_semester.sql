@@ -1,0 +1,11 @@
+-- Historical production migration ledger placeholder.
+--
+-- This migration was applied directly to production during the 2026-09-07
+-- incident response but the SQL file was not committed at the time.
+-- The production function was changed here from an exact-4-per-slot invariant
+-- to counting the actual 1..4 occurrences that exist inside the student's
+-- effective semester window.
+--
+-- The replay-safe implementation is reasserted by the later migration
+-- `ensure_partial_regular_activation_replay_safe`, so a fresh database built
+-- from this repository converges to the same final behavior as production.
