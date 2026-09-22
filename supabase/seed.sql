@@ -1,0 +1,14 @@
+-- Forestring local staging seed
+--
+-- Phase 1 creates a reproducible, non-production QA environment.
+-- Keep this file free of real student/teacher data, credentials, phone numbers,
+-- or any other production-derived personal information.
+--
+-- QA accounts and deterministic domain fixtures will be added in the next
+-- Phase 1 task after the local migration chain is verified with:
+--
+--   supabase start
+--   supabase db reset
+--
+-- An intentionally empty seed is valid for the foundation step and ensures
+-- db reset has a committed seed target defined by supabase/config.toml.
