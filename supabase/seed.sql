@@ -97,7 +97,6 @@ insert into auth.users (
   raw_user_meta_data,
   created_at,
   updated_at,
-  confirmed_at,
   is_sso_user,
   is_anonymous
 )
@@ -120,7 +119,6 @@ select
   0,
   '{"provider":"email","providers":["email"]}'::jsonb,
   '{}'::jsonb,
-  '2026-09-22 00:00:00+00'::timestamptz,
   '2026-09-22 00:00:00+00'::timestamptz,
   '2026-09-22 00:00:00+00'::timestamptz,
   false,
