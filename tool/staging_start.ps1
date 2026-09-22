@@ -37,15 +37,19 @@ if ($CrlfSql.Count -gt 0) {
   Write-Error "Supabase migrations must use LF. See docs/qa-staging.md: force-refresh tracked SQL files after applying .gitattributes."
 }
 
-Write-Host "[1/3] Starting local Supabase..."
+Write-Host "[1/4] Reloading local Supabase runtime so Edge Function env is current..."
+& $SupabaseCli stop
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "[2/4] Starting local Supabase..."
 & $SupabaseCli start
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "[2/3] Rebuilding local database from migrations + seed..."
+Write-Host "[3/4] Rebuilding local database from migrations + seed..."
 & $SupabaseCli db reset
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "[3/3] Local staging status"
+Write-Host "[4/4] Local staging status"
 & $SupabaseCli status
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
