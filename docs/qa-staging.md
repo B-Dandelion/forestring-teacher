@@ -32,7 +32,20 @@ destructive testing, bug reproduction, and later E2E automation.
 
 - Node.js / npm
 - Docker-compatible runtime
-- Flutter toolchain
+- Flutter 3.47.x (QA baseline tested against Flutter 3.47.2)
+- Dart bundled with that Flutter SDK
+
+The Android project was intentionally upgraded to the Flutter 3.47 generation of
+Android build tooling (AGP 9.1 / Kotlin 2.4 / Gradle 9.3.1). Flutter 3.41 is not a
+supported QA toolchain for this branch. Verify before running:
+
+```bash
+flutter --version
+```
+
+If the machine is still on Flutter 3.41, upgrade the stable SDK before continuing.
+Do not downgrade the repository's Android build files merely to make an older local
+Flutter SDK build.
 
 The Supabase CLI is intentionally installed as a project-local npm dev dependency and
 locked by `package-lock.json`. After cloning or pulling the repository, install the
