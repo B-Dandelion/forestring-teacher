@@ -25,6 +25,12 @@ fi
 
 cd "$REPO_ROOT"
 
+if git ls-files --eol -- supabase | grep -E 'w/crlf.*\.sql$' >/dev/null 2>&1; then
+  echo "ERROR: Supabase SQL files are checked out with CRLF line endings."
+  echo "Run: git restore --source=HEAD --worktree -- supabase"
+  exit 1
+fi
+
 echo "[1/3] Starting local Supabase..."
 "$SUPABASE_CLI" start
 
