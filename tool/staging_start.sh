@@ -5,6 +5,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SUPABASE_CLI="$REPO_ROOT/node_modules/.bin/supabase"
+FUNCTION_ENV_EXAMPLE="$REPO_ROOT/supabase/functions/.env.example"
+FUNCTION_ENV="$REPO_ROOT/supabase/functions/.env"
+
+if [ ! -f "$FUNCTION_ENV" ] && [ -f "$FUNCTION_ENV_EXAMPLE" ]; then
+  cp "$FUNCTION_ENV_EXAMPLE" "$FUNCTION_ENV"
+  echo "Created ignored local Edge Function env from .env.example."
+fi
 
 if [ ! -x "$SUPABASE_CLI" ]; then
   echo "ERROR: Project-local Supabase CLI was not found."
