@@ -26,7 +26,7 @@ $CrlfSql = @(
 if ($CrlfSql.Count -gt 0) {
   Write-Host "SQL files with CRLF were found:" -ForegroundColor Yellow
   $CrlfSql | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
-  Write-Error "Supabase migrations must use LF. Run: git restore --source=HEAD --worktree -- supabase"
+  Write-Error "Supabase migrations must use LF. See docs/qa-staging.md: force-refresh tracked SQL files after applying .gitattributes."
 }
 
 Write-Host "[1/3] Starting local Supabase..."
