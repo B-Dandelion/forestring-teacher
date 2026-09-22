@@ -1,6 +1,9 @@
 $ErrorActionPreference = "Stop"
 
-$SupabaseCli = Join-Path $PSScriptRoot "..\node_modules\.bin\supabase.cmd"
+$RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+$SupabaseCli = Join-Path $RepoRoot "node_modules\.bin\supabase.cmd"
+
+Set-Location $RepoRoot
 
 if (-not (Test-Path $SupabaseCli)) {
   Write-Error "Project-local Supabase CLI was not found. Run 'npm ci' from the repository root first."
@@ -13,6 +16,17 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
 docker info *> $null
 if ($LASTEXITCODE -ne 0) {
   Write-Error "Docker is installed but not running."
+}
+
+$CrlfSql = @(
+  git ls-files --eol -- supabase |
+    Where-Object { $_ -match 'w/crlf' -and $_ -match '\.sql$' }
+)
+
+if ($CrlfSql.Count -gt 0) {
+  Write-Host "SQL files with CRLF were found:" -ForegroundColor Yellow
+  $CrlfSql | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+  Write-Error "Supabase migrations must use LF. Run: git restore --source=HEAD --worktree -- supabase"
 }
 
 Write-Host "[1/3] Starting local Supabase..."
