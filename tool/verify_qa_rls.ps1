@@ -21,6 +21,8 @@ create temporary table qa_rls_results (
   visible_lesson_count integer
 );
 
+grant insert on qa_rls_results to authenticated;
+
 -- Helper pattern: each transaction sets the same JWT context PostgREST would expose.
 begin;
 set local role authenticated;
