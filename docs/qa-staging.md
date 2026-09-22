@@ -195,8 +195,9 @@ cloud project is Production and must not be destructively reset.
 
 ## Next task
 
-Run the final Production ↔ Local schema reconciliation checkpoint before seeding QA
-fixtures. Resolve any remaining migration/schema drift without copying Production data.
+Apply and verify the committed Production-runtime reconciliation migration with a clean
+local `db reset`. Function fingerprints compare executable semantics and configuration,
+not comments/formatting.
 
 After schema reconciliation passes, design and seed the minimal synthetic fixture set:
 QA branches, four role accounts, semester/closure state, regular/flex lessons, and
