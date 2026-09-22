@@ -155,8 +155,7 @@ insert into auth.identities (
   provider,
   last_sign_in_at,
   created_at,
-  updated_at,
-  email
+  updated_at
 )
 select
   q.id,
@@ -171,8 +170,7 @@ select
   'email',
   null,
   '2026-09-22 00:00:00+00'::timestamptz,
-  '2026-09-22 00:00:00+00'::timestamptz,
-  q.email
+  '2026-09-22 00:00:00+00'::timestamptz
 from qa_users q;
 
 -- ============================================================
