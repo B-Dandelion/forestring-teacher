@@ -2,9 +2,13 @@
 
 set -euo pipefail
 
-if ! command -v supabase >/dev/null 2>&1; then
-  echo "ERROR: Supabase CLI is not installed."
-  echo "Install it first, then rerun this script."
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SUPABASE_CLI="$REPO_ROOT/node_modules/.bin/supabase"
+
+if [ ! -x "$SUPABASE_CLI" ]; then
+  echo "ERROR: Project-local Supabase CLI was not found."
+  echo "Run 'npm ci' from the repository root first."
   exit 1
 fi
 
@@ -19,14 +23,16 @@ if ! docker info >/dev/null 2>&1; then
   exit 1
 fi
 
+cd "$REPO_ROOT"
+
 echo "[1/3] Starting local Supabase..."
-supabase start
+"$SUPABASE_CLI" start
 
 echo "[2/3] Rebuilding local database from migrations + seed..."
-supabase db reset
+"$SUPABASE_CLI" db reset
 
 echo "[3/3] Local staging status"
-supabase status
+"$SUPABASE_CLI" status
 
 echo ""
 echo "Local staging is ready."
