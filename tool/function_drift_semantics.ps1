@@ -24,12 +24,31 @@ try {
 
 $prodLines = Get-Content $BaselineFile | Where-Object { $_ -and -not $_.StartsWith("#") }
 
+function Normalize-Bool([string]$value) {
+    switch ($value.ToLowerInvariant()) {
+        "t" { return "true" }
+        "true" { return "true" }
+        "f" { return "false" }
+        "false" { return "false" }
+        default { return $value.ToLowerInvariant() }
+    }
+}
+
 function Parse-Line([string]$line) {
-    $p = $line -split "	", 11
+    $p = $line -split "	", 12
     [pscustomobject]@{
-        Schema = $p[0]; Name = $p[1]; Args = $p[2]; Body = $p[3]
-        SecurityDefiner = $p[4]; Volatility = $p[5]; Leakproof = $p[6]
-        Parallel = $p[7]; Proconfig = $p[8]; Language = $p[9]; Result = $p[10]
+        Schema = $p[0]
+        Name = $p[1]
+        Args = $p[2]
+        RawBody = $p[3]
+        NormalizedBody = $p[4]
+        SecurityDefiner = Normalize-Bool $p[5]
+        Volatility = $p[6]
+        Leakproof = Normalize-Bool $p[7]
+        Parallel = $p[8]
+        Proconfig = $p[9]
+        Language = $p[10]
+        Result = $p[11]
         Key = "$($p[0])|$($p[1])|$($p[2])"
     }
 }
@@ -40,36 +59,49 @@ $local = @{}
 foreach ($line in $localLines) { if ($line) { $r = Parse-Line $line; $local[$r.Key] = $r } }
 
 $shared = @($prod.Keys | Where-Object { $local.ContainsKey($_) })
-$bodyDiff = @($shared | Where-Object { $prod[$_].Body -ne $local[$_].Body } | Sort-Object)
-$configOnly = @(
+$rawBodyDiff = @($shared | Where-Object { $prod[$_].RawBody -ne $local[$_].RawBody } | Sort-Object)
+$normalizedBodyDiff = @($shared | Where-Object { $prod[$_].NormalizedBody -ne $local[$_].NormalizedBody } | Sort-Object)
+$formatCommentOnly = @(
     $shared | Where-Object {
-        $prod[$_].Body -eq $local[$_].Body -and (
-            $prod[$_].SecurityDefiner -ne $local[$_].SecurityDefiner -or
-            $prod[$_].Volatility -ne $local[$_].Volatility -or
-            $prod[$_].Leakproof -ne $local[$_].Leakproof -or
-            $prod[$_].Parallel -ne $local[$_].Parallel -or
-            $prod[$_].Proconfig -ne $local[$_].Proconfig -or
-            $prod[$_].Language -ne $local[$_].Language -or
-            $prod[$_].Result -ne $local[$_].Result
-        )
+        $prod[$_].RawBody -ne $local[$_].RawBody -and
+        $prod[$_].NormalizedBody -eq $local[$_].NormalizedBody
+    } | Sort-Object
+)
+$configDiff = @(
+    $shared | Where-Object {
+        $prod[$_].SecurityDefiner -ne $local[$_].SecurityDefiner -or
+        $prod[$_].Volatility -ne $local[$_].Volatility -or
+        $prod[$_].Leakproof -ne $local[$_].Leakproof -or
+        $prod[$_].Parallel -ne $local[$_].Parallel -or
+        $prod[$_].Proconfig -ne $local[$_].Proconfig -or
+        $prod[$_].Language -ne $local[$_].Language -or
+        $prod[$_].Result -ne $local[$_].Result
     } | Sort-Object
 )
 
 Write-Host ""
-Write-Host "Function semantic drift classification"
-Write-Host "  Body differences          : $($bodyDiff.Count)"
-Write-Host "  Metadata/config-only diff : $($configOnly.Count)"
+Write-Host "Function drift classification"
+Write-Host "  Raw body differences             : $($rawBodyDiff.Count)"
+Write-Host "  Comment/format-only candidates   : $($formatCommentOnly.Count)"
+Write-Host "  Normalized body differences      : $($normalizedBodyDiff.Count)"
+Write-Host "  Actual metadata/config diff      : $($configDiff.Count)"
 
-if ($bodyDiff.Count -gt 0) {
+if ($formatCommentOnly.Count -gt 0) {
     Write-Host ""
-    Write-Host "[Body differences]"
-    $bodyDiff | ForEach-Object { Write-Host "  $_" }
+    Write-Host "[Comment/format-only candidates]"
+    $formatCommentOnly | ForEach-Object { Write-Host "  $_" }
 }
 
-if ($configOnly.Count -gt 0) {
+if ($normalizedBodyDiff.Count -gt 0) {
     Write-Host ""
-    Write-Host "[Metadata/config-only differences]"
-    foreach ($key in $configOnly) {
+    Write-Host "[Normalized body differences - inspect further]"
+    $normalizedBodyDiff | ForEach-Object { Write-Host "  $_" }
+}
+
+if ($configDiff.Count -gt 0) {
+    Write-Host ""
+    Write-Host "[Actual metadata/config differences]"
+    foreach ($key in $configDiff) {
         Write-Host "  $key"
         if ($prod[$key].SecurityDefiner -ne $local[$key].SecurityDefiner) {
             Write-Host "    security_definer: prod=$($prod[$key].SecurityDefiner) local=$($local[$key].SecurityDefiner)"
