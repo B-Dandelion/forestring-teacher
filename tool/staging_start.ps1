@@ -1,7 +1,9 @@
 $ErrorActionPreference = "Stop"
 
-if (-not (Get-Command supabase -ErrorAction SilentlyContinue)) {
-  Write-Error "Supabase CLI is not installed. Install it first, then rerun this script."
+$SupabaseCli = Join-Path $PSScriptRoot "..\node_modules\.bin\supabase.cmd"
+
+if (-not (Test-Path $SupabaseCli)) {
+  Write-Error "Project-local Supabase CLI was not found. Run 'npm ci' from the repository root first."
 }
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
@@ -14,15 +16,15 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "[1/3] Starting local Supabase..."
-supabase start
+& $SupabaseCli start
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "[2/3] Rebuilding local database from migrations + seed..."
-supabase db reset
+& $SupabaseCli db reset
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "[3/3] Local staging status"
-supabase status
+& $SupabaseCli status
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host ""
