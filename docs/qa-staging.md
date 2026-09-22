@@ -39,11 +39,20 @@ history. Local staging is rebuilt from those committed migrations.
 
 ## First setup
 
-From the repository root:
+From the repository root.
+
+macOS / Linux:
 
 ```bash
 chmod +x tool/staging_start.sh tool/run_staging.sh
 ./tool/staging_start.sh
+```
+
+Windows PowerShell:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\tool\staging_start.ps1
 ```
 
 The setup script:
@@ -74,10 +83,18 @@ Default local API URLs:
 - Physical device: handled later as a separate device-QA task; do not expose the local
   Supabase stack to public networks.
 
-Run the Teacher app against local staging:
+Run the Teacher app against local staging.
+
+macOS / Linux:
 
 ```bash
 ./tool/run_staging.sh
+```
+
+Windows PowerShell:
+
+```powershell
+.\tool\run_staging.ps1
 ```
 
 The script refuses to run if `env/staging.json` points somewhere other than the
