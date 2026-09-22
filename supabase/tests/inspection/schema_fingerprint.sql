@@ -98,12 +98,28 @@ functions as (
         p.prokind,
         p.prosecdef,
         p.provolatile,
-        pg_get_functiondef(p.oid)
+        p.proleakproof,
+        p.proparallel,
+        coalesce(array_to_string(p.proconfig, ','), ''),
+        l.lanname,
+        pg_get_function_result(p.oid),
+        regexp_replace(
+          regexp_replace(
+            replace(p.prosrc, chr(13), ''),
+            '--[^' || chr(10) || ']*',
+            '',
+            'g'
+          ),
+          '[[:space:]]+',
+          '',
+          'g'
+        )
       ),
       E'\n' order by n.nspname, p.proname, pg_get_function_identity_arguments(p.oid)
     ), '')) as fingerprint
   from pg_proc p
   join schemas n on n.oid = p.pronamespace
+  join pg_language l on l.oid = p.prolang
 ),
 policies as (
   select
