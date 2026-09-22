@@ -90,15 +90,6 @@ select
   to_char(starts_at at time zone 'Asia/Seoul','YYYY-MM-DD HH24:MI') || ' / ' || status::text
 from public.lessons
 where id='99999999-9999-4999-8999-999999999994'::uuid
-
-union all
-
-select
-  'active_forestring_cron_jobs',
-  count(*)::text
-from cron.job
-where jobname like 'forestring-%'
-  and active=true
 order by fixture;
 '@
 
