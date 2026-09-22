@@ -187,7 +187,7 @@ cloud project is Production and must not be destructively reset.
 - [x] project-local Supabase CLI is reproducibly installed with `npm ci`.
 - [x] `npx supabase start` succeeds locally.
 - [x] `npx supabase db reset` replays the complete migration chain successfully.
-- [ ] Flutter Teacher app connects to local staging.
+- [x] Flutter Teacher app connects to local staging.
 - [ ] Flutter Student app connects to the same local staging backend.
 - [ ] Synthetic QA accounts exist for Student / Teacher / Manager / Master.
 - [ ] A deterministic QA seed can be reset repeatedly.
@@ -195,10 +195,9 @@ cloud project is Production and must not be destructively reset.
 
 ## Next task
 
-Connect the Flutter Teacher app to Local Supabase using the ignored
-`env/staging.json`, verify the visible `STAGING` banner, and confirm the app never
-contacts the Production backend.
+Run the final Production ↔ Local schema reconciliation checkpoint before seeding QA
+fixtures. Resolve any remaining migration/schema drift without copying Production data.
 
-After that connection checkpoint passes, design the minimal synthetic fixture set:
+After schema reconciliation passes, design and seed the minimal synthetic fixture set:
 QA branches, four role accounts, semester/closure state, regular/flex lessons, and
 lesson-right states required for manual QA and E2E scenarios.
