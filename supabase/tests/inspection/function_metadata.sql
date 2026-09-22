@@ -2,7 +2,15 @@ select
   n.nspname as schema_name,
   p.proname as function_name,
   pg_get_function_identity_arguments(p.oid) as identity_args,
-  md5(p.prosrc) as body_hash,
+  md5(p.prosrc) as raw_body_hash,
+  md5(
+    regexp_replace(
+      regexp_replace(replace(p.prosrc, chr(13), ''), '--[^' || chr(10) || ']*', '', 'g'),
+      '[[:space:]]+',
+      '',
+      'g'
+    )
+  ) as normalized_body_hash,
   p.prosecdef as security_definer,
   p.provolatile as volatility,
   p.proleakproof as leakproof,
