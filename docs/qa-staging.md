@@ -51,12 +51,20 @@ Supabase migration SQL is source text, and some historical migrations inspect ex
 function definitions with newline-sensitive guards. The repository therefore enforces
 LF for `*.sql` through `.gitattributes`, even on Windows.
 
-If this repository was cloned on Windows before that rule existed, refresh the tracked
-Supabase files once after pulling the rule:
+If this repository was cloned on Windows before that rule existed, Git may keep the
+already-materialized CRLF files even after `.gitattributes` is pulled. First confirm
+that the working tree has no intentional changes, then force-refresh only the tracked
+Supabase SQL files:
 
 ```powershell
+git status --short
+git config --local core.autocrlf false
+git ls-files supabase | Where-Object { $_ -like "*.sql" } | ForEach-Object { Remove-Item -LiteralPath $_ -Force }
 git restore --source=HEAD --worktree -- supabase
 ```
+
+The `core.autocrlf=false` setting above is repository-local; it does not change the
+global Git setting for other projects.
 
 Verify with:
 
