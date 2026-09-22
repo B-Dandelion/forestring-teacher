@@ -193,6 +193,7 @@ cloud project is Production and must not be destructively reset.
 - [x] Synthetic QA accounts exist for Student / Teacher / Manager / Master.
 - [x] A deterministic QA seed can be reset repeatedly.
 - [x] Role allow/deny RLS smoke check passes.
+- [x] Teacher app real PIN login succeeds for QA Teacher / Manager / Master.
 - [ ] Staging is visually distinguishable from Production.
 
 ## Next task
