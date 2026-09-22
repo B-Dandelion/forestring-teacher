@@ -143,8 +143,11 @@ Windows PowerShell:
 ```
 
 The script refuses to run if `env/staging.json` points somewhere other than the
-expected local Supabase hosts. This is a guardrail against accidentally performing QA
-against Production.
+expected local Supabase hosts. The Flutter app performs the same staging-host check at
+startup as a second guardrail against accidentally performing QA against Production.
+
+When `APP_ENV=staging`, the Teacher app also displays a visible `STAGING` banner so
+screenshots and manual QA sessions cannot be confused with Production.
 
 ## Reset rule
 
@@ -168,9 +171,9 @@ cloud project is Production and must not be destructively reset.
 
 ## Phase 1 checkpoints
 
-- [ ] project-local Supabase CLI is reproducibly installed with `npm ci`.
-- [ ] `npx supabase start` succeeds locally.
-- [ ] `npx supabase db reset` replays the complete migration chain successfully.
+- [x] project-local Supabase CLI is reproducibly installed with `npm ci`.
+- [x] `npx supabase start` succeeds locally.
+- [x] `npx supabase db reset` replays the complete migration chain successfully.
 - [ ] Flutter Teacher app connects to local staging.
 - [ ] Flutter Student app connects to the same local staging backend.
 - [ ] Synthetic QA accounts exist for Student / Teacher / Manager / Master.
@@ -179,6 +182,10 @@ cloud project is Production and must not be destructively reset.
 
 ## Next task
 
-After the migration chain is verified locally, design the minimal synthetic fixture set:
+Connect the Flutter Teacher app to Local Supabase using the ignored
+`env/staging.json`, verify the visible `STAGING` banner, and confirm the app never
+contacts the Production backend.
+
+After that connection checkpoint passes, design the minimal synthetic fixture set:
 QA branches, four role accounts, semester/closure state, regular/flex lessons, and
 lesson-right states required for manual QA and E2E scenarios.
