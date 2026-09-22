@@ -189,12 +189,28 @@ cloud project is Production and must not be destructively reset.
 - [x] `npx supabase db reset` replays the complete migration chain successfully.
 - [x] Flutter Teacher app connects to local staging.
 - [x] Production ↔ Local schema semantic fingerprint matches in all categories.
-- [ ] Flutter Student app connects to the same local staging backend.
+- [x] Flutter Student app connects to the same local staging backend.
 - [x] Synthetic QA accounts exist for Student / Teacher / Manager / Master.
 - [x] A deterministic QA seed can be reset repeatedly.
 - [x] Role allow/deny RLS smoke check passes.
 - [x] Teacher app real PIN login succeeds for QA Teacher / Manager / Master.
-- [ ] Staging is visually distinguishable from Production.
+- [x] Staging is visually distinguishable from Production.
+
+## Phase 1 completion
+
+Phase 1 — QA Foundation completed on 2026-09-22.
+
+Verified outcomes:
+- isolated Local Supabase staging with synthetic data only,
+- clean migration replay and 7/7 Production ↔ Local semantic schema match,
+- deterministic resettable QA identities and scheduling fixture,
+- Student / Teacher / Manager / Master real PIN authentication,
+- role-scoped RLS allow/deny smoke verification,
+- Teacher and Student Flutter apps connected to the same Local backend,
+- visible STAGING environment marker and production-host guardrails.
+
+The foundation issue can now close. Further scenario coverage belongs to Phase 2 Manual QA
+and later Phase 3 E2E automation.
 
 ## Next task
 
