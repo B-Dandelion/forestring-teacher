@@ -349,9 +349,26 @@ cross join qa_settings s;
 
 -- Keep Local QA deterministic. Database automation can be exercised explicitly in
 -- dedicated tests later, but it must not mutate the baseline fixture in the background.
-update cron.job
-set active = false
-where jobname like 'forestring-%';
+--
+-- cron.job is intentionally protected by pg_cron. Use its public API instead of
+-- directly updating the extension-owned table.
+do $qa_disable_cron$
+declare
+  v_job_name text;
+begin
+  foreach v_job_name in array array[
+    'forestring-finalize-due-student-withdrawals',
+    'forestring-finalize-due-staff-departures',
+    'forestring-semester-automation',
+    'forestring-sync-teacher-work-hours'
+  ]
+  loop
+    if not cron.unschedule(v_job_name) then
+      raise exception 'QA_SEED_EXPECTED_CRON_JOB_MISSING: %', v_job_name;
+    end if;
+  end loop;
+end;
+$qa_disable_cron$;
 
 -- The student row trigger creates an enrollment period beginning on reset day.
 -- For this historical September fixture, move the synthetic enrollment start to the
