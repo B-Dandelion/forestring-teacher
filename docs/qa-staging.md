@@ -30,9 +30,17 @@ destructive testing, bug reproduction, and later E2E automation.
 
 ## Prerequisites
 
-- Supabase CLI
+- Node.js / npm
 - Docker-compatible runtime
 - Flutter toolchain
+
+The Supabase CLI is intentionally installed as a project-local npm dev dependency and
+locked by `package-lock.json`. After cloning or pulling the repository, install the
+exact dependency set with:
+
+```bash
+npm ci
+```
 
 The repository already contains `supabase/config.toml` and the production migration
 history. Local staging is rebuilt from those committed migrations.
@@ -63,6 +71,9 @@ The setup script:
 4. applies `supabase/seed.sql`,
 5. prints local service URLs and keys.
 
+The scripts invoke the project-local CLI from `node_modules/.bin`; they do not depend
+on a machine-global Supabase CLI installation.
+
 A successful `supabase db reset` is the first reproducibility checkpoint for Phase 1.
 
 ## Flutter staging config
@@ -73,8 +84,12 @@ Create a local, ignored config file:
 cp env/staging.example.json env/staging.json
 ```
 
-Then run `supabase status` and copy the local publishable/anon key into
-`env/staging.json`.
+Then run the project-local CLI and copy the local publishable/anon key into
+`env/staging.json`:
+
+```bash
+npx supabase status
+```
 
 Default local API URLs:
 
@@ -106,7 +121,7 @@ against Production.
 Before a deterministic QA run:
 
 ```bash
-supabase db reset
+npx supabase db reset
 ```
 
 This must always mean:
@@ -118,13 +133,14 @@ empty local database
   -> known QA starting state
 ```
 
-Never run `supabase db reset --linked` as part of this QA workflow. The linked cloud
-project is Production and must not be destructively reset.
+Never run `npx supabase db reset --linked` as part of this QA workflow. The linked
+cloud project is Production and must not be destructively reset.
 
 ## Phase 1 checkpoints
 
-- [ ] `supabase start` succeeds locally.
-- [ ] `supabase db reset` replays the complete migration chain successfully.
+- [ ] project-local Supabase CLI is reproducibly installed with `npm ci`.
+- [ ] `npx supabase start` succeeds locally.
+- [ ] `npx supabase db reset` replays the complete migration chain successfully.
 - [ ] Flutter Teacher app connects to local staging.
 - [ ] Flutter Student app connects to the same local staging backend.
 - [ ] Synthetic QA accounts exist for Student / Teacher / Manager / Master.
