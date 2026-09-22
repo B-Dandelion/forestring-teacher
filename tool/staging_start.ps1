@@ -5,6 +5,14 @@ $SupabaseCli = Join-Path $RepoRoot "node_modules\.bin\supabase.cmd"
 
 Set-Location $RepoRoot
 
+$FunctionEnvExample = Join-Path $RepoRoot "supabase\functions\.env.example"
+$FunctionEnv = Join-Path $RepoRoot "supabase\functions\.env"
+
+if (-not (Test-Path $FunctionEnv) -and (Test-Path $FunctionEnvExample)) {
+  Copy-Item $FunctionEnvExample $FunctionEnv
+  Write-Host "Created ignored local Edge Function env from .env.example."
+}
+
 if (-not (Test-Path $SupabaseCli)) {
   Write-Error "Project-local Supabase CLI was not found. Run 'npm ci' from the repository root first."
 }
