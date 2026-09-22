@@ -38,13 +38,16 @@ if git ls-files --eol -- supabase | grep -E 'w/crlf.*\.sql$' >/dev/null 2>&1; th
   exit 1
 fi
 
-echo "[1/3] Starting local Supabase..."
+echo "[1/4] Reloading local Supabase runtime so Edge Function env is current..."
+"$SUPABASE_CLI" stop
+
+echo "[2/4] Starting local Supabase..."
 "$SUPABASE_CLI" start
 
-echo "[2/3] Rebuilding local database from migrations + seed..."
+echo "[3/4] Rebuilding local database from migrations + seed..."
 "$SUPABASE_CLI" db reset
 
-echo "[3/3] Local staging status"
+echo "[4/4] Local staging status"
 "$SUPABASE_CLI" status
 
 echo ""
