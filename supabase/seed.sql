@@ -331,6 +331,81 @@ cross join qa_settings s;
 
 
 -- ============================================================
+-- QA CALENDAR DEFAULT CLOSURE
+--
+-- The 2026 academy-calendar migration originally promoted branch closure rows into
+-- default_closure_periods using the branches that existed at migration time.
+-- A clean Local database has no business branches until this seed runs, so that
+-- data-dependent promotion intentionally produces no default rows.
+--
+-- Recreate the representative September instructional break as synthetic QA
+-- configuration. This is fixture data, not a schema migration and not Production data.
+-- ============================================================
+
+insert into public.default_closure_periods (
+  id,
+  semester_id,
+  starts_on,
+  ends_on,
+  reason,
+  closure_kind,
+  created_by,
+  created_at,
+  updated_at
+)
+select
+  'abababab-abab-4bab-8bab-ababababab01'::uuid,
+  s.id,
+  date '2026-09-21',
+  date '2026-09-27',
+  'QA September instructional break',
+  'instructional_break'::public.closure_kind,
+  '11111111-1111-4111-8111-111111111111'::uuid,
+  '2026-09-22 00:00:00+00'::timestamptz,
+  '2026-09-22 00:00:00+00'::timestamptz
+from public.semesters s
+where s.code = '2026-09';
+
+insert into public.closure_periods (
+  id,
+  semester_id,
+  branch_id,
+  starts_on,
+  ends_on,
+  reason,
+  created_by,
+  closure_kind,
+  default_closure_id,
+  created_at,
+  updated_at
+)
+select
+  case b.id
+    when 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'::uuid
+      then 'acacacac-acac-4cac-8cac-acacacacac01'::uuid
+    when 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2'::uuid
+      then 'acacacac-acac-4cac-8cac-acacacacac02'::uuid
+  end,
+  s.id,
+  b.id,
+  date '2026-09-21',
+  date '2026-09-27',
+  'QA September instructional break',
+  '11111111-1111-4111-8111-111111111111'::uuid,
+  'instructional_break'::public.closure_kind,
+  'abababab-abab-4bab-8bab-ababababab01'::uuid,
+  '2026-09-22 00:00:00+00'::timestamptz,
+  '2026-09-22 00:00:00+00'::timestamptz
+from public.branches b
+cross join public.semesters s
+where b.id in (
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'::uuid,
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2'::uuid
+)
+and s.code = '2026-09';
+
+
+-- ============================================================
 -- QA DOMAIN FIXTURE
 --
 -- Canonical Phase 1 fixture for later manual QA / E2E.
