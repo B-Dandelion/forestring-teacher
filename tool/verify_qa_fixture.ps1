@@ -40,14 +40,14 @@ where student_id='44444444-4444-4444-8444-444444444444'::uuid
 union all
 
 select
-  'instructional_break_2026_09',
+  'ordinary_closure_2026_09_30',
   count(*)::text
 from public.closure_periods
 where branch_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'::uuid
   and semester_id=(select id from public.semesters where code='2026-09')
-  and starts_on=date '2026-09-21'
-  and ends_on=date '2026-09-27'
-  and closure_kind='instructional_break'::public.closure_kind
+  and starts_on=date '2026-09-30'
+  and ends_on=date '2026-09-30'
+  and closure_kind='ordinary'::public.closure_kind
 
 union all
 
