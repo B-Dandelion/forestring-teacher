@@ -56,3 +56,4 @@ ios/.symlinks/
 
 # Local environment config
 env/dev.json
+env/staging.json
