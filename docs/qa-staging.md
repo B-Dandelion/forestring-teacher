@@ -188,6 +188,7 @@ cloud project is Production and must not be destructively reset.
 - [x] `npx supabase start` succeeds locally.
 - [x] `npx supabase db reset` replays the complete migration chain successfully.
 - [x] Flutter Teacher app connects to local staging.
+- [x] Production ↔ Local schema semantic fingerprint matches in all categories.
 - [ ] Flutter Student app connects to the same local staging backend.
 - [ ] Synthetic QA accounts exist for Student / Teacher / Manager / Master.
 - [ ] A deterministic QA seed can be reset repeatedly.
@@ -195,10 +196,12 @@ cloud project is Production and must not be destructively reset.
 
 ## Next task
 
-Apply and verify the committed Production-runtime reconciliation migration with a clean
-local `db reset`. Function fingerprints compare executable semantics and configuration,
-not comments/formatting.
+Create the deterministic Local QA identity/fixture layer:
 
-After schema reconciliation passes, design and seed the minimal synthetic fixture set:
-QA branches, four role accounts, semester/closure state, regular/flex lessons, and
-lesson-right states required for manual QA and E2E scenarios.
+1. four non-review Auth/profile roles: Student / Teacher / Manager / Master,
+2. synthetic QA branches,
+3. current/next semester plus closure state,
+4. the minimum teacher/student relationship and lesson/right states needed by later
+   manual QA and E2E scenarios.
+
+All identifiers must be synthetic and reproducible after a clean local reset.
