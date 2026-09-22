@@ -45,6 +45,28 @@ npm ci
 The repository already contains `supabase/config.toml` and the production migration
 history. Local staging is rebuilt from those committed migrations.
 
+### Cross-platform line endings
+
+Supabase migration SQL is source text, and some historical migrations inspect existing
+function definitions with newline-sensitive guards. The repository therefore enforces
+LF for `*.sql` through `.gitattributes`, even on Windows.
+
+If this repository was cloned on Windows before that rule existed, refresh the tracked
+Supabase files once after pulling the rule:
+
+```powershell
+git restore --source=HEAD --worktree -- supabase
+```
+
+Verify with:
+
+```powershell
+git ls-files --eol supabase/migrations/20260820012946_extend_lesson_right_booking_for_regular.sql supabase/migrations/20260822110910_guard_core_lesson_mutation_rpcs.sql
+```
+
+Both files should report `w/lf`. The staging bootstrap also fails early if tracked SQL
+is still checked out as CRLF.
+
 ## First setup
 
 From the repository root.
