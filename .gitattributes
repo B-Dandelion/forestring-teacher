@@ -1,0 +1,6 @@
+# SQL migrations are executed as source text. Keep LF on every OS so
+# newline-sensitive migration guards behave identically on Windows/macOS/Linux.
+*.sql text eol=lf
+
+# Shell scripts must also keep Unix line endings.
+*.sh text eol=lf
