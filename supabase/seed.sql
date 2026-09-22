@@ -356,10 +356,10 @@ insert into public.default_closure_periods (
 select
   'abababab-abab-4bab-8bab-ababababab01'::uuid,
   s.id,
-  date '2026-09-21',
-  date '2026-09-27',
-  'QA September instructional break',
-  'instructional_break'::public.closure_kind,
+  date '2026-09-30',
+  date '2026-09-30',
+  'QA September ordinary closure',
+  'ordinary'::public.closure_kind,
   '11111111-1111-4111-8111-111111111111'::uuid,
   '2026-09-22 00:00:00+00'::timestamptz,
   '2026-09-22 00:00:00+00'::timestamptz
@@ -388,11 +388,11 @@ select
   end,
   s.id,
   b.id,
-  date '2026-09-21',
-  date '2026-09-27',
-  'QA September instructional break',
+  date '2026-09-30',
+  date '2026-09-30',
+  'QA September ordinary closure',
   '11111111-1111-4111-8111-111111111111'::uuid,
-  'instructional_break'::public.closure_kind,
+  'ordinary'::public.closure_kind,
   'abababab-abab-4bab-8bab-ababababab01'::uuid,
   '2026-09-22 00:00:00+00'::timestamptz,
   '2026-09-22 00:00:00+00'::timestamptz
@@ -414,7 +414,7 @@ and s.code = '2026-09';
 --
 -- Current logical state on 2026-09-22:
 --   - current semester: 2026-09
---   - instructional break: 2026-09-21 ~ 2026-09-27
+--   - ordinary closure: 2026-09-30
 --   - next semester: 2026-10
 --   - regular QA Student assigned to QA Teacher
 --   - four regular entitlements for the current semester
@@ -892,11 +892,11 @@ begin
     from public.closure_periods cp
     where cp.branch_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'::uuid
       and cp.semester_id = v_current_semester_id
-      and cp.starts_on = date '2026-09-21'
-      and cp.ends_on = date '2026-09-27'
-      and cp.closure_kind = 'instructional_break'::public.closure_kind
+      and cp.starts_on = date '2026-09-30'
+      and cp.ends_on = date '2026-09-30'
+      and cp.closure_kind = 'ordinary'::public.closure_kind
   ) then
-    raise exception 'QA_SEED_INSTRUCTIONAL_BREAK_MISSING';
+    raise exception 'QA_SEED_ORDINARY_CLOSURE_MISSING';
   end if;
 
   if (
