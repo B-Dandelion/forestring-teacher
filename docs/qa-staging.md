@@ -190,21 +190,24 @@ cloud project is Production and must not be destructively reset.
 - [x] Flutter Teacher app connects to local staging.
 - [x] Production ↔ Local schema semantic fingerprint matches in all categories.
 - [ ] Flutter Student app connects to the same local staging backend.
-- [ ] Synthetic QA accounts exist for Student / Teacher / Manager / Master.
-- [ ] A deterministic QA seed can be reset repeatedly.
+- [x] Synthetic QA accounts exist for Student / Teacher / Manager / Master.
+- [x] A deterministic QA seed can be reset repeatedly.
 - [ ] Staging is visually distinguishable from Production.
 
 ## Next task
 
-Create the deterministic Local QA identity/fixture layer:
+Run authentication and role-access smoke checks against the deterministic Local QA
+baseline, then connect the Student app to the same Local Supabase backend.
 
-1. four non-review Auth/profile roles: Student / Teacher / Manager / Master,
-2. synthetic QA branches,
-3. current/next semester plus closure state,
-4. the minimum teacher/student relationship and lesson/right states needed by later
-   manual QA and E2E scenarios.
+Minimum smoke scope:
 
-All identifiers must be synthetic and reproducible after a clean local reset.
+1. QA Teacher / Manager / Master can sign in through the real PIN login path,
+2. QA Student can sign in through the Student app against the same Local backend,
+3. each role resolves its own profile through real Auth + RLS,
+4. at least one role-allowed and one role-denied backend access are observed,
+5. visually confirm the Teacher staging build is distinguishable from Production.
+
+After those checks, Phase 1 can close and Phase 2 Manual QA can begin.
 
 
 ## Local QA accounts
@@ -230,5 +233,7 @@ Verification:
 .\tool\verify_qa_accounts.ps1
 ```
 
-The next fixture step adds semester/closure/assignment/lesson-right states after these
-four identities are verified.
+The identity and domain fixture reset has been verified. The deterministic baseline
+contains the QA assignment, teacher work-hour model, current/next semester plans,
+future ordinary closure, regular schedule/series, four current-semester lesson rights,
+and the reserved 2026-09-29 lesson used as the later cancellation/rebooking E2E start.
