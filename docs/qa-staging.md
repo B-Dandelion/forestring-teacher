@@ -192,6 +192,7 @@ cloud project is Production and must not be destructively reset.
 - [ ] Flutter Student app connects to the same local staging backend.
 - [x] Synthetic QA accounts exist for Student / Teacher / Manager / Master.
 - [x] A deterministic QA seed can be reset repeatedly.
+- [x] Role allow/deny RLS smoke check passes.
 - [ ] Staging is visually distinguishable from Production.
 
 ## Next task
