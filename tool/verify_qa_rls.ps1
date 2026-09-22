@@ -33,7 +33,7 @@ select
   (select count(*) from public.profiles where id=auth.uid()),
   (select count(*) from public.branches),
   (select count(*) from public.branches where id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2'::uuid),
-  (select count(*) from public.lessons where id like '99999999-%');
+  (select count(*) from public.lessons where student_id='44444444-4444-4444-8444-444444444444'::uuid);
 reset role;
 commit;
 
@@ -48,7 +48,7 @@ select
   (select count(*) from public.profiles where id=auth.uid()),
   (select count(*) from public.branches),
   (select count(*) from public.branches where id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2'::uuid),
-  (select count(*) from public.lessons where id like '99999999-%');
+  (select count(*) from public.lessons where student_id='44444444-4444-4444-8444-444444444444'::uuid);
 reset role;
 commit;
 
@@ -63,7 +63,7 @@ select
   (select count(*) from public.profiles where id=auth.uid()),
   (select count(*) from public.branches),
   (select count(*) from public.branches where id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2'::uuid),
-  (select count(*) from public.lessons where id like '99999999-%');
+  (select count(*) from public.lessons where student_id='44444444-4444-4444-8444-444444444444'::uuid);
 reset role;
 commit;
 
@@ -78,7 +78,7 @@ select
   (select count(*) from public.profiles where id=auth.uid()),
   (select count(*) from public.branches),
   (select count(*) from public.branches where id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2'::uuid),
-  (select count(*) from public.lessons where id like '99999999-%');
+  (select count(*) from public.lessons where student_id='44444444-4444-4444-8444-444444444444'::uuid);
 reset role;
 commit;
 
