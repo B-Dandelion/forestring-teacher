@@ -205,3 +205,30 @@ Create the deterministic Local QA identity/fixture layer:
    manual QA and E2E scenarios.
 
 All identifiers must be synthetic and reproducible after a clean local reset.
+
+
+## Local QA accounts
+
+These accounts are synthetic and Local-only. They are recreated by `db reset` and are
+not Review Accounts.
+
+| Login name | PIN | Role | Branch |
+| --- | --- | --- | --- |
+| QA Master | 1111 | master | global |
+| QA Manager | 2222 | manager | QA Branch A |
+| QA Teacher | 3333 | teacher | QA Branch A |
+| QA Student | 4444 | student | QA Branch A |
+
+All four have `is_review_account=false`. The Local Edge Function pepper values live in
+the ignored `supabase/functions/.env`, bootstrapped from the committed Local-only
+`.env.example`.
+
+Verification:
+
+```powershell
+.\tool\staging_start.ps1
+.\tool\verify_qa_accounts.ps1
+```
+
+The next fixture step adds semester/closure/assignment/lesson-right states after these
+four identities are verified.
