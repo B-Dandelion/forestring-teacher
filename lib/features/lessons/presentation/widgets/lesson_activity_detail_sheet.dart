@@ -286,7 +286,10 @@ String _eventLabel(_LessonActivity event) {
     case 'LESSON_MANUALLY_UPDATED':
       return '일정 변경';
     case 'LESSON_RIGHT_BOOKED':
-      return event.details['regularRebooking'] == true ? '재예약' : '수업권 예약';
+      return event.details['regularRebooking'] == true ||
+              event.details['reusedLesson'] == true
+          ? '재예약'
+          : '수업권 예약';
     case 'MAKEUP_LESSON_CREATED':
       return '보강 등록';
     default:
