@@ -57,8 +57,8 @@ $fragment$;
   v_def := v_new;
   v_new := replace(
     v_def,
-    $,'planned'::public.student_semester_plan_status,null,null$,
-    $,'planned'::public.student_semester_plan_status,v_actor.actor_id,v_actor.actor_id$
+    $actor$,'planned'::public.student_semester_plan_status,null,null$actor$,
+    $actor$,'planned'::public.student_semester_plan_status,v_actor.actor_id,v_actor.actor_id$actor$
   );
 
   if v_new = v_def then
