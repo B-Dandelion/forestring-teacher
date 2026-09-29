@@ -277,6 +277,8 @@ Widget _finalDescription(_LessonActivity event) {
 
 String _eventLabel(_LessonActivity event) {
   switch (event.eventType) {
+    case 'LESSON_ORIGINAL_SCHEDULE':
+      return '원래 일정';
     case 'LESSON_CANCELED':
       return event.details['cancellationOrigin']?.toString() == 'student'
           ? '학생 취소'
@@ -294,9 +296,30 @@ String _eventLabel(_LessonActivity event) {
 
 String? _eventDescription(_LessonActivity event) {
   switch (event.eventType) {
+    case 'LESSON_ORIGINAL_SCHEDULE':
+      final originalStart = _parseDate(event.details['startsAt']);
+      final originalEnd = _parseDate(event.details['endsAt']);
+      if (originalStart == null) return null;
+      return originalEnd == null
+          ? DateFormat('M월 d일 HH:mm').format(originalStart)
+          : '${DateFormat('M월 d일 HH:mm').format(originalStart)} ~ '
+              '${DateFormat('HH:mm').format(originalEnd)}';
     case 'LESSON_CANCELED':
+      final canceledStart = _parseDate(event.details['startsAt']);
+      final canceledEnd = _parseDate(event.details['endsAt']);
       final reason = event.details['reason']?.toString().trim();
-      return reason == null || reason.isEmpty ? null : reason;
+      final schedule = canceledStart == null
+          ? null
+          : canceledEnd == null
+              ? DateFormat('M월 d일 HH:mm').format(canceledStart)
+              : '${DateFormat('M월 d일 HH:mm').format(canceledStart)} ~ '
+                  '${DateFormat('HH:mm').format(canceledEnd)}';
+      if (schedule == null) {
+        return reason == null || reason.isEmpty ? null : reason;
+      }
+      return reason == null || reason.isEmpty
+          ? schedule
+          : '$schedule · $reason';
     case 'LESSON_MANUALLY_UPDATED':
       final before = _asMap(event.details['before']);
       final after = _asMap(event.details['after']);
@@ -365,6 +388,39 @@ Widget _pill(String text) {
 Future<_LessonActivityData> _loadLessonActivity(Lesson lesson) async {
   try {
     final client = Supabase.instance.client;
+    final rightId = lesson.lessonRightId;
+
+    if (rightId != null && rightId.isNotEmpty) {
+      final rawRows = await client.rpc(
+        'get_student_lesson_activity',
+        params: {
+          'p_student_id': lesson.studentId,
+          'p_right_id': rightId,
+        },
+      );
+
+      final events = (rawRows as List).map((raw) {
+        final row = Map<String, dynamic>.from(raw as Map);
+        final actorId = row['actor_id']?.toString();
+        final actor = _Actor(
+          name: row['actor_name']?.toString(),
+          role: row['actor_role']?.toString(),
+        );
+        return _LessonActivity(
+          eventType: row['event_type']?.toString() ?? '',
+          createdAt: DateTime.parse(row['event_at'].toString()).toLocal(),
+          actorLabel: _actorLabel(
+            actorId: actorId,
+            actor: actor,
+            lesson: lesson,
+          ),
+          details: _asMap(row['details']),
+        );
+      }).toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+      return _LessonActivityData(events: events);
+    }
 
     final rawRows = await client
         .from('audit_events')
