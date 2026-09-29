@@ -52,6 +52,20 @@ $fragment$;
       'FORESTRING_MIGRATION_MARKER_NOT_FOUND: ensure_semester_plan_materialized system-only guard';
   end if;
 
+  -- Preserve provenance when this helper is invoked from staff registration.
+  -- Cron still has actor_id=NULL, so existing system behavior remains unchanged.
+  v_def := v_new;
+  v_new := replace(
+    v_def,
+    $,'planned'::public.student_semester_plan_status,null,null$,
+    $,'planned'::public.student_semester_plan_status,v_actor.actor_id,v_actor.actor_id$
+  );
+
+  if v_new = v_def then
+    raise exception
+      'FORESTRING_MIGRATION_MARKER_NOT_FOUND: ensure_semester_plan_materialized plan actor provenance';
+  end if;
+
   execute v_new;
 
   -- ----------------------------------------------------------
