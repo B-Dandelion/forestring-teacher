@@ -9,6 +9,23 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+def releaseSigningKeys = ['keyAlias', 'keyPassword', 'storeFile', 'storePassword']
+def hasReleaseSigning = keystorePropertiesFile.exists() &&
+        releaseSigningKeys.every { key ->
+            def value = keystoreProperties[key]
+            value != null && !value.toString().trim().isEmpty()
+        }
+
+def isReleaseBuild = gradle.startParameter.taskNames.any { taskName ->
+    taskName.toLowerCase().contains('release')
+}
+
+if (isReleaseBuild && !hasReleaseSigning) {
+    throw new GradleException(
+        "Release signing is not configured. Add android/key.properties locally before building a release."
+    )
+}
+
 android {
     namespace = "forestring.teacher.app"
     compileSdk = 36
@@ -29,17 +46,21 @@ android {
     }
 
     signingConfigs {
-        release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
+        if (hasReleaseSigning) {
+            release {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.release
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.release
+            }
         }
     }
 }

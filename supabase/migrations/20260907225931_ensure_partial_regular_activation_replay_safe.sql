@@ -1,3 +1,15 @@
+-- Replay-safe convergence for the partial-first-semester activation change.
+--
+-- Production received the partial-semester behavior during incident response
+-- before its original SQL was fully captured in Git. On a fresh replay the
+-- function can therefore still be in the older "exactly four occurrences per
+-- slot" form when this migration runs.
+--
+-- Important: 20260825083025 replaced activate_student_semester_plan() and no
+-- longer contains the older "BUILD RIGHTS + LESSONS" section comment. Do not
+-- use that comment as a patch anchor. Patch the concrete validation block
+-- instead, then assert the intended behavior.
+
 do $mig$
 declare
   v_def text;
@@ -59,42 +71,34 @@ begin
     end if;
     v_def := v_new;
 
-    v_new := replace(v_def, 'v_candidate_count <> 4', 'v_candidate_count = 0');
-    if v_new = v_def then
-      raise exception 'FORESTRING_REPLAY_PARTIAL_CANDIDATE_CONDITION_PATCH_FAILED';
-    end if;
-    v_def := v_new;
-
     v_new := replace(
       v_def,
-      'FORESTRING_REGULAR_SLOT_NOT_FOUR_OCCURRENCES',
-      'FORESTRING_REGULAR_SLOT_NO_OCCURRENCES'
-    );
-    if v_new = v_def then
-      raise exception 'FORESTRING_REPLAY_PARTIAL_CANDIDATE_ERROR_PATCH_FAILED';
+      $old$    if v_candidate_count <> 4 then
+      raise exception using
+        errcode='P0001',
+        message='FORESTRING_REGULAR_SLOT_NOT_FOUR_OCCURRENCES',
+        detail='schedule_slot_id='||v_slot.id::text||', candidate_count='||v_candidate_count::text;
+    end if;$old$,
+      $new$    if v_candidate_count = 0 then
+      raise exception using
+        errcode='P0001',
+        message='FORESTRING_REGULAR_SLOT_NO_OCCURRENCES',
+        detail='schedule_slot_id='||v_slot.id::text;
     end if;
-    v_def := v_new;
 
-    v_new := replace(
-      v_def,
-      '-- ========================================================
-    -- BUILD RIGHTS + LESSONS',
-      $guard$if v_candidate_count > 4 then
+    if v_candidate_count > 4 then
       raise exception using
         errcode='P0001',
         message='FORESTRING_REGULAR_SLOT_TOO_MANY_OCCURRENCES',
         detail='schedule_slot_id=' || v_slot.id::text || ', candidate_count=' || v_candidate_count::text;
-    end if;
-
-    -- ========================================================
-    -- BUILD RIGHTS + LESSONS$guard$
+    end if;$new$
     );
-    if v_new = v_def then
-      raise exception 'FORESTRING_REPLAY_PARTIAL_TOO_MANY_GUARD_PATCH_FAILED';
-    end if;
-    v_def := v_new;
 
-    execute v_def;
+    if v_new = v_def then
+      raise exception 'FORESTRING_REPLAY_PARTIAL_SLOT_GUARD_PATCH_FAILED';
+    end if;
+
+    execute v_new;
   end if;
 
   select pg_get_functiondef('public.activate_student_semester_plan(uuid)'::regprocedure)
@@ -102,6 +106,7 @@ begin
 
   if position(v_marker in v_def) = 0
      or position('FORESTRING_REGULAR_SLOT_TOO_MANY_OCCURRENCES' in v_def) = 0
+     or position('FORESTRING_REGULAR_SLOT_NO_OCCURRENCES' in v_def) = 0
      or position('FORESTRING_REGULAR_SLOT_NOT_FOUR_OCCURRENCES' in v_def) > 0 then
     raise exception 'FORESTRING_PARTIAL_REGULAR_ACTIVATION_NOT_ENFORCED';
   end if;

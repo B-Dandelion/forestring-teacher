@@ -75,6 +75,19 @@ class ForestringTeacher extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: '포레스트링 선생님',
         theme: buildForestringTheme(),
+        builder: (context, child) {
+          final app = child ?? const SizedBox.shrink();
+
+          if (!AppConfig.isStaging) {
+            return app;
+          }
+
+          return Banner(
+            message: 'STAGING',
+            location: BannerLocation.topEnd,
+            child: app,
+          );
+        },
         home: const AppGate(),
       ),
     );
