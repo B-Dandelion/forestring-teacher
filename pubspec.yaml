@@ -2,7 +2,7 @@ name: forestring_teacher_2
 description: "포레스트링 선생님"
 publish_to: 'none'
 
-version: 3.2.2+61
+version: 3.2.3+62
 
 environment:
   sdk: ^3.5.2
