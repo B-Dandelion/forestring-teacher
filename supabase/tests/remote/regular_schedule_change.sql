@@ -26,6 +26,7 @@ declare
   v_slot_id uuid;
   v_old_series_id uuid;
   v_new_series_id uuid;
+  v_second_series_id uuid;
 
   -- ==========================================================
   -- RIGHTS
@@ -1273,15 +1274,13 @@ begin
       and l.lesson_right_id =
           v_right_3
 
-      -- Historical generation provenance stays old.
+      -- Default-following identity advances to the new recurring rule.
       and l.series_id =
-          v_old_series_id
+          v_new_series_id
 
-      -- Stable occurrence identity stays old Monday.
       and l.occurrence_at =
-          timestamptz '2101-01-17 18:00:00+09'
+          v_new_3_starts_at
 
-      -- Actual appointment follows NEW default #3.
       and l.starts_at =
           v_new_3_starts_at
 
@@ -1340,10 +1339,10 @@ begin
           v_right_4
 
       and l.series_id =
-          v_old_series_id
+          v_new_series_id
 
       and l.occurrence_at =
-          timestamptz '2101-01-24 18:00:00+09'
+          v_new_4_starts_at
 
       and l.starts_at =
           v_new_4_starts_at
@@ -1565,12 +1564,127 @@ begin
       'TEST_FAILED: no-op created duplicate audit';
   end if;
 
+
+  -- ==========================================================
+  -- 29. ACTUAL-DATE BOUNDARY REGRESSION
+  --
+  -- Simulate a legacy row produced by the old implementation:
+  -- the actual lesson already follows the moved Thursday rule,
+  -- but occurrence_at still points to the older Monday baseline.
+  --
+  -- A change effective on the actual 01/20 lesson must include
+  -- that lesson even though its stale occurrence_at is 01/17.
+  -- Individual/canceled earlier positions must not be pulled
+  -- into the new boundary.
+  -- ==========================================================
+
+  update public.lessons
+  set occurrence_at =
+        timestamptz '2101-01-17 18:00:00+09'
+  where id =
+        v_lesson_3;
+
+
+  update public.lessons
+  set occurrence_at =
+        timestamptz '2101-01-24 18:00:00+09'
+  where id =
+        v_lesson_4;
+
+
+  v_result :=
+    public.change_regular_schedule(
+      v_slot_id,
+      v_teacher_id,
+      4,
+      time '18:00',
+      60,
+      date '2101-01-20'
+    );
+
+
+  if (v_result ->> 'changed')::boolean <> true
+     or
+     (v_result ->> 'reconciledLessonCount')::integer <> 2 then
+
+    raise exception
+      'TEST_FAILED: actual-date boundary did not reconcile exactly #3/#4: %',
+      v_result;
+  end if;
+
+
+  v_second_series_id :=
+    (
+      v_result
+      ->> 'newSeriesId'
+    )::uuid;
+
+
+  if not exists (
+    select 1
+    from public.lessons l
+    where l.id = v_lesson_3
+      and l.series_id = v_second_series_id
+      and l.occurrence_at =
+          timestamptz '2101-01-20 18:00:00+09'
+      and l.starts_at =
+          timestamptz '2101-01-20 18:00:00+09'
+      and l.duration_minutes = 60
+      and l.rescheduled_by is null
+  ) then
+    raise exception
+      'TEST_FAILED: legacy-diverged #3 did not follow actual-date boundary';
+  end if;
+
+
+  if not exists (
+    select 1
+    from public.lessons l
+    where l.id = v_lesson_4
+      and l.series_id = v_second_series_id
+      and l.occurrence_at =
+          timestamptz '2101-01-27 18:00:00+09'
+      and l.starts_at =
+          timestamptz '2101-01-27 18:00:00+09'
+      and l.duration_minutes = 60
+      and l.rescheduled_by is null
+  ) then
+    raise exception
+      'TEST_FAILED: legacy-diverged #4 ordinal/state incorrect';
+  end if;
+
+
+  if not exists (
+    select 1
+    from public.lessons l
+    where l.id = v_lesson_1
+      and l.status = 'canceled'::public.lesson_status
+      and l.starts_at = timestamptz '2101-01-03 18:00:00+09'
+  ) then
+    raise exception
+      'TEST_FAILED: canceled earlier position changed during actual-boundary regression';
+  end if;
+
+
+  if not exists (
+    select 1
+    from public.lessons l
+    where l.id = v_lesson_2
+      and l.rescheduled_by = v_manager_id
+      and l.starts_at = v_moved_2_starts_at
+      and l.occurrence_at =
+          timestamptz '2101-01-10 18:00:00+09'
+  ) then
+    raise exception
+      'TEST_FAILED: individual move changed during actual-boundary regression';
+  end if;
+
 end;
-$$;
+$;
 
 
 select
-  'PASS: regular schedule change / versioned series / untouched future reconcile / canceled preserved / individual move preserved / ordinal preservation / right duration / work hours / blocked / collision / assignment / branch auth / atomic rollback / no-op'
+  'PASS: regular schedule change / actual-date boundary / recurring identity advance / versioned series / canceled preserved / individual move preserved / ordinal preservation / right duration / work hours / blocked / collision / assignment / branch auth / atomic rollback / no-op'
   as test_result;
 
 rollback;
