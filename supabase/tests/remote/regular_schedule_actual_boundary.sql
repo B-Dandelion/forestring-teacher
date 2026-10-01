@@ -479,8 +479,9 @@ begin
   -- Thursday rule, while occurrence_at / series_id still point to
   -- the earlier Monday generation.
   --
-  -- The second change effective on the actual 01/20 appointment
-  -- must include #3 and #4.
+  -- The second change selects Sunday 01/23, but that date belongs
+  -- to the 01/17~01/23 teaching week. The change must therefore
+  -- include the untouched 01/20 lesson in the same week, plus #4.
   -- ==========================================================
 
   update public.lessons
@@ -501,12 +502,18 @@ begin
     4,
     time '18:00',
     60,
-    date '2101-01-20'
+    date '2101-01-23'
   );
 
   if (v_result->>'reconciledLessonCount')::integer <> 2 then
     raise exception
-      'TEST_FAILED: actual-date boundary expected #3/#4 only: %',
+      'TEST_FAILED: effective-week boundary expected #3/#4: %',
+      v_result;
+  end if;
+
+  if (v_result->>'effectiveWeekStart')::date <> date '2101-01-17' then
+    raise exception
+      'TEST_FAILED: selected 01/23 did not normalize to week start: %',
       v_result;
   end if;
 
@@ -638,7 +645,7 @@ end;
 $$;
 
 select
-  'PASS: actual starts_at boundary / sequence ordinal / recurring identity / rebuild consistency / end schedule consistency'
+  'PASS: actual starts_at boundary / effective-week boundary / sequence ordinal / recurring identity / rebuild consistency / end schedule consistency'
   as test_result;
 
 rollback;
