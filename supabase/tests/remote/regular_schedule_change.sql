@@ -1680,7 +1680,7 @@ begin
   end if;
 
 end;
-$;
+$$;
 
 
 select
