@@ -39,28 +39,42 @@ class LessonRepository {
     String? studentId,
   }) async {
     try {
-      dynamic query = _client.from('lessons').select(
-            'id, student_id, teacher_id, occurrence_at, starts_at, '
-            'duration_minutes, ends_at, lesson_type, status, branch_id, '
-            'lesson_right_id, rescheduled_by, canceled_at, '
-            'cancellation_reason',
-          );
+      const pageSize = 500;
+      final rows = <dynamic>[];
 
-      if (from != null) {
-        query = query.gte('starts_at', from.toUtc().toIso8601String());
-      }
-      if (to != null) {
-        query = query.lt('starts_at', to.toUtc().toIso8601String());
-      }
-      if (teacherId != null && teacherId.isNotEmpty) {
-        query = query.eq('teacher_id', teacherId);
-      }
-      if (studentId != null && studentId.isNotEmpty) {
-        query = query.eq('student_id', studentId);
+      for (var offset = 0;; offset += pageSize) {
+        dynamic query = _client.from('lessons').select(
+              'id, student_id, teacher_id, occurrence_at, starts_at, '
+              'duration_minutes, ends_at, lesson_type, status, branch_id, '
+              'lesson_right_id, rescheduled_by, canceled_at, '
+              'cancellation_reason',
+            );
+
+        if (from != null) {
+          query = query.gte('starts_at', from.toUtc().toIso8601String());
+        }
+        if (to != null) {
+          query = query.lt('starts_at', to.toUtc().toIso8601String());
+        }
+        if (teacherId != null && teacherId.isNotEmpty) {
+          query = query.eq('teacher_id', teacherId);
+        }
+        if (studentId != null && studentId.isNotEmpty) {
+          query = query.eq('student_id', studentId);
+        }
+
+        final page = await query
+            .order('starts_at', ascending: true)
+            .range(offset, offset + pageSize - 1);
+        final pageRows = page as List;
+        rows.addAll(pageRows);
+
+        if (pageRows.length < pageSize) {
+          break;
+        }
       }
 
-      final rows = await query.order('starts_at');
-      final lessons = (rows as List)
+      final lessons = rows
           .map(
             (row) => Lesson.fromJson(
               Map<String, dynamic>.from(row as Map),
@@ -213,7 +227,7 @@ class LessonRepository {
         query = query.eq('teacher_id', teacherId);
       }
 
-      final rows = await query.order('starts_at');
+      final rows = await query.order('starts_at', ascending: true);
       final periods = (rows as List)
           .map(
             (row) => TeacherBlockedPeriod.fromJson(
