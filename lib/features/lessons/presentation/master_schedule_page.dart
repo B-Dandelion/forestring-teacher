@@ -107,21 +107,48 @@ class MasterSchedulePage extends StatelessWidget {
               );
             },
           ),
-          if (!isQaSandbox) ...[
-            ForestringDrawerItem(
-              icon: Icons.people_alt_outlined,
-              label: '수강생 관리',
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => StudentManagementPage(
-                      profile: profile,
-                    ),
+          ForestringDrawerItem(
+            icon: Icons.people_alt_outlined,
+            label: '수강생 관리',
+            onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => StudentManagementPage(
+                    profile: profile,
+                    repository: qaStore == null
+                        ? null
+                        : QaStudentManagementRepository(qaStore),
+                    branchRepository: qaStore == null
+                        ? null
+                        : QaBranchRepository(qaStore),
+                    lessonRepository: qaStore == null
+                        ? null
+                        : QaLessonRepository(qaStore),
+                    adminRepository: qaStore == null
+                        ? null
+                        : QaStudentAdminRepository(qaStore),
+                    nextSemesterRepository: qaStore == null
+                        ? null
+                        : QaStudentNextSemesterTypeRepository(
+                            qaStore,
+                          ),
+                    regularScheduleRepository: qaStore == null
+                        ? null
+                        : QaStudentRegularScheduleRepository(
+                            qaStore,
+                          ),
+                    teacherManagementRepository: qaStore == null
+                        ? null
+                        : QaStudentTeacherManagementRepository(
+                            qaStore,
+                          ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
+          ),
+          if (!isQaSandbox) ...[
             ForestringDrawerItem(
               icon: Icons.co_present_outlined,
               label: '선생님 관리',
