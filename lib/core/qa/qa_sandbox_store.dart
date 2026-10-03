@@ -25,6 +25,7 @@ class QaSandboxStore extends ChangeNotifier {
   late List<ManagedStudent> students;
   late List<ManagedTeacher> teachers;
   late List<Lesson> lessons;
+  late Map<String, String> lessonScheduleSlotIds;
   late List<ManagedTeacherBlockedPeriod> blockedPeriods;
   late List<ManagedSemester> semesters;
   late Map<String, List<ManagedRegularSchedule>> regularSchedules;
@@ -38,10 +39,16 @@ class QaSandboxStore extends ChangeNotifier {
     branches = _buildBranches();
     students = _buildStudents();
     teachers = _buildTeachers(students);
-    lessons = _buildLessons(students, teachers);
     blockedPeriods = _buildBlockedPeriods(teachers);
     semesters = _buildSemesters();
     regularSchedules = _buildRegularSchedules(students);
+    lessonScheduleSlotIds = {};
+    lessons = _buildLessons(
+      students,
+      teachers,
+      regularSchedules,
+      lessonScheduleSlotIds,
+    );
     nextStudentTypes = {
       for (final student in students) student.id: student.studentType,
     };
@@ -175,6 +182,91 @@ class QaSandboxStore extends ChangeNotifier {
       schedules[index] = schedule;
     }
     notifyListeners();
+  }
+
+  int changeRegularScheduleAndReconcile({
+    required String studentId,
+    required String scheduleSlotId,
+    required String teacherId,
+    required String teacherName,
+    required int weekday,
+    required int startMinutes,
+    required int durationMinutes,
+    required DateTime effectiveOn,
+  }) {
+    final schedules = regularSchedules[studentId];
+    if (schedules == null) return 0;
+
+    final scheduleIndex =
+        schedules.indexWhere((item) => item.slotId == scheduleSlotId);
+    if (scheduleIndex < 0) return 0;
+
+    final current = schedules[scheduleIndex];
+    schedules[scheduleIndex] = ManagedRegularSchedule(
+      slotId: current.slotId,
+      teacherId: teacherId,
+      teacherName: teacherName,
+      weekday: weekday,
+      startMinutes: startMinutes,
+      durationMinutes: durationMinutes,
+      slotStartsOn: current.slotStartsOn,
+      slotEndsOn: current.slotEndsOn,
+      effectiveFrom: _dateOnly(effectiveOn),
+      effectiveUntil: current.effectiveUntil,
+      hasFutureVersion: false,
+    );
+
+    final weekStart = _weekStart(effectiveOn);
+    final now = DateTime.now();
+    final candidates = lessons
+        .where(
+          (lesson) =>
+              lessonScheduleSlotIds[lesson.id] == scheduleSlotId &&
+              lesson.type == LessonType.regular &&
+              lesson.status == LessonStatus.scheduled &&
+              lesson.rescheduledBy == null &&
+              lesson.occurrenceAt != null &&
+              !_dateOnly(lesson.occurrenceAt!).isBefore(weekStart) &&
+              lesson.startsAt.isAfter(now),
+        )
+        .toList()
+      ..sort((a, b) {
+        final aOccurrence = a.occurrenceAt ?? a.startsAt;
+        final bOccurrence = b.occurrenceAt ?? b.startsAt;
+        return aOccurrence.compareTo(bOccurrence);
+      });
+
+    var targetDate = _weekdayOnOrAfter(weekStart, weekday);
+    var reconciledCount = 0;
+
+    for (final lesson in candidates) {
+      final index = lessons.indexWhere((item) => item.id == lesson.id);
+      if (index < 0) continue;
+
+      final startsAt = DateTime(
+        targetDate.year,
+        targetDate.month,
+        targetDate.day,
+        startMinutes ~/ 60,
+        startMinutes % 60,
+      );
+
+      lessons[index] = _copyLesson(
+        lesson,
+        teacherId: teacherId,
+        startsAt: startsAt,
+        endsAt: startsAt.add(Duration(minutes: durationMinutes)),
+        durationMinutes: durationMinutes,
+        teacherName: teacherName,
+        replaceNames: true,
+      );
+
+      targetDate = targetDate.add(const Duration(days: 7));
+      reconciledCount++;
+    }
+
+    notifyListeners();
+    return reconciledCount;
   }
 
   void removeRegularSchedule(String scheduleSlotId) {
@@ -458,73 +550,137 @@ class QaSandboxStore extends ChangeNotifier {
   static List<Lesson> _buildLessons(
     List<ManagedStudent> students,
     List<ManagedTeacher> teachers,
+    Map<String, List<ManagedRegularSchedule>> regularSchedules,
+    Map<String, String> lessonScheduleSlotIds,
   ) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final weekStart = today.subtract(
-      Duration(days: today.weekday - DateTime.monday),
-    );
+    final weekStart = _weekStart(today);
     final result = <Lesson>[];
-    var lessonIndex = 0;
 
-    for (var week = -2; week <= 4; week++) {
-      for (var teacherIndex = 0;
-          teacherIndex < teachers.length;
-          teacherIndex++) {
-        final teacher = teachers[teacherIndex];
+    for (final student in students.where((item) => item.isRegular)) {
+      final schedules =
+          regularSchedules[student.id] ?? const <ManagedRegularSchedule>[];
 
-        for (var slot = 0; slot < 3; slot++) {
-          final studentIndex =
-              (teacherIndex * 3 + slot) % students.length;
-          final student = students[studentIndex];
-          final weekdayOffset =
-              (teacherIndex + slot * 2) % DateTime.saturday;
+      for (final schedule in schedules) {
+        final teacher = teachers
+            .where((item) => item.id == schedule.teacherId)
+            .firstOrNull;
+        if (teacher == null) continue;
+
+        for (var week = -2; week <= 8; week++) {
           final day = weekStart.add(
-            Duration(days: week * 7 + weekdayOffset),
+            Duration(
+              days: week * 7 + schedule.weekday - DateTime.monday,
+            ),
           );
-          final hour = 10 + teacherIndex * 2 + slot;
-          final minute = slot.isOdd ? 30 : 0;
           final startsAt = DateTime(
             day.year,
             day.month,
             day.day,
-            hour,
-            minute,
+            schedule.startMinutes ~/ 60,
+            schedule.startMinutes % 60,
           );
-          final currentWeek = week == 0;
-          final type = currentWeek && slot == 2
-              ? LessonType.makeup
-              : student.isFlex
-                  ? LessonType.flex
-                  : LessonType.regular;
-          final durationMinutes = student.isFlex ? 45 : 30;
+          final lessonId =
+              'qa-regular-lesson-${student.id}-${schedule.slotId}-$week';
 
           result.add(
             Lesson(
-              id: 'qa-lesson-${lessonIndex++}',
+              id: lessonId,
               studentId: student.id,
               teacherId: teacher.id,
               startsAt: startsAt,
-              endsAt:
-                  startsAt.add(Duration(minutes: durationMinutes)),
-              durationMinutes: durationMinutes,
-              type: type,
+              endsAt: startsAt.add(
+                Duration(minutes: schedule.durationMinutes),
+              ),
+              durationMinutes: schedule.durationMinutes,
+              type: LessonType.regular,
               status: LessonStatus.scheduled,
               occurrenceAt: startsAt,
               rescheduledBy:
-                  currentWeek && slot == 1 ? qaManagerProfileId : null,
-              lessonRightId: type == LessonType.makeup
-                  ? 'qa-right-$lessonIndex'
-                  : null,
+                  student.id == 'qa-student-2' && week == 1
+                      ? qaManagerProfileId
+                      : null,
+              lessonRightId:
+                  'qa-right-${student.id}-${schedule.slotId}-$week',
               branchId: qaManagerBranchId,
               studentName: student.displayName,
               teacherName: teacher.displayName,
             ),
           );
+          lessonScheduleSlotIds[lessonId] = schedule.slotId;
         }
       }
     }
 
+    final flexStudents =
+        students.where((student) => student.isFlex).toList();
+    for (var studentIndex = 0;
+        studentIndex < flexStudents.length;
+        studentIndex++) {
+      final student = flexStudents[studentIndex];
+      final teacher = teachers
+          .where((item) => item.id == student.teacherId)
+          .firstOrNull;
+      if (teacher == null) continue;
+
+      for (var week = -1; week <= 4; week++) {
+        final day = weekStart.add(
+          Duration(days: week * 7 + 2 + studentIndex % 3),
+        );
+        final startsAt = DateTime(
+          day.year,
+          day.month,
+          day.day,
+          11 + studentIndex,
+          studentIndex.isOdd ? 30 : 0,
+        );
+        final durationMinutes = student.flexDurationMinutes ?? 45;
+
+        result.add(
+          Lesson(
+            id: 'qa-flex-lesson-${student.id}-$week',
+            studentId: student.id,
+            teacherId: teacher.id,
+            startsAt: startsAt,
+            endsAt:
+                startsAt.add(Duration(minutes: durationMinutes)),
+            durationMinutes: durationMinutes,
+            type: LessonType.flex,
+            status: LessonStatus.scheduled,
+            occurrenceAt: startsAt,
+            branchId: qaManagerBranchId,
+            studentName: student.displayName,
+            teacherName: teacher.displayName,
+          ),
+        );
+      }
+    }
+
+    if (students.isNotEmpty && teachers.isNotEmpty) {
+      final student = students.first;
+      final teacher = teachers.first;
+      final startsAt = weekStart.add(const Duration(days: 4, hours: 18));
+      result.add(
+        Lesson(
+          id: 'qa-makeup-seed',
+          studentId: student.id,
+          teacherId: teacher.id,
+          startsAt: startsAt,
+          endsAt: startsAt.add(const Duration(minutes: 30)),
+          durationMinutes: 30,
+          type: LessonType.makeup,
+          status: LessonStatus.scheduled,
+          occurrenceAt: startsAt,
+          lessonRightId: 'qa-makeup-right-seed',
+          branchId: qaManagerBranchId,
+          studentName: student.displayName,
+          teacherName: teacher.displayName,
+        ),
+      );
+    }
+
+    result.sort((a, b) => a.startsAt.compareTo(b.startsAt));
     return result;
   }
 
@@ -658,6 +814,7 @@ class QaSandboxStore extends ChangeNotifier {
 
   static Lesson _copyLesson(
     Lesson source, {
+    String? teacherId,
     DateTime? startsAt,
     DateTime? endsAt,
     int? durationMinutes,
@@ -672,7 +829,7 @@ class QaSandboxStore extends ChangeNotifier {
     return Lesson(
       id: source.id,
       studentId: source.studentId,
-      teacherId: source.teacherId,
+      teacherId: teacherId ?? source.teacherId,
       startsAt: startsAt ?? source.startsAt,
       endsAt: endsAt ?? source.endsAt,
       durationMinutes: durationMinutes ?? source.durationMinutes,
@@ -690,6 +847,21 @@ class QaSandboxStore extends ChangeNotifier {
       cancellationReason:
           cancellationReason ?? source.cancellationReason,
     );
+  }
+
+  static DateTime _dateOnly(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
+
+  static DateTime _weekStart(DateTime value) {
+    final date = _dateOnly(value);
+    return date.subtract(
+      Duration(days: date.weekday - DateTime.monday),
+    );
+  }
+
+  static DateTime _weekdayOnOrAfter(DateTime date, int weekday) {
+    final delta = (weekday - date.weekday + 7) % 7;
+    return _dateOnly(date).add(Duration(days: delta));
   }
 
   static String _withSeconds(String value) {
