@@ -22,6 +22,7 @@ class MakeupLessonCreatePage extends StatefulWidget {
     this.initialBranchId,
     this.initialStudentId,
     this.initialDate,
+    this.repository,
   });
 
   final CurrentProfile profile;
@@ -32,6 +33,7 @@ class MakeupLessonCreatePage extends StatefulWidget {
   final String? initialBranchId;
   final String? initialStudentId;
   final DateTime? initialDate;
+  final LessonRepository? repository;
 
   @override
   State<MakeupLessonCreatePage> createState() =>
@@ -39,7 +41,7 @@ class MakeupLessonCreatePage extends StatefulWidget {
 }
 
 class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
-  final _repository = LessonRepository();
+  late final LessonRepository _repository;
 
   String? _branchId;
   String? _studentId;
@@ -57,6 +59,7 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
   @override
   void initState() {
     super.initState();
+    _repository = widget.repository ?? LessonRepository();
 
     final requestedBranch = widget.profile.isManager
         ? widget.profile.branchId
