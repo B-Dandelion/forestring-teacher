@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/qa/qa_sandbox_repositories.dart';
 import '../core/qa/qa_sandbox_store.dart';
 import '../core/theme/forestring_theme.dart';
+import '../core/theme/student_accent_controller.dart';
 import '../features/auth/domain/current_profile.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import '../features/lessons/presentation/lesson_controller.dart';
@@ -102,6 +103,9 @@ class _ManagerShellState extends State<ManagerShell> {
 
   Future<void> _handleMenu(String value) async {
     switch (value) {
+      case 'student_colors':
+        final controller = context.read<StudentAccentController>();
+        await controller.setEnabled(!controller.isEnabled);
       case 'reset':
         await _resetQaData();
       case 'exit':
@@ -176,6 +180,7 @@ class _ManagerShellState extends State<ManagerShell> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<LessonController>();
+    final accentController = context.watch<StudentAccentController>();
     final qaStore = widget.isQaSandbox
         ? context.read<QaSandboxStore>()
         : null;
@@ -240,6 +245,28 @@ class _ManagerShellState extends State<ManagerShell> {
                   ),
                 ),
                 itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'student_colors',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        accentController.isEnabled
+                            ? Icons.palette_rounded
+                            : Icons.palette_outlined,
+                        color: primaryColor,
+                      ),
+                      title: const Text('학생별 색상 구분'),
+                      trailing: Icon(
+                        accentController.isEnabled
+                            ? Icons.toggle_on_rounded
+                            : Icons.toggle_off_rounded,
+                        color: accentController.isEnabled
+                            ? primaryColor
+                            : Colors.black38,
+                        size: 32,
+                      ),
+                    ),
+                  ),
                   if (widget.isQaSandbox)
                     const PopupMenuItem(
                       value: 'reset',
