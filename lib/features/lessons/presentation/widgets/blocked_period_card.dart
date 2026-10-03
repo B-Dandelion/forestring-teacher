@@ -20,73 +20,102 @@ class BlockedPeriodCard extends StatelessWidget {
     final end = DateFormat('HH:mm').format(period.endsAt);
 
     return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
           decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: personalScheduleColor.withValues(alpha: 0.3),
+              color: personalScheduleColor.withValues(alpha: 0.14),
             ),
-            borderRadius: BorderRadius.circular(14),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 58,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: personalScheduleColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 4,
+                  decoration: const BoxDecoration(
+                    color: personalScheduleColor,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      bottomLeft: Radius.circular(16),
+                    ),
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    Text(
-                      '${period.startsAt.month}월',
-                      style: forestringTextStyle.copyWith(fontSize: 12),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 58,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                start,
+                                style: forestringTextStyle.copyWith(
+                                  color: personalScheduleColor,
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                end,
+                                style: forestringTextStyle.copyWith(
+                                  color: Colors.black38,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 42,
+                          margin: const EdgeInsets.symmetric(horizontal: 14),
+                          color: Colors.black.withValues(alpha: 0.08),
+                        ),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                period.displayLabel,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: forestringTextStyle.copyWith(
+                                  color: Colors.black87,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                '개인 일정',
+                                style: forestringTextStyle.copyWith(
+                                  color: Colors.black45,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '${period.startsAt.day}',
-                      style: forestringTextStyle.copyWith(
-                        fontSize: 21,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      period.displayLabel,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: forestringTextStyle.copyWith(
-                        color: personalScheduleColor,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$start ~ $end',
-                      style: forestringTextStyle.copyWith(
-                        fontSize: 13,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (onTap != null)
-                const Icon(Icons.chevron_right, color: Colors.black38),
-            ],
+              ],
+            ),
           ),
         ),
       ),

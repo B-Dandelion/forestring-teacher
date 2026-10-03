@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/forestring_theme.dart';
+import '../../../../core/theme/student_accent.dart';
 import '../../domain/lesson.dart';
 
 class LessonCard extends StatelessWidget {
@@ -20,106 +21,160 @@ class LessonCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final start = DateFormat('HH:mm').format(lesson.startsAt);
     final end = DateFormat('HH:mm').format(lesson.endsAt);
+    final badge = lesson.changeBadgeLabel;
+    final badgeColor =
+        lesson.isStudentRebooked ? secondaryColor : primaryColor;
+    final accentColor = lesson.isCanceled
+        ? Colors.black38
+        : studentAccentColor(lesson.studentId);
 
     return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 12,
-          ),
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
           decoration: BoxDecoration(
+            color: lesson.isCanceled
+                ? const Color(0xffF4F5F4)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: lesson.isCanceled
                   ? Colors.black12
-                  : primaryColor.withValues(alpha: 0.25),
+                  : primaryColor.withValues(alpha: 0.10),
             ),
-            borderRadius: BorderRadius.circular(14),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 58,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: lesson.isCanceled
-                      ? Colors.black12
-                      : primaryColor.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      '${lesson.startsAt.month}월',
-                      style: forestringTextStyle.copyWith(
-                        fontSize: 12,
-                      ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 4,
+                  decoration: BoxDecoration(
+                    color: accentColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      bottomLeft: Radius.circular(16),
                     ),
-                    Text(
-                      '${lesson.startsAt.day}',
-                      style: forestringTextStyle.copyWith(
-                        fontSize: 21,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      personName,
-                      style: forestringTextStyle.copyWith(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w500,
-                        decoration: lesson.isCanceled
-                            ? TextDecoration.lineThrough
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$start ~ $end · ${lesson.displayTypeLabel}',
-                      style: forestringTextStyle.copyWith(
-                        fontSize: 13,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (lesson.isCanceled)
-                Text(
-                  '취소',
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.redAccent,
-                    fontWeight: FontWeight.w500,
-                  ),
-                )
-              else if (lesson.changeBadgeLabel != null)
-                Text(
-                  lesson.changeBadgeLabel!,
-                  style: forestringTextStyle.copyWith(
-                    color: secondaryColor,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              if (onTap != null) ...[
-                const SizedBox(width: 6),
-                const Icon(
-                  Icons.chevron_right,
-                  color: Colors.black38,
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 58,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                start,
+                                style: forestringTextStyle.copyWith(
+                                  color: lesson.isCanceled
+                                      ? Colors.black45
+                                      : accentColor,
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w500,
+                                  decoration: lesson.isCanceled
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                end,
+                                style: forestringTextStyle.copyWith(
+                                  color: Colors.black38,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 42,
+                          margin: const EdgeInsets.symmetric(horizontal: 14),
+                          color: Colors.black.withValues(alpha: 0.08),
+                        ),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      personName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: forestringTextStyle.copyWith(
+                                        color: Colors.black87,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500,
+                                        decoration: lesson.isCanceled
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                      ),
+                                    ),
+                                  ),
+                                  if (lesson.isCanceled) ...[
+                                    const SizedBox(width: 8),
+                                    _statusBadge(
+                                      '취소',
+                                      Colors.redAccent,
+                                    ),
+                                  ] else if (badge != null) ...[
+                                    const SizedBox(width: 8),
+                                    _statusBadge(
+                                      badge,
+                                      badgeColor,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                lesson.displayTypeLabel,
+                                style: forestringTextStyle.copyWith(
+                                  color: Colors.black45,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
-            ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _statusBadge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: forestringTextStyle.copyWith(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

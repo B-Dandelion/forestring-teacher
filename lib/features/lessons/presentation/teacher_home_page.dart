@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../core/theme/forestring_theme.dart';
-import '../../../core/widgets/forestring_navigation.dart';
 import '../../auth/domain/current_profile.dart';
 import '../domain/lesson.dart';
 import 'lesson_controller.dart';
@@ -26,8 +25,605 @@ class TeacherHomePage extends StatefulWidget {
 }
 
 class _TeacherHomePageState extends State<TeacherHomePage> {
-  DateTime _selectedDate = DateTime.now();
-  DateTime _focusedDate = DateTime.now();
+  late DateTime _selectedDate;
+  late DateTime _focusedDate;
+
+  static const _weekdayLabels = ['월', '화', '수', '목', '금', '토', '일'];
+  static const _fullWeekdayLabels = [
+    '월요일',
+    '화요일',
+    '수요일',
+    '목요일',
+    '금요일',
+    '토요일',
+    '일요일',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    _selectedDate = today;
+    _focusedDate = today;
+  }
+
+  Future<void> _pickCalendarDate(
+    DateTime firstDay,
+    DateTime lastDay,
+  ) async {
+    final initialMonth = DateTime(
+      _focusedDate.year,
+      _focusedDate.month,
+    );
+    final firstMonth = DateTime(firstDay.year, firstDay.month);
+    final lastMonth = DateTime(lastDay.year, lastDay.month);
+
+    final pickedMonth = await showModalBottomSheet<DateTime>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        var selectedYear = initialMonth.year
+            .clamp(firstMonth.year, lastMonth.year)
+            .toInt();
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final availableYears = List<int>.generate(
+              lastMonth.year - firstMonth.year + 1,
+              (index) => firstMonth.year + index,
+            );
+
+            bool monthEnabled(int month) {
+              final candidate = DateTime(selectedYear, month);
+              return !candidate.isBefore(firstMonth) &&
+                  !candidate.isAfter(lastMonth);
+            }
+
+            return SafeArea(
+              top: false,
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 38,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.black12,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '날짜 이동',
+                            style: forestringTextStyle.copyWith(
+                              color: Colors.black87,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            final now = DateTime.now();
+                            final today = DateTime(
+                              now.year,
+                              now.month,
+                              now.day,
+                            );
+                            if (!today.isBefore(firstDay) &&
+                                !today.isAfter(lastDay)) {
+                              Navigator.of(context).pop(
+                                DateTime(today.year, today.month),
+                              );
+                            }
+                          },
+                          child: Text(
+                            '오늘',
+                            style: forestringTextStyle.copyWith(
+                              color: primaryColor,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 38,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: availableYears.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(width: 8),
+                        itemBuilder: (context, index) {
+                          final year = availableYears[index];
+                          final selected = year == selectedYear;
+
+                          return ChoiceChip(
+                            label: Text('$year년'),
+                            selected: selected,
+                            showCheckmark: false,
+                            onSelected: (_) {
+                              setModalState(() {
+                                selectedYear = year;
+                              });
+                            },
+                            selectedColor:
+                                primaryColor.withValues(alpha: 0.12),
+                            backgroundColor:
+                                Colors.black.withValues(alpha: 0.04),
+                            side: BorderSide(
+                              color: selected
+                                  ? primaryColor.withValues(alpha: 0.18)
+                                  : Colors.transparent,
+                            ),
+                            labelStyle: forestringTextStyle.copyWith(
+                              color: selected
+                                  ? primaryColor
+                                  : Colors.black54,
+                              fontSize: 12,
+                              fontWeight: selected
+                                  ? FontWeight.w500
+                                  : FontWeight.w400,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 4,
+                        mainAxisExtent: 44,
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                      ),
+                      itemCount: 12,
+                      itemBuilder: (context, index) {
+                        final month = index + 1;
+                        final enabled = monthEnabled(month);
+                        final selected =
+                            selectedYear == initialMonth.year &&
+                                month == initialMonth.month;
+
+                        return OutlinedButton(
+                          onPressed: enabled
+                              ? () => Navigator.of(context).pop(
+                                    DateTime(selectedYear, month),
+                                  )
+                              : null,
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            backgroundColor:
+                                selected ? primaryColor : Colors.white,
+                            foregroundColor:
+                                selected ? Colors.white : Colors.black87,
+                            disabledForegroundColor: Colors.black26,
+                            side: BorderSide(
+                              color: selected
+                                  ? primaryColor
+                                  : primaryColor.withValues(alpha: 0.10),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            '$month월',
+                            style: forestringTextStyle.copyWith(
+                              color: enabled
+                                  ? selected
+                                      ? Colors.white
+                                      : Colors.black87
+                                  : Colors.black26,
+                              fontSize: 13,
+                              fontWeight: selected
+                                  ? FontWeight.w500
+                                  : FontWeight.w400,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (pickedMonth == null || !mounted) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final isCurrentMonth =
+        pickedMonth.year == now.year && pickedMonth.month == now.month;
+    final preferredDay = isCurrentMonth ? now.day : 1;
+    final daysInMonth = DateTime(
+      pickedMonth.year,
+      pickedMonth.month + 1,
+      0,
+    ).day;
+
+    var picked = DateTime(
+      pickedMonth.year,
+      pickedMonth.month,
+      preferredDay.clamp(1, daysInMonth).toInt(),
+    );
+
+    if (picked.isBefore(firstDay)) {
+      picked = firstDay;
+    } else if (picked.isAfter(lastDay)) {
+      picked = lastDay;
+    }
+
+    setState(() {
+      _selectedDate = picked;
+      _focusedDate = picked;
+    });
+  }
+
+  Widget _calendar(
+    LessonController controller,
+    DateTime firstDay,
+    DateTime lastDay,
+  ) {
+    final safeFocusedDay = _focusedDate.isBefore(firstDay)
+        ? firstDay
+        : _focusedDate.isAfter(lastDay)
+            ? lastDay
+            : _focusedDate;
+
+    return TableCalendar<Object>(
+      key: ValueKey<String>(
+        'teacher-schedule-calendar-${firstDay.toIso8601String()}-${lastDay.toIso8601String()}',
+      ),
+      firstDay: firstDay,
+      lastDay: lastDay,
+      focusedDay: safeFocusedDay,
+      startingDayOfWeek: StartingDayOfWeek.sunday,
+      selectedDayPredicate: (day) => isSameDay(_selectedDate, day),
+      eventLoader: (day) => <Object>[
+        ...controller.lessonsOn(day),
+        ...controller.blockedPeriodsOn(day),
+      ],
+      onDaySelected: (selectedDay, focusedDay) {
+        setState(() {
+          _selectedDate = selectedDay;
+          _focusedDate = focusedDay;
+        });
+      },
+      onPageChanged: (focusedDay) {
+        _focusedDate = focusedDay;
+      },
+      rowHeight: 48,
+      daysOfWeekHeight: 34,
+      headerStyle: HeaderStyle(
+        titleCentered: true,
+        formatButtonVisible: false,
+        leftChevronMargin: const EdgeInsets.only(left: 4),
+        rightChevronMargin: const EdgeInsets.only(right: 4),
+        leftChevronIcon: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: primaryColor.withValues(alpha: 0.08),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.chevron_left_rounded,
+            color: primaryColor,
+            size: 22,
+          ),
+        ),
+        rightChevronIcon: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: primaryColor.withValues(alpha: 0.08),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.chevron_right_rounded,
+            color: primaryColor,
+            size: 22,
+          ),
+        ),
+        titleTextStyle: const TextStyle(
+          fontFamily: 'ELAND',
+          fontWeight: FontWeight.w500,
+          fontSize: 19,
+          color: primaryColor,
+        ),
+      ),
+      calendarStyle: CalendarStyle(
+        outsideDaysVisible: false,
+        cellMargin: const EdgeInsets.all(5),
+        todayDecoration: const BoxDecoration(
+          color: Color(0xffE7EFE4),
+          shape: BoxShape.circle,
+        ),
+        todayTextStyle: const TextStyle(
+          color: primaryColor,
+          fontFamily: 'ELAND',
+          fontWeight: FontWeight.w500,
+        ),
+        selectedDecoration: const BoxDecoration(
+          color: primaryColor,
+          shape: BoxShape.circle,
+        ),
+        selectedTextStyle: const TextStyle(
+          color: Colors.white,
+          fontFamily: 'ELAND',
+          fontWeight: FontWeight.w500,
+        ),
+        defaultTextStyle: forestringTextStyle.copyWith(
+          color: Colors.black87,
+          fontSize: 14,
+        ),
+        weekendTextStyle: forestringTextStyle.copyWith(
+          color: Colors.black87,
+          fontSize: 14,
+        ),
+        markerDecoration: const BoxDecoration(
+          color: secondaryColor,
+          shape: BoxShape.circle,
+        ),
+        markerSize: 5,
+        markersMaxCount: 1,
+        markersAlignment: Alignment.bottomCenter,
+        markerMargin: const EdgeInsets.only(top: 1),
+      ),
+      calendarBuilders: CalendarBuilders<Object>(
+        headerTitleBuilder: (context, day) {
+          return Center(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => _pickCalendarDate(firstDay, lastDay),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${day.year}년 ${day.month}월',
+                      style: forestringTextStyle.copyWith(
+                        color: primaryColor,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: primaryColor,
+                      size: 19,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+        dowBuilder: (context, day) {
+          final label = _weekdayLabels[day.weekday - 1];
+          final color = day.weekday == DateTime.sunday
+              ? Colors.redAccent
+              : day.weekday == DateTime.saturday
+                  ? Colors.blueAccent
+                  : Colors.black45;
+
+          return Center(
+            child: Text(
+              label,
+              style: forestringTextStyle.copyWith(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: color,
+              ),
+            ),
+          );
+        },
+        defaultBuilder: (context, day, focusedDay) {
+          final color = day.weekday == DateTime.sunday
+              ? Colors.redAccent
+              : day.weekday == DateTime.saturday
+                  ? Colors.blueAccent
+                  : Colors.black87;
+
+          return Center(
+            child: Text(
+              '${day.day}',
+              style: forestringTextStyle.copyWith(
+                color: color,
+                fontSize: 14,
+              ),
+            ),
+          );
+        },
+        todayBuilder: (context, day, focusedDay) {
+          final color = day.weekday == DateTime.sunday
+              ? Colors.redAccent
+              : day.weekday == DateTime.saturday
+                  ? Colors.blueAccent
+                  : primaryColor;
+
+          return Center(
+            child: Container(
+              width: 38,
+              height: 38,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: Color(0xffE7EFE4),
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                '${day.day}',
+                style: forestringTextStyle.copyWith(
+                  color: color,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _scheduleSectionHeader(
+    int lessonCount,
+    int personalScheduleCount,
+  ) {
+    final weekday = _fullWeekdayLabels[_selectedDate.weekday - 1];
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            '${DateFormat('M월 d일').format(_selectedDate)} $weekday',
+            style: forestringTextStyle.copyWith(
+              color: Colors.black87,
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 5,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xffF7FAF5),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            '$lessonCount개 수업 · $personalScheduleCount개 개인 일정',
+            style: forestringTextStyle.copyWith(
+              color: primaryColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _emptyScheduleCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 30,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.07),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              color: Color(0xffF1F5ED),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.event_available_outlined,
+              color: primaryColor,
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '등록된 수업이나 개인 일정이 없습니다.',
+            style: forestringTextStyle.copyWith(
+              color: Colors.black45,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _scheduleContent(
+    BuildContext context,
+    LessonController controller,
+    List<Object> entries,
+  ) {
+    if (controller.isLoading &&
+        controller.lessons.isEmpty &&
+        controller.blockedPeriods.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 54),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (entries.isEmpty) {
+      return _emptyScheduleCard();
+    }
+
+    return Column(
+      children: [
+        for (var i = 0; i < entries.length; i++) ...[
+          if (entries[i] is TeacherBlockedPeriod)
+            BlockedPeriodCard(
+              period: entries[i] as TeacherBlockedPeriod,
+              onTap: () => showBlockedPeriodInfoDialog(
+                context: context,
+                period: entries[i] as TeacherBlockedPeriod,
+              ),
+            )
+          else
+            LessonCard(
+              lesson: entries[i] as Lesson,
+              personName:
+                  (entries[i] as Lesson).studentName ?? '학생',
+              onTap: () => showLessonInfoDialog(
+                context: context,
+                lesson: entries[i] as Lesson,
+              ),
+            ),
+          if (i != entries.length - 1)
+            const SizedBox(height: 10),
+        ],
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,202 +642,90 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             : (b as TeacherBlockedPeriod).startsAt;
         return aStart.compareTo(bStart);
       });
+
     final now = DateTime.now();
+    final firstDay = DateTime(now.year, now.month - 2, 1);
+    final lastDay = DateTime(now.year, now.month + 4, 0);
 
     return Scaffold(
-      appBar: ForestringAppBar(
-        actions: [
-          IconButton(
-            tooltip: '새로고침',
-            onPressed: controller.isLoading ? null : controller.reload,
-            icon: controller.isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.refresh_rounded),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: true,
+        elevation: 0,
+        title: const Text(
+          '일정',
+          style: TextStyle(
+            color: Colors.white,
+            fontFamily: 'ELAND',
+            fontWeight: FontWeight.w500,
+            fontSize: 20,
           ),
-          const SizedBox(width: 4),
-        ],
+        ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            TableCalendar<Object>(
-              firstDay: DateTime(now.year, now.month - 2, 1),
-              lastDay: DateTime(now.year, now.month + 4, 0),
-              focusedDay: _focusedDate,
-              selectedDayPredicate: (day) =>
-                  isSameDay(_selectedDate, day),
-              eventLoader: (day) => <Object>[
-                ...controller.lessonsOn(day),
-                ...controller.blockedPeriodsOn(day),
-              ],
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDate = selectedDay;
-                  _focusedDate = focusedDay;
-                });
-              },
-              onPageChanged: (focusedDay) {
-                _focusedDate = focusedDay;
-              },
-              headerStyle: HeaderStyle(
-                titleCentered: true,
-                formatButtonVisible: false,
-                titleTextFormatter: (date, locale) => '${date.month}월',
-                titleTextStyle: const TextStyle(
-                  color: primaryColor,
-                  fontFamily: 'ELAND',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 20,
-                ),
-                leftChevronIcon: const Icon(
-                  Icons.chevron_left,
-                  color: primaryColor,
-                ),
-                rightChevronIcon: const Icon(
-                  Icons.chevron_right,
-                  color: primaryColor,
-                ),
+        child: RefreshIndicator(
+          onRefresh: controller.reload,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 30),
+            children: [
+              _calendar(
+                controller,
+                firstDay,
+                lastDay,
               ),
-              calendarStyle: const CalendarStyle(
-                todayDecoration: BoxDecoration(
-                  color: primaryColor,
-                  shape: BoxShape.circle,
-                ),
-                selectedDecoration: BoxDecoration(
-                  color: secondaryColor,
-                  shape: BoxShape.circle,
-                ),
-                markerDecoration: BoxDecoration(
-                  color: Color(0xff2E8B57),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              calendarBuilders: CalendarBuilders(
-                dowBuilder: (context, day) {
-                  final text = switch (day.weekday) {
-                    DateTime.monday => '월',
-                    DateTime.tuesday => '화',
-                    DateTime.wednesday => '수',
-                    DateTime.thursday => '목',
-                    DateTime.friday => '금',
-                    DateTime.saturday => '토',
-                    DateTime.sunday => '일',
-                    _ => '',
-                  };
-
-                  return Center(
-                    child: Text(
-                      text,
-                      style: TextStyle(
-                        fontFamily: 'ELAND',
-                        fontWeight: FontWeight.w500,
-                        color: day.weekday == DateTime.sunday
-                            ? Colors.red
-                            : day.weekday == DateTime.saturday
-                                ? Colors.blue
-                                : Colors.black,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(12, 6, 12, 8),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 10,
-              ),
-              decoration: BoxDecoration(
-                color: neutralIvory,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '${DateFormat('M월 d일').format(_selectedDate)} · '
-                '${selectedLessons.where((e) => !e.isCanceled).length}개 수업 · '
-                '${selectedBlockedPeriods.length}개 개인 일정',
-                style: forestringTextStyle.copyWith(
-                  color: primaryColor,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            if (controller.errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  controller.errorMessage!,
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.redAccent,
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xffE8F0E4),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: primaryColor.withValues(alpha: 0.06),
                   ),
                 ),
-              ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: controller.reload,
-                child: controller.isLoading && controller.lessons.isEmpty
-                    ? ListView(
-                        children: const [
-                          SizedBox(height: 120),
-                          Center(child: CircularProgressIndicator()),
-                        ],
-                      )
-                    : selectedEntries.isEmpty
-                        ? ListView(
-                            padding: const EdgeInsets.all(24),
-                            children: [
-                              const SizedBox(height: 70),
-                              Text(
-                                '등록된 수업이나 개인 일정이 없습니다.',
-                                textAlign: TextAlign.center,
-                                style: forestringTextStyle.copyWith(
-                                  color: Colors.black54,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
-                            itemCount: selectedEntries.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 8),
-                            itemBuilder: (context, index) {
-                              final entry = selectedEntries[index];
-                              if (entry is TeacherBlockedPeriod) {
-                                return BlockedPeriodCard(
-                                  period: entry,
-                                  onTap: () =>
-                                      showBlockedPeriodInfoDialog(
-                                    context: context,
-                                    period: entry,
-                                  ),
-                                );
-                              }
-
-                              final lesson = entry as Lesson;
-                              return LessonCard(
-                                lesson: lesson,
-                                personName: lesson.studentName ?? '학생',
-                                onTap: () => showLessonInfoDialog(
-                                  context: context,
-                                  lesson: lesson,
-                                ),
-                              );
-                            },
+                child: Column(
+                  children: [
+                    _scheduleSectionHeader(
+                      selectedLessons.length,
+                      selectedBlockedPeriods.length,
+                    ),
+                    const SizedBox(height: 12),
+                    if (controller.errorMessage != null) ...[
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 11,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent.withValues(alpha: 0.07),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          controller.errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: forestringTextStyle.copyWith(
+                            color: Colors.redAccent,
+                            fontSize: 12,
                           ),
+                        ),
+                      ),
+                    ],
+                    _scheduleContent(
+                      context,
+                      controller,
+                      selectedEntries,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
