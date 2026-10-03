@@ -5,7 +5,6 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/widgets/forestring_navigation.dart';
 import '../../auth/domain/current_profile.dart';
-import '../../auth/presentation/auth_controller.dart';
 import '../domain/lesson.dart';
 import 'lesson_controller.dart';
 import 'widgets/blocked_period_calendar_appointment.dart';
@@ -53,32 +52,6 @@ class WeekSchedulePage extends StatelessWidget {
           ),
           const SizedBox(width: 4),
         ],
-      ),
-      drawer: ForestringDrawer(
-        displayName: profile.displayName,
-        roleLabel: '환영합니다',
-        items: [
-          ForestringDrawerItem(
-            icon: Icons.home,
-            label: '메인 페이지',
-            onTap: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).maybePop();
-            },
-          ),
-          ForestringDrawerItem(
-            icon: Icons.event_note_outlined,
-            label: '주간 시간표',
-            onTap: () => Navigator.of(context).pop(),
-          ),
-        ],
-        onLogout: () async {
-          Navigator.of(context).pop();
-          await context.read<AuthController>().signOut();
-          if (context.mounted) {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          }
-        },
       ),
       body: SafeArea(
         child: RefreshIndicator(

@@ -6,10 +6,8 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/widgets/forestring_navigation.dart';
 import '../../auth/domain/current_profile.dart';
-import '../../auth/presentation/auth_controller.dart';
 import '../domain/lesson.dart';
 import 'lesson_controller.dart';
-import 'week_schedule_page.dart';
 import 'widgets/blocked_period_card.dart';
 import 'widgets/blocked_period_info_dialog.dart';
 import 'widgets/lesson_card.dart';
@@ -69,38 +67,6 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           ),
           const SizedBox(width: 4),
         ],
-      ),
-      drawer: ForestringDrawer(
-        displayName: widget.profile.displayName,
-        roleLabel: '환영합니다',
-        items: [
-          ForestringDrawerItem(
-            icon: Icons.home_outlined,
-            label: '홈',
-            onTap: () => Navigator.of(context).pop(),
-          ),
-          ForestringDrawerItem(
-            icon: Icons.event_note_outlined,
-            label: '주간 시간표',
-            onTap: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ChangeNotifierProvider.value(
-                    value: context.read<LessonController>(),
-                    child: WeekSchedulePage(
-                      profile: widget.profile,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-        onLogout: () async {
-          Navigator.of(context).pop();
-          await context.read<AuthController>().signOut();
-        },
       ),
       body: SafeArea(
         child: Column(

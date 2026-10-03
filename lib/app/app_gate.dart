@@ -10,7 +10,7 @@ import '../features/lessons/data/lesson_repository.dart';
 import '../features/lessons/data/review_lesson_repository.dart';
 import '../features/lessons/presentation/lesson_controller.dart';
 import '../features/lessons/presentation/master_schedule_page.dart';
-import '../features/lessons/presentation/teacher_home_page.dart';
+import 'teacher_shell.dart';
 
 class AppGate extends StatelessWidget {
   const AppGate({
@@ -50,7 +50,7 @@ class AppGate extends StatelessWidget {
           teacherId: reviewProfile.id,
           teacherName: reviewProfile.displayName,
         ),
-        child: TeacherHomePage(
+        child: TeacherShell(
           profile: reviewProfile,
         ),
       );
@@ -65,7 +65,7 @@ class AppGate extends StatelessWidget {
         ),
       AppRole.teacher => _LessonEntry(
           profile: profile,
-          child: TeacherHomePage(
+          child: TeacherShell(
             profile: profile,
           ),
         ),
