@@ -275,7 +275,7 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
                           children: [
                             Expanded(
                               child: Text(
-                                student.displayName + ' 메모',
+                                '${student.displayName} 메모',
                                 style:
                                     forestringTextStyle.copyWith(
                                   color: primaryColor,
@@ -530,7 +530,7 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
             _typeFilterPill(),
             const Spacer(),
             Text(
-              visibleCount.toString() + '명',
+              '$visibleCount명',
               style: forestringTextStyle.copyWith(
                 color: primaryColor,
                 fontSize: 12,
@@ -787,9 +787,9 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
   String _teacherLine(ManagedStudent student) {
     final teacher = student.teacherName == null
         ? '담당 선생님 미배정'
-        : student.teacherName! + ' 선생님';
+        : '${student.teacherName} 선생님';
     if (!widget.profile.isMaster) return teacher;
-    return teacher + ' · ' + student.branchName;
+    return '$teacher · ${student.branchName}';
   }
 
   Widget _infoLine(
@@ -875,10 +875,7 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
     final normalized =
         DateTime(date.year, date.month, date.day);
     final elapsed = _elapsedSince(normalized);
-    return '등록 기준 ' +
-        DateFormat('yyyy.MM.dd').format(normalized) +
-        ' · ' +
-        elapsed;
+    return '등록 기준 ${DateFormat('yyyy.MM.dd').format(normalized)} · $elapsed';
   }
 
   String _elapsedSince(DateTime date) {
@@ -899,15 +896,12 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
     if (years == 0) {
       return remainingMonths == 0
           ? '1개월 미만'
-          : remainingMonths.toString() + '개월';
+          : '$remainingMonths개월';
     }
     if (remainingMonths == 0) {
-      return years.toString() + '년';
+      return '$years년';
     }
-    return years.toString() +
-        '년 ' +
-        remainingMonths.toString() +
-        '개월';
+    return '$years년 $remainingMonths개월';
   }
 
   Widget _errorCard(String message) {
