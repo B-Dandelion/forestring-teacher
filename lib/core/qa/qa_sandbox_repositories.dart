@@ -136,6 +136,145 @@ class QaLessonRepository extends LessonRepository {
   }
 
   @override
+  Future<List<LessonActivityRecord>> fetchLessonActivity({
+    required Lesson lesson,
+  }) async {
+    Lesson? current;
+    for (final item in store.lessons) {
+      if (item.id == lesson.id) {
+        current = item;
+        break;
+      }
+    }
+    if (current == null) {
+      throw const LessonFailure('QA 수업을 찾을 수 없습니다.');
+    }
+
+    final events = <LessonActivityRecord>[];
+    final originalStart = current.occurrenceAt ?? current.startsAt;
+    final originalEnd =
+        originalStart.add(Duration(minutes: current.durationMinutes));
+    final rightId = current.lessonRightId ?? 'qa-right-${current.id}';
+
+    if (current.type == LessonType.regular) {
+      events.add(
+        LessonActivityRecord(
+          eventType: 'LESSON_ORIGINAL_SCHEDULE',
+          eventAt: originalStart.subtract(const Duration(days: 7)),
+          actorId: qaManagerProfileId,
+          actorName: 'QA 지점장',
+          actorRole: 'manager',
+          details: {
+            'rightId': rightId,
+            'lessonId': current.id,
+            'startsAt': originalStart.toUtc().toIso8601String(),
+            'endsAt': originalEnd.toUtc().toIso8601String(),
+            'durationMinutes': current.durationMinutes,
+          },
+        ),
+      );
+    } else if (current.type == LessonType.makeup) {
+      events.add(
+        LessonActivityRecord(
+          eventType: 'MAKEUP_LESSON_CREATED',
+          eventAt: current.startsAt.subtract(const Duration(days: 2)),
+          actorId: qaManagerProfileId,
+          actorName: 'QA 지점장',
+          actorRole: 'manager',
+          details: {
+            'rightId': rightId,
+            'lessonId': current.id,
+            'startsAt': current.startsAt.toUtc().toIso8601String(),
+            'endsAt': current.endsAt.toUtc().toIso8601String(),
+          },
+        ),
+      );
+    } else {
+      events.add(
+        LessonActivityRecord(
+          eventType: 'LESSON_RIGHT_BOOKED',
+          eventAt: current.startsAt.subtract(const Duration(days: 3)),
+          actorId: current.studentId,
+          actorName: current.studentName ?? 'QA 학생',
+          actorRole: 'student',
+          details: {
+            'rightId': rightId,
+            'lessonId': current.id,
+            'startsAt': current.startsAt.toUtc().toIso8601String(),
+            'endsAt': current.endsAt.toUtc().toIso8601String(),
+          },
+        ),
+      );
+    }
+
+    if (current.isStaffChanged) {
+      events.add(
+        LessonActivityRecord(
+          eventType: 'LESSON_MANUALLY_UPDATED',
+          eventAt: current.startsAt.subtract(const Duration(days: 1)),
+          actorId: qaManagerProfileId,
+          actorName: 'QA 지점장',
+          actorRole: 'manager',
+          details: {
+            'rightId': rightId,
+            'lessonId': current.id,
+            'before': {
+              'startsAt': originalStart.toUtc().toIso8601String(),
+              'durationMinutes': current.durationMinutes,
+            },
+            'after': {
+              'startsAt': current.startsAt.toUtc().toIso8601String(),
+              'durationMinutes': current.durationMinutes,
+            },
+          },
+        ),
+      );
+    }
+
+    if (current.isStudentRebooked) {
+      events.add(
+        LessonActivityRecord(
+          eventType: 'LESSON_RIGHT_BOOKED',
+          eventAt: current.startsAt.subtract(const Duration(hours: 12)),
+          actorId: current.studentId,
+          actorName: current.studentName ?? 'QA 학생',
+          actorRole: 'student',
+          details: {
+            'rightId': rightId,
+            'lessonId': current.id,
+            'reusedLesson': true,
+            'startsAt': current.startsAt.toUtc().toIso8601String(),
+            'endsAt': current.endsAt.toUtc().toIso8601String(),
+          },
+        ),
+      );
+    }
+
+    if (current.isCanceled) {
+      events.add(
+        LessonActivityRecord(
+          eventType: 'LESSON_CANCELED',
+          eventAt: current.canceledAt ?? DateTime.now(),
+          actorId: qaManagerProfileId,
+          actorName: 'QA 지점장',
+          actorRole: 'manager',
+          details: {
+            'rightId': rightId,
+            'lessonId': current.id,
+            'cancellationOrigin': 'staff',
+            'reason': current.cancellationReason,
+            'startsAt': current.startsAt.toUtc().toIso8601String(),
+            'endsAt': current.endsAt.toUtc().toIso8601String(),
+          },
+        ),
+      );
+    }
+
+    events.sort((a, b) => a.eventAt.compareTo(b.eventAt));
+    return events;
+  }
+
+  @override
   Future<void> cancelLesson({
     required String lessonId,
     String? reason,
