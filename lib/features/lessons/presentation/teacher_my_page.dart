@@ -16,6 +16,7 @@ import '../../auth/presentation/auth_controller.dart';
 import '../../teachers/data/teacher_repository.dart';
 import '../domain/lesson.dart';
 import 'lesson_controller.dart';
+import 'lesson_visual_style.dart';
 
 class TeacherMyPage extends StatefulWidget {
   const TeacherMyPage({
@@ -385,7 +386,9 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
       ...lessonController.visibleLessons.map((lesson) => lesson.studentId),
     };
 
-    final studentAccents = accentController.assignments(allStudentIds);
+    final studentAccents = accentController.isEnabled
+        ? accentController.assignments(allStudentIds)
+        : const <String, Color>{};
 
     return Scaffold(
       backgroundColor: const Color(0xffF6F8F4),
@@ -817,8 +820,11 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
               _studentRow(
                 students[i],
                 lessonController,
-                accents[students[i].id] ??
-                    accentController.colorFor(students[i].id),
+                accentController.isEnabled
+                    ? (accents[students[i].id] ??
+                        accentController.colorFor(students[i].id))
+                    : const Color(0xffE8F0E4),
+                colorEnabled: accentController.isEnabled,
               ),
               if (i != students.length - 1)
                 Padding(
@@ -838,10 +844,11 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
   Widget _studentRow(
     AssignedStudentSummary student,
     LessonController lessonController,
-    Color accentColor,
-  ) {
+    Color accentColor, {
+    required bool colorEnabled,
+  }) {
     return InkWell(
-      onTap: () => _showStudentColorPicker(student),
+      onTap: colorEnabled ? () => _showStudentColorPicker(student) : null,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(13, 12, 12, 12),
         child: Row(
@@ -913,12 +920,14 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                 ],
               ),
             ),
-            const SizedBox(width: 7),
-            Icon(
-              Icons.palette_outlined,
-              color: studentAccentForeground(accentColor),
-              size: 21,
-            ),
+            if (colorEnabled) ...[
+              const SizedBox(width: 7),
+              Icon(
+                Icons.palette_outlined,
+                color: studentAccentForeground(accentColor),
+                size: 21,
+              ),
+            ],
           ],
         ),
       ),
@@ -979,7 +988,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
             _upcomingLessonRow(
               lessons[i],
               accents[lessons[i].studentId] ??
-                  studentAccentColor(lessons[i].studentId),
+                  lessonStatusAccentColor(lessons[i]),
             ),
             if (i != lessons.length - 1)
               Divider(
@@ -993,6 +1002,8 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
   }
 
   Widget _upcomingLessonRow(Lesson lesson, Color accentColor) {
+    final statusColor = lessonStatusAccentColor(lesson);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -1001,7 +1012,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
             width: 4,
             height: 34,
             decoration: BoxDecoration(
-              color: accentColor,
+              color: statusColor,
               borderRadius: BorderRadius.circular(999),
             ),
           ),
@@ -1286,9 +1297,11 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
           value: accentController,
           child: StatefulBuilder(
             builder: (context, setModalState) {
-              final accents = accentController.assignments(
-                orderedStudents.map((student) => student.id),
-              );
+              final accents = accentController.isEnabled
+                  ? accentController.assignments(
+                      orderedStudents.map((student) => student.id),
+                    )
+                  : const <String, Color>{};
 
               return DraggableScrollableSheet(
                 expand: false,
@@ -1374,8 +1387,10 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                           },
                           itemBuilder: (context, index) {
                             final student = orderedStudents[index];
-                            final accentColor = accents[student.id] ??
-                                accentController.colorFor(student.id);
+                            final accentColor = accentController.isEnabled
+                                ? (accents[student.id] ??
+                                    accentController.colorFor(student.id))
+                                : const Color(0xffE8F0E4);
 
                             return ReorderableDelayedDragStartListener(
                               key: ValueKey(student.id),
@@ -1395,6 +1410,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                                   student,
                                   lessonController,
                                   accentColor,
+                                  colorEnabled: accentController.isEnabled,
                                 ),
                               ),
                             );
@@ -1431,6 +1447,36 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                SwitchListTile(
+                  secondary: const Icon(
+                    Icons.palette_outlined,
+                    color: primaryColor,
+                  ),
+                  title: Text(
+                    '학생별 색상 구분',
+                    style: forestringTextStyle.copyWith(
+                      color: Colors.black87,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '주간·일정·마이페이지에서 학생별 색상을 사용합니다.',
+                    style: forestringTextStyle.copyWith(
+                      color: Colors.black45,
+                      fontSize: 11,
+                    ),
+                  ),
+                  value: accentController.isEnabled,
+                  activeThumbColor: primaryColor,
+                  onChanged: (value) async {
+                    await accentController.setEnabled(value);
+                    if (sheetContext.mounted) {
+                      Navigator.of(sheetContext).pop();
+                    }
+                  },
+                ),
+                const Divider(height: 1),
                 if (_profilePhoto != null) ...[
                   ListTile(
                     leading: const Icon(
@@ -1460,7 +1506,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                     color: primaryColor,
                   ),
                   title: Text(
-                    '학생 색상 설정 초기화',
+                    '저장된 학생 색상 초기화',
                     style: forestringTextStyle.copyWith(
                       color: Colors.black87,
                       fontSize: 15,
@@ -1468,7 +1514,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                     ),
                   ),
                   subtitle: Text(
-                    '이 기기에 저장된 학생별 색상을 모두 지웁니다.',
+                    '학생별 색상을 켰을 때 사용할 개별 지정값을 모두 지웁니다.',
                     style: forestringTextStyle.copyWith(
                       color: Colors.black45,
                       fontSize: 11,
