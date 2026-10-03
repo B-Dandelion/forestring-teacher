@@ -10,19 +10,19 @@ Future<bool?> showStudentTeacherChangeDialog({
   required ManagedStudent student,
   StudentTeacherManagementRepository? repository,
 }) {
-  return showDialog<bool>(
-    context: context,
-    useRootNavigator: true,
-    barrierDismissible: false,
-    builder: (_) => _StudentTeacherChangeDialog(
-      student: student,
-      repository: repository,
+  return Navigator.of(context).push<bool>(
+    MaterialPageRoute(
+      builder: (_) => StudentTeacherChangePage(
+        student: student,
+        repository: repository,
+      ),
     ),
   );
 }
 
-class _StudentTeacherChangeDialog extends StatefulWidget {
-  const _StudentTeacherChangeDialog({
+class StudentTeacherChangePage extends StatefulWidget {
+  const StudentTeacherChangePage({
+    super.key,
     required this.student,
     this.repository,
   });
@@ -31,12 +31,12 @@ class _StudentTeacherChangeDialog extends StatefulWidget {
   final StudentTeacherManagementRepository? repository;
 
   @override
-  State<_StudentTeacherChangeDialog> createState() =>
-      _StudentTeacherChangeDialogState();
+  State<StudentTeacherChangePage> createState() =>
+      _StudentTeacherChangePageState();
 }
 
-class _StudentTeacherChangeDialogState
-    extends State<_StudentTeacherChangeDialog> {
+class _StudentTeacherChangePageState
+    extends State<StudentTeacherChangePage> {
   late final StudentTeacherManagementRepository _repository;
 
   List<ManagedTeacherOption> _teachers = const [];
@@ -61,7 +61,8 @@ class _StudentTeacherChangeDialogState
     if (branchId == null) {
       setState(() {
         _loading = false;
-        _errorMessage = '학생의 지점 정보가 없어 담당 선생님을 변경할 수 없습니다.';
+        _errorMessage =
+            '학생의 지점 정보가 없어 담당 선생님을 변경할 수 없습니다.';
       });
       return;
     }
@@ -91,18 +92,16 @@ class _StudentTeacherChangeDialogState
   Future<void> _pickEffectiveDate() async {
     final today = DateTime.now();
     final firstDate = DateTime(today.year, today.month, today.day);
-    final lastDate = DateTime(today.year + 3, 12, 31);
-
     final selected = await showDatePicker(
       context: context,
-      initialDate: _effectiveOn.isBefore(firstDate) ? firstDate : _effectiveOn,
+      initialDate:
+          _effectiveOn.isBefore(firstDate) ? firstDate : _effectiveOn,
       firstDate: firstDate,
-      lastDate: lastDate,
+      lastDate: DateTime(today.year + 3, 12, 31),
       helpText: '변경 적용일 선택',
       cancelText: '취소',
       confirmText: '선택',
     );
-
     if (selected == null || !mounted) return;
     setState(() => _effectiveOn = selected);
   }
@@ -127,7 +126,6 @@ class _StudentTeacherChangeDialogState
         currentTeacherId: widget.student.teacherId,
         isFlex: widget.student.isFlex,
       );
-
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } on StudentTeacherManagementFailure catch (error) {
@@ -145,50 +143,52 @@ class _StudentTeacherChangeDialogState
     final currentTeacher = student.teacherName == null
         ? '미배정'
         : '${student.teacherName} 선생님';
-
     final canManage = student.teacherId != null || student.isFlex;
 
-    return AlertDialog(
-      title: Text(student.teacherId == null ? '담당 선생님 지정' : '담당 선생님 변경'),
-      content: SizedBox(
-        width: 420,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                '${student.displayName} · ${student.branchName}',
-                style: forestringTextStyle.copyWith(
-                  color: primaryColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '현재 담당: $currentTeacher',
-                style: forestringTextStyle.copyWith(fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              if (!canManage)
-                _messageBox(
-                  '정규 학생의 기존 담당 선생님 배정이 없어 자동 변경할 수 없습니다.\n'
-                  '학생의 정규 일정 상태를 먼저 확인해주세요.',
-                  isError: true,
-                )
-              else if (_loading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 28),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else ...[
-                DropdownButtonFormField<String>(
-                  initialValue: _teacherId,
-                  decoration: const InputDecoration(
-                    labelText: '새 담당 선생님',
-                    border: OutlineInputBorder(),
+    return Scaffold(
+      backgroundColor: neutralIvory,
+      appBar: AppBar(
+        backgroundColor: neutralIvory,
+        foregroundColor: primaryColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          student.teacherId == null ? '담당 선생님 지정' : '담당 선생님 변경',
+          style: forestringTextStyle.copyWith(
+            color: primaryColor,
+            fontSize: 19,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 110),
+          children: [
+            _headerCard(student, currentTeacher),
+            const SizedBox(height: 12),
+            if (!canManage)
+              _messageBox(
+                '정규 학생의 기존 담당 선생님 배정이 없어 자동 변경할 수 없습니다. '
+                '학생의 정규 일정 상태를 먼저 확인해주세요.',
+                isError: true,
+              )
+            else if (_loading)
+              const Padding(
+                padding: EdgeInsets.only(top: 80),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: primaryColor,
                   ),
+                ),
+              )
+            else ...[
+              _sectionCard(
+                title: '새 담당 선생님',
+                child: DropdownButtonFormField<String>(
+                  initialValue: _teacherId,
+                  decoration: _decoration('선생님 선택'),
                   items: _teachers
                       .map(
                         (teacher) => DropdownMenuItem(
@@ -201,68 +201,164 @@ class _StudentTeacherChangeDialogState
                       ? null
                       : (value) => setState(() => _teacherId = value),
                 ),
-                if (_teachers.isEmpty) ...[
-                  const SizedBox(height: 8),
-                  _messageBox('변경 가능한 다른 선생님이 없습니다.'),
-                ],
-                const SizedBox(height: 12),
-                InkWell(
+              ),
+              const SizedBox(height: 12),
+              _sectionCard(
+                title: '변경 적용일',
+                child: InkWell(
                   onTap: _saving ? null : _pickEffectiveDate,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(13),
                   child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: '변경 적용일',
-                      border: OutlineInputBorder(),
-                      suffixIcon: Icon(Icons.calendar_today_outlined),
+                    decoration: _decoration('적용일').copyWith(
+                      suffixIcon:
+                          const Icon(Icons.calendar_today_outlined),
                     ),
-                    child: Text(DateFormat('yyyy.MM.dd').format(_effectiveOn)),
+                    child: Text(
+                      DateFormat('yyyy.MM.dd').format(_effectiveOn),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                _messageBox(
-                  student.isRegular
-                      ? '정규 학생은 변경일부터 기존 요일·시간·수업 길이를 유지한 채 담당 선생님이 변경됩니다. 새 선생님의 근무시간과 기존 수업 충돌 조건을 만족해야 합니다.'
-                      : '자율 예약 학생은 선택한 날짜부터 담당 선생님 배정이 변경됩니다.',
-                ),
-              ],
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 12),
-                _messageBox(_errorMessage!, isError: true),
-              ],
+              ),
+              const SizedBox(height: 12),
+              _messageBox(
+                student.isRegular
+                    ? '정규 학생은 선택한 날짜부터 기존 요일·시간·수업 길이를 유지한 채 담당 선생님이 변경됩니다.'
+                    : '자율 예약 학생은 선택한 날짜부터 담당 선생님 배정이 변경됩니다.',
+              ),
             ],
+            if (_teachers.isEmpty && !_loading && canManage) ...[
+              const SizedBox(height: 12),
+              _messageBox('변경 가능한 다른 선생님이 없습니다.'),
+            ],
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 12),
+              _messageBox(_errorMessage!, isError: true),
+            ],
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+          child: FilledButton(
+            onPressed: _saving ||
+                    _loading ||
+                    !canManage ||
+                    _teachers.isEmpty
+                ? null
+                : _save,
+            style: FilledButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: Text(
+              _saving ? '변경 중...' : '담당 선생님 변경',
+              style: forestringTextStyle.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.of(context).pop(false),
-          child: const Text('취소'),
-        ),
-        FilledButton(
-          onPressed: _saving || _loading || !canManage || _teachers.isEmpty
-              ? null
-              : _save,
-          style: FilledButton.styleFrom(backgroundColor: primaryColor),
-          child: Text(_saving ? '변경 중...' : '변경'),
-        ),
-      ],
+    );
+  }
+
+  Widget _headerCard(
+    ManagedStudent student,
+    String currentTeacher,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            student.displayName,
+            style: forestringTextStyle.copyWith(
+              color: primaryColor,
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            '${student.branchName} · 현재 담당 $currentTeacher',
+            style: forestringTextStyle.copyWith(
+              color: Colors.black54,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionCard({
+    required String title,
+    required Widget child,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            style: forestringTextStyle.copyWith(
+              color: primaryColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _decoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      isDense: true,
+      filled: true,
+      fillColor: primaryColor.withValues(alpha: 0.035),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(13),
+        borderSide: BorderSide.none,
+      ),
     );
   }
 
   Widget _messageBox(String message, {bool isError = false}) {
     final color = isError ? Colors.redAccent : primaryColor;
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.14)),
       ),
       child: Text(
         message,
         style: forestringTextStyle.copyWith(
-          color: isError ? Colors.redAccent : Colors.black87,
-          fontSize: 13,
+          color: isError ? Colors.redAccent : Colors.black74,
+          fontSize: 12,
+          height: 1.45,
         ),
       ),
     );
