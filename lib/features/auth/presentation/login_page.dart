@@ -69,96 +69,67 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: primaryColor,
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-        child: Stack(
-          children: [
-            const Positioned.fill(
-              child: _LoginBackground(),
-            ),
-            SafeArea(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  if (!compact) {
-                    return Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        22,
-                        18,
-                        22,
-                        22,
-                      ),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            maxWidth: 430,
-                          ),
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                child: Center(
-                                  child: _LoginBrand(
-                                    compact: false,
-                                  ),
-                                ),
-                              ),
-                              loginPanel,
-                              if (widget.onManagerQaStart != null) ...[
-                                const SizedBox(height: 14),
-                                _QaEntryButton(
-                                  onPressed:
-                                      widget.onManagerQaStart!,
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: _LoginBackground(),
+          ),
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final topPadding = compact ? 10.0 : 18.0;
+                final bottomPadding =
+                    compact ? keyboardInset + 10.0 : 22.0;
+                final availableHeight =
+                    constraints.maxHeight -
+                    topPadding -
+                    bottomPadding;
 
-                  final availableHeight =
-                      constraints.maxHeight - keyboardInset - 16;
-
-                  return AnimatedPadding(
-                    duration: const Duration(milliseconds: 230),
-                    curve: Curves.easeOutCubic,
-                    padding: EdgeInsets.fromLTRB(
-                      22,
-                      10,
-                      22,
-                      keyboardInset + 10,
-                    ),
-                    child: SingleChildScrollView(
-                      keyboardDismissBehavior:
-                          ScrollViewKeyboardDismissBehavior.onDrag,
-                      physics: const ClampingScrollPhysics(),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: availableHeight > 0
-                              ? availableHeight
-                              : 0,
-                        ),
-                        child: Align(
-                          alignment: Alignment.topCenter,
+                return AnimatedPadding(
+                  duration: const Duration(milliseconds: 230),
+                  curve: Curves.easeOutCubic,
+                  padding: EdgeInsets.fromLTRB(
+                    22,
+                    topPadding,
+                    22,
+                    bottomPadding,
+                  ),
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    physics: const ClampingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight:
+                            availableHeight > 0 ? availableHeight : 0,
+                      ),
+                      child: IntrinsicHeight(
+                        child: Center(
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(
                               maxWidth: 430,
                             ),
                             child: Column(
-                              mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment:
                                   CrossAxisAlignment.stretch,
                               children: [
-                                const _LoginBrand(
-                                  compact: true,
+                                Expanded(
+                                  child: Align(
+                                    alignment: compact
+                                        ? Alignment.center
+                                        : const Alignment(0, 0.20),
+                                    child: _LoginBrand(
+                                      compact: compact,
+                                    ),
+                                  ),
                                 ),
-                                const SizedBox(height: 20),
+                                if (compact)
+                                  const SizedBox(height: 20),
                                 loginPanel,
                                 if (widget.onManagerQaStart != null) ...[
-                                  const SizedBox(height: 10),
+                                  SizedBox(
+                                    height: compact ? 10 : 14,
+                                  ),
                                   _QaEntryButton(
                                     onPressed:
                                         widget.onManagerQaStart!,
@@ -170,12 +141,12 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -555,6 +526,8 @@ class _GlassTextField extends StatelessWidget {
       enableSuggestions: false,
       autocorrect: false,
       onSubmitted: onSubmitted,
+      onTapOutside: (_) =>
+          FocusManager.instance.primaryFocus?.unfocus(),
       style: forestringTextStyle.copyWith(
         color: Colors.white,
         fontSize: 16,
