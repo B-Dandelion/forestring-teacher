@@ -29,10 +29,7 @@ Future<void> showLessonActionDialog({
   var selectedDuration = lesson.durationMinutes;
   var isSaving = false;
 
-  final durations = <int>{15, 30, 45, 60, 75, 90, selectedDuration}
-      .where((value) => value > 0 && value <= 720)
-      .toList()
-    ..sort();
+  const durations = <int>[30, 45, 60];
 
   await showDialog<void>(
     context: hostContext,
@@ -227,20 +224,21 @@ Future<void> showLessonActionDialog({
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  lesson.studentName ?? '학생',
-                                  style: forestringTextStyle.copyWith(
-                                    color: primaryColor,
-                                    fontSize: 27,
-                                    fontWeight: FontWeight.w500,
-                                    height: 1.05,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
                                 Wrap(
-                                  spacing: 6,
+                                  spacing: 8,
                                   runSpacing: 6,
+                                  crossAxisAlignment:
+                                      WrapCrossAlignment.center,
                                   children: [
+                                    Text(
+                                      lesson.studentName ?? '학생',
+                                      style: forestringTextStyle.copyWith(
+                                        color: primaryColor,
+                                        fontSize: 27,
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.05,
+                                      ),
+                                    ),
                                     _LessonBadge(
                                       label: lesson.type.label,
                                     ),
@@ -288,7 +286,7 @@ Future<void> showLessonActionDialog({
                           ),
                         ],
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 26),
                       Row(
                         children: [
                           Expanded(
