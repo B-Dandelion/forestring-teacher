@@ -901,11 +901,6 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
     LessonController lessonController,
     Color accentColor,
   ) {
-    final nextLesson = _nextLessonFor(
-      student.id,
-      lessonController.visibleLessons,
-    );
-
     return InkWell(
       onTap: () => _showStudentColorPicker(student),
       child: Padding(
@@ -966,18 +961,16 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  if (nextLesson != null) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      '다음 수업 ${DateFormat('M.d (E) HH:mm', 'ko_KR').format(nextLesson.startsAt)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.black45,
-                        fontSize: 10,
-                      ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '담당 시작 ${DateFormat('yyyy.MM.dd').format(student.assignmentStartsOn)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: forestringTextStyle.copyWith(
+                      color: Colors.black45,
+                      fontSize: 10,
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
@@ -1501,25 +1494,6 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
         );
       },
     );
-  }
-
-  Lesson? _nextLessonFor(
-    String studentId,
-    List<Lesson> lessons,
-  ) {
-    final now = DateTime.now();
-
-    final upcoming = lessons
-        .where(
-          (lesson) =>
-              lesson.studentId == studentId &&
-              !lesson.isCanceled &&
-              lesson.startsAt.isAfter(now),
-        )
-        .toList()
-      ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
-
-    return upcoming.isEmpty ? null : upcoming.first;
   }
 
   List<AssignedStudentSummary> _reviewStudents(
