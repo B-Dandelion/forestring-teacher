@@ -6,24 +6,23 @@ import '../../../core/theme/forestring_theme.dart';
 import '../data/student_management_repository.dart';
 import '../data/student_next_semester_type_repository.dart';
 
-Future<bool?> showStudentNextSemesterTypeDialog({
+Future<bool?> showStudentNextSemesterTypePage({
   required BuildContext context,
   required ManagedStudent student,
   StudentNextSemesterTypeRepository? repository,
 }) {
-  return showDialog<bool>(
-    context: context,
-    useRootNavigator: true,
-    barrierDismissible: false,
-    builder: (_) => StudentNextSemesterTypeDialog(
-      student: student,
-      repository: repository,
+  return Navigator.of(context).push<bool>(
+    MaterialPageRoute(
+      builder: (_) => StudentNextSemesterTypePage(
+        student: student,
+        repository: repository,
+      ),
     ),
   );
 }
 
-class StudentNextSemesterTypeDialog extends StatefulWidget {
-  const StudentNextSemesterTypeDialog({
+class StudentNextSemesterTypePage extends StatefulWidget {
+  const StudentNextSemesterTypePage({
     super.key,
     required this.student,
     this.repository,
@@ -33,12 +32,12 @@ class StudentNextSemesterTypeDialog extends StatefulWidget {
   final StudentNextSemesterTypeRepository? repository;
 
   @override
-  State<StudentNextSemesterTypeDialog> createState() =>
-      _StudentNextSemesterTypeDialogState();
+  State<StudentNextSemesterTypePage> createState() =>
+      _StudentNextSemesterTypePageState();
 }
 
-class _StudentNextSemesterTypeDialogState
-    extends State<StudentNextSemesterTypeDialog> {
+class _StudentNextSemesterTypePageState
+    extends State<StudentNextSemesterTypePage> {
   late final StudentNextSemesterTypeRepository _repository;
   final _rightCountController = TextEditingController();
 
@@ -219,148 +218,164 @@ class _StudentNextSemesterTypeDialogState
   Widget build(BuildContext context) {
     final plan = _plan;
 
-    return Dialog(
-      backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 620, maxHeight: 820),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 18, 22, 20),
-          child: _loading
-              ? const SizedBox(
-                  height: 240,
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              : plan == null
-                  ? _buildLoadFailure()
-                  : Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '다음 학기 수강 형태',
-                                style: forestringTextStyle.copyWith(
-                                  color: primaryColor,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              tooltip: '닫기',
-                              onPressed: _saving
-                                  ? null
-                                  : () => Navigator.of(context).pop(false),
-                              icon: const Icon(Icons.close_rounded, size: 27),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          widget.student.displayName,
-                          style: forestringTextStyle.copyWith(
-                            color: Colors.black87,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _semesterCard(plan),
-                                const SizedBox(height: 18),
-                                if (!plan.canChange) ...[
-                                  _warningCard(
-                                    '다음 학기 시작 전이며 퇴원 일정과 겹치지 않을 때만 수강 형태를 변경할 수 있습니다.',
-                                  ),
-                                  const SizedBox(height: 14),
-                                ],
-                                if (_errorMessage != null) ...[
-                                  _errorCard(_errorMessage!),
-                                  const SizedBox(height: 14),
-                                ],
-                                _sectionTitle('다음 학기 수강 형태 선택'),
-                                const SizedBox(height: 5),
-                                Text(
-                                  '현재 학기에는 영향이 없고, 다음 학기 시작일부터 적용됩니다.',
-                                  style: forestringTextStyle.copyWith(
-                                    color: Colors.black54,
-                                    fontSize: 14,
-                                    height: 1.4,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                _typeChoiceCard(
-                                  value: 'regular',
-                                  icon: Icons.event_repeat_rounded,
-                                  title: '정규',
-                                  description: '매주 정해진 일정으로 수업',
-                                  enabled: plan.canChange,
-                                ),
-                                const SizedBox(height: 10),
-                                _typeChoiceCard(
-                                  value: 'flex',
-                                  icon: Icons.confirmation_number_outlined,
-                                  title: '자율 예약',
-                                  description: '정규 일정 없이 수업권으로 예약',
-                                  enabled: plan.canChange,
-                                ),
-                                const SizedBox(height: 18),
-                                if (_targetType == 'flex')
-                                  _buildFlexSettings(plan)
-                                else
-                                  _buildRegularSettings(plan),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: _saving
-                                    ? null
-                                    : () => Navigator.of(context).pop(false),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: primaryColor,
-                                  side: const BorderSide(color: primaryColor),
-                                  minimumSize: const Size.fromHeight(52),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: const Text('취소'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 2,
-                              child: FilledButton(
-                                onPressed:
-                                    _saving || !plan.canChange ? null : _save,
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: primaryColor,
-                                  minimumSize: const Size.fromHeight(52),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: Text(_saving ? '저장 중...' : '다음 학기에 적용'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+    return Scaffold(
+      backgroundColor: neutralIvory,
+      appBar: AppBar(
+        backgroundColor: neutralIvory,
+        foregroundColor: primaryColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          '다음 학기 수강 형태',
+          style: forestringTextStyle.copyWith(
+            color: primaryColor,
+            fontSize: 19,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
+      body: SafeArea(
+        top: false,
+        child: _loading
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: primaryColor,
+                ),
+              )
+            : plan == null
+                ? ListView(
+                    padding:
+                        const EdgeInsets.fromLTRB(14, 8, 14, 24),
+                    children: [_buildLoadFailure()],
+                  )
+                : ListView(
+                    padding:
+                        const EdgeInsets.fromLTRB(14, 8, 14, 110),
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.student.displayName,
+                              style:
+                                  forestringTextStyle.copyWith(
+                                color: primaryColor,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              widget.student.branchName,
+                              style:
+                                  forestringTextStyle.copyWith(
+                                color: Colors.black54,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _semesterCard(plan),
+                      const SizedBox(height: 14),
+                      if (!plan.canChange) ...[
+                        _warningCard(
+                          '다음 학기 시작 전이며 퇴원 일정과 겹치지 않을 때만 '
+                          '수강 형태를 변경할 수 있습니다.',
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (_errorMessage != null) ...[
+                        _errorCard(_errorMessage!),
+                        const SizedBox(height: 12),
+                      ],
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.stretch,
+                          children: [
+                            _sectionTitle('다음 학기 수강 형태 선택'),
+                            const SizedBox(height: 5),
+                            Text(
+                              '현재 학기에는 영향이 없고, '
+                              '다음 학기 시작일부터 적용됩니다.',
+                              style:
+                                  forestringTextStyle.copyWith(
+                                color: Colors.black54,
+                                fontSize: 12,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _typeChoiceCard(
+                              value: 'regular',
+                              icon: Icons.event_repeat_rounded,
+                              title: '정규',
+                              description: '매주 정해진 일정으로 수업',
+                              enabled: plan.canChange,
+                            ),
+                            const SizedBox(height: 10),
+                            _typeChoiceCard(
+                              value: 'flex',
+                              icon:
+                                  Icons.confirmation_number_outlined,
+                              title: '자율 예약',
+                              description:
+                                  '정규 일정 없이 수업권으로 예약',
+                              enabled: plan.canChange,
+                            ),
+                            const SizedBox(height: 18),
+                            if (_targetType == 'flex')
+                              _buildFlexSettings(plan)
+                            else
+                              _buildRegularSettings(plan),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+      ),
+      bottomNavigationBar: plan == null
+          ? null
+          : SafeArea(
+              top: false,
+              child: Padding(
+                padding:
+                    const EdgeInsets.fromLTRB(14, 8, 14, 12),
+                child: FilledButton(
+                  onPressed:
+                      _saving || !plan.canChange ? null : _save,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Text(
+                    _saving ? '저장 중...' : '다음 학기에 적용',
+                    style: forestringTextStyle.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ),
     );
   }
 
