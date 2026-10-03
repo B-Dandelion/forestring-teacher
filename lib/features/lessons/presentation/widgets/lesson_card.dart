@@ -25,8 +25,7 @@ class LessonCard extends StatelessWidget {
     final start = DateFormat('HH:mm').format(lesson.startsAt);
     final end = DateFormat('HH:mm').format(lesson.endsAt);
     final badge = lesson.changeBadgeLabel;
-    final badgeColor =
-        lesson.isStudentRebooked ? secondaryColor : primaryColor;
+    final badgeColor = lessonStatusAccentColor(lesson);
     final resolvedAccentColor = lesson.isCanceled
         ? Colors.black38
         : accentColor ?? lessonStatusAccentColor(lesson);
