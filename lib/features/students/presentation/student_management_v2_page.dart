@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/widgets/forestring_navigation.dart';
@@ -51,6 +52,7 @@ class StudentManagementV2Page extends StatefulWidget {
 
 class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
   static const _allBranches = '__all__';
+  static const _memoKeyPrefix = 'forestring.student.memo.v1.';
 
   late final StudentManagementRepository _repository;
   late final BranchRepository _branchRepository;
@@ -58,6 +60,8 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
 
   List<AcademyBranch> _branches = const [];
   List<ManagedStudent> _students = const [];
+  final Map<String, String> _localMemos = {};
+  SharedPreferences? _preferences;
   String? _branchId;
   String _typeFilter = 'all';
   String _statusFilter = 'active';
@@ -72,6 +76,7 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
     _branchRepository =
         widget.branchRepository ?? BranchRepository();
     _searchController.addListener(_onSearchChanged);
+    _loadLocalMemos();
     _loadInitial();
   }
 
@@ -87,6 +92,26 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _loadLocalMemos() async {
+    final preferences = await SharedPreferences.getInstance();
+    final memos = <String, String>{};
+
+    for (final key in preferences.getKeys()) {
+      if (!key.startsWith(_memoKeyPrefix)) continue;
+      final value = preferences.getString(key)?.trim();
+      if (value == null || value.isEmpty) continue;
+      memos[key.substring(_memoKeyPrefix.length)] = value;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _preferences = preferences;
+      _localMemos
+        ..clear()
+        ..addAll(memos);
+    });
+  }
+
   Future<void> _loadInitial() async {
     setState(() {
       _loading = true;
@@ -98,7 +123,8 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
           .where((branch) => branch.isActive)
           .toList()
         ..sort((a, b) => a.name.compareTo(b.name));
-      final branchId = widget.profile.isManager ? widget.profile.branchId : null;
+      final branchId =
+          widget.profile.isManager ? widget.profile.branchId : null;
 
       if (!mounted) return;
       setState(() {
@@ -109,7 +135,8 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = '수강생 관리 화면을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
+        _errorMessage =
+            '수강생 관리 화면을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.';
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -123,7 +150,8 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
     });
 
     try {
-      final students = await _repository.fetchStudents(branchId: _branchId);
+      final students =
+          await _repository.fetchStudents(branchId: _branchId);
       if (!mounted) return;
       setState(() => _students = students);
     } on StudentManagementFailure catch (error) {
@@ -140,15 +168,23 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
   List<ManagedStudent> get _visibleStudents {
     final query = _searchController.text.trim().toLowerCase();
     return _students.where((student) {
-      if (_typeFilter != 'all' && student.studentType != _typeFilter) {
+      if (_typeFilter != 'all' &&
+          student.studentType != _typeFilter) {
         return false;
       }
-      if (_statusFilter == 'active' && !student.isActive) return false;
-      if (_statusFilter == 'withdrawn' && student.isActive) return false;
+      if (_statusFilter == 'active' && !student.isActive) {
+        return false;
+      }
+      if (_statusFilter == 'withdrawn' && student.isActive) {
+        return false;
+      }
       if (query.isEmpty) return true;
       return student.displayName.toLowerCase().contains(query) ||
           (student.teacherName ?? '').toLowerCase().contains(query) ||
-          student.branchName.toLowerCase().contains(query);
+          student.branchName.toLowerCase().contains(query) ||
+          (_localMemos[student.id] ?? '')
+              .toLowerCase()
+              .contains(query);
     }).toList();
   }
 
@@ -184,6 +220,176 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
     if (mounted) await _loadStudents();
   }
 
+  Future<void> _editLocalMemo(ManagedStudent student) async {
+    final initial = _localMemos[student.id] ?? '';
+    final controller = TextEditingController(text: initial);
+
+    final next = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.46),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final keyboardInset =
+                MediaQuery.viewInsetsOf(context).bottom;
+            final changed = controller.text.trim() != initial;
+
+            return AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.only(bottom: keyboardInset),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.fromLTRB(18, 12, 18, 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xffFCFDF9),
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: primaryColor.withValues(alpha: 0.07),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment:
+                          CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.14),
+                              borderRadius:
+                                  BorderRadius.circular(999),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                student.displayName + ' 메모',
+                                style:
+                                    forestringTextStyle.copyWith(
+                                  color: primaryColor,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () =>
+                                  Navigator.of(sheetContext).pop(),
+                              icon: const Icon(
+                                Icons.close_rounded,
+                                color: primaryColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: controller,
+                          autofocus: true,
+                          minLines: 2,
+                          maxLines: 4,
+                          maxLength: 120,
+                          onChanged: (_) => setSheetState(() {}),
+                          decoration: InputDecoration(
+                            hintText: '학생을 기억하기 위한 메모를 입력하세요.',
+                            filled: true,
+                            fillColor: primaryColor.withValues(
+                              alpha: 0.045,
+                            ),
+                            helperText:
+                                '이 메모는 이 휴대폰에만 저장됩니다.',
+                            helperStyle:
+                                forestringTextStyle.copyWith(
+                              color: Colors.black45,
+                              fontSize: 10,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius:
+                                  BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        FilledButton(
+                          onPressed: changed
+                              ? () => Navigator.of(sheetContext)
+                                  .pop(controller.text.trim())
+                              : null,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor:
+                                primaryColor.withValues(alpha: 0.13),
+                            disabledForegroundColor:
+                                Colors.black.withValues(alpha: 0.28),
+                            minimumSize:
+                                const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: Text(
+                            initial.isEmpty ? '메모 저장' : '변경 저장',
+                            style: forestringTextStyle.copyWith(
+                              color: changed
+                                  ? Colors.white
+                                  : Colors.black.withValues(
+                                      alpha: 0.28,
+                                    ),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    controller.dispose();
+    if (!mounted || next == null) return;
+
+    final preferences =
+        _preferences ?? await SharedPreferences.getInstance();
+    final key = _memoKeyPrefix + student.id;
+
+    if (next.isEmpty) {
+      await preferences.remove(key);
+    } else {
+      await preferences.setString(key, next);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _preferences = preferences;
+      if (next.isEmpty) {
+        _localMemos.remove(student.id);
+      } else {
+        _localMemos[student.id] = next;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final visibleStudents = _visibleStudents;
@@ -206,8 +412,12 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
+        elevation: 2,
         onPressed: _openRegistration,
-        icon: const Icon(Icons.person_add_alt_1_outlined),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        icon: const Icon(Icons.add_rounded),
         label: Text(
           '수강생 등록',
           style: forestringTextStyle.copyWith(
@@ -217,14 +427,15 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
         ),
       ),
       body: SafeArea(
+        top: false,
         child: RefreshIndicator(
           onRefresh: _loadStudents,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 100),
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 100),
             children: [
-              _buildFilters(),
-              const SizedBox(height: 14),
+              _buildFilters(visibleStudents.length),
+              const SizedBox(height: 12),
               if (_errorMessage != null) ...[
                 _errorCard(_errorMessage!),
                 const SizedBox(height: 12),
@@ -232,7 +443,9 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
               if (_loading && _students.isEmpty)
                 const Padding(
                   padding: EdgeInsets.only(top: 80),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
                 )
               else if (visibleStudents.isEmpty)
                 Padding(
@@ -240,22 +453,14 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
                   child: Center(
                     child: Text(
                       '조건에 맞는 수강생이 없습니다.',
-                      style: forestringTextStyle.copyWith(color: Colors.black54),
+                      style: forestringTextStyle.copyWith(
+                        color: Colors.black54,
+                      ),
                     ),
                   ),
                 )
-              else ...[
-                Text(
-                  '${visibleStudents.length}명',
-                  style: forestringTextStyle.copyWith(
-                    color: primaryColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
+              else
                 ...visibleStudents.map(_studentCard),
-              ],
             ],
           ),
         ),
@@ -263,178 +468,376 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
     );
   }
 
-  Widget _buildFilters() {
+  Widget _buildFilters(int visibleCount) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: '수강생 이름 검색',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: _searchController.text.isEmpty
-                ? null
-                : IconButton(
-                    onPressed: _searchController.clear,
-                    icon: const Icon(Icons.close),
-                  ),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.94),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: primaryColor.withValues(alpha: 0.07),
+            ),
+          ),
+          child: TextField(
+            controller: _searchController,
+            textInputAction: TextInputAction.search,
+            onTapOutside: (_) =>
+                FocusManager.instance.primaryFocus?.unfocus(),
+            decoration: InputDecoration(
+              hintText: '수강생 이름 또는 선생님 검색',
+              hintStyle: forestringTextStyle.copyWith(
+                color: Colors.black38,
+                fontSize: 13,
+              ),
+              prefixIcon: const Icon(
+                Icons.search_rounded,
+                color: primaryColor,
+                size: 21,
+              ),
+              suffixIcon: _searchController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: '검색어 지우기',
+                      onPressed: _searchController.clear,
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        size: 19,
+                      ),
+                    ),
+              filled: true,
+              fillColor: Colors.transparent,
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 13),
+              border: InputBorder.none,
             ),
           ),
         ),
-        const SizedBox(height: 10),
         if (widget.profile.isMaster) ...[
-          DropdownButtonFormField<String>(
-            initialValue: _branchId ?? _allBranches,
-            decoration: _filterDecoration('지점'),
-            items: [
-              const DropdownMenuItem(
-                value: _allBranches,
-                child: Text('전체 지점'),
-              ),
-              ..._branches.map(
-                (branch) => DropdownMenuItem(
-                  value: branch.id,
-                  child: Text(branch.name),
-                ),
-              ),
-            ],
-            onChanged: _loading
-                ? null
-                : (value) async {
-                    setState(() {
-                      _branchId = value == _allBranches ? null : value;
-                    });
-                    await _loadStudents();
-                  },
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _branchFilterPill(),
           ),
-          const SizedBox(height: 10),
         ],
+        const SizedBox(height: 8),
         Row(
           children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _typeFilter,
-                decoration: _filterDecoration('수강 형태'),
-                items: const [
-                  DropdownMenuItem(value: 'all', child: Text('전체')),
-                  DropdownMenuItem(value: 'regular', child: Text('정규')),
-                  DropdownMenuItem(value: 'flex', child: Text('자율 예약')),
-                ],
-                onChanged: (value) {
-                  if (value != null) setState(() => _typeFilter = value);
-                },
+            _statusFilterPill(),
+            const SizedBox(width: 7),
+            _typeFilterPill(),
+            const Spacer(),
+            Text(
+              visibleCount.toString() + '명',
+              style: forestringTextStyle.copyWith(
+                color: primaryColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _statusFilter,
-                decoration: _filterDecoration('상태'),
-                items: const [
-                  DropdownMenuItem(value: 'all', child: Text('전체')),
-                  DropdownMenuItem(value: 'active', child: Text('재원')),
-                  DropdownMenuItem(value: 'withdrawn', child: Text('퇴원')),
-                ],
-                onChanged: (value) {
-                  if (value != null) setState(() => _statusFilter = value);
-                },
-              ),
-            ),
+            const SizedBox(width: 2),
           ],
         ),
       ],
     );
   }
 
-  InputDecoration _filterDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: Colors.white,
-      isDense: true,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: primaryColor.withValues(alpha: 0.18)),
+  Widget _statusFilterPill() {
+    final label = switch (_statusFilter) {
+      'all' => '전체 상태',
+      'withdrawn' => '퇴원',
+      _ => '재원',
+    };
+
+    return _filterPill(
+      label: label,
+      value: _statusFilter,
+      items: const [
+        ('active', '재원'),
+        ('withdrawn', '퇴원'),
+        ('all', '전체 상태'),
+      ],
+      onSelected: (value) {
+        setState(() => _statusFilter = value);
+      },
+    );
+  }
+
+  Widget _typeFilterPill() {
+    final label = switch (_typeFilter) {
+      'regular' => '정규',
+      'flex' => '자율 예약',
+      _ => '전체 형태',
+    };
+
+    return _filterPill(
+      label: label,
+      value: _typeFilter,
+      items: const [
+        ('all', '전체 형태'),
+        ('regular', '정규'),
+        ('flex', '자율 예약'),
+      ],
+      onSelected: (value) {
+        setState(() => _typeFilter = value);
+      },
+    );
+  }
+
+  Widget _branchFilterPill() {
+    return PopupMenuButton<String>(
+      initialValue: _branchId ?? _allBranches,
+      onSelected: _loading
+          ? null
+          : (value) async {
+              setState(() {
+                _branchId =
+                    value == _allBranches ? null : value;
+              });
+              await _loadStudents();
+            },
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: _allBranches,
+          child: Text('전체 지점'),
+        ),
+        for (final branch in _branches)
+          PopupMenuItem(
+            value: branch.id,
+            child: Text(branch.name),
+          ),
+      ],
+      child: _FilterPillSurface(
+        label: _selectedBranchLabel(),
+        icon: Icons.location_on_outlined,
       ),
     );
   }
 
+  String _selectedBranchLabel() {
+    final selected = _branchId;
+    if (selected == null) return '전체 지점';
+    for (final branch in _branches) {
+      if (branch.id == selected) return branch.name;
+    }
+    return '전체 지점';
+  }
+
+  Widget _filterPill({
+    required String label,
+    required String value,
+    required List<(String, String)> items,
+    required ValueChanged<String> onSelected,
+  }) {
+    return PopupMenuButton<String>(
+      initialValue: value,
+      onSelected: onSelected,
+      itemBuilder: (context) => [
+        for (final item in items)
+          PopupMenuItem(
+            value: item.$1,
+            child: Text(item.$2),
+          ),
+      ],
+      child: _FilterPillSurface(label: label),
+    );
+  }
+
   Widget _studentCard(ManagedStudent student) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 9),
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: primaryColor.withValues(alpha: 0.16)),
+    final memo = _localMemos[student.id]?.trim();
+    final enrollment = _enrollmentLabel(student.enrolledOn);
+    final typeColor =
+        student.isRegular ? primaryColor : const Color(0xff4B7892);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.065),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x09000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _openStudent(student),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: primaryColor.withValues(alpha: 0.09),
-                  borderRadius: BorderRadius.circular(12),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(17),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(17),
+          onTap: () => _openStudent(student),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(13, 12, 9, 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 43,
+                  height: 43,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: typeColor.withValues(alpha: 0.09),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    student.displayName.isEmpty
+                        ? '?'
+                        : student.displayName.substring(0, 1),
+                    style: forestringTextStyle.copyWith(
+                      color: typeColor,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
-                child: const Icon(Icons.person_outline, color: primaryColor),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            student.displayName,
-                            overflow: TextOverflow.ellipsis,
-                            style: forestringTextStyle.copyWith(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              student.displayName,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  forestringTextStyle.copyWith(
+                                color: Colors.black87,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          _typeBadge(student),
+                          if (!student.isActive ||
+                              student.hasScheduledWithdrawal) ...[
+                            const SizedBox(width: 5),
+                            _statusBadge(student),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      _infoLine(
+                        Icons.person_outline_rounded,
+                        _teacherLine(student),
+                        color: student.teacherName == null
+                            ? Colors.black45
+                            : Colors.black54,
+                      ),
+                      const SizedBox(height: 3),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => _editLocalMemo(student),
+                          borderRadius:
+                              BorderRadius.circular(8),
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(
+                              vertical: 2,
+                            ),
+                            child: _infoLine(
+                              Icons.sticky_note_2_outlined,
+                              memo == null || memo.isEmpty
+                                  ? '메모 추가'
+                                  : memo,
+                              color: memo == null ||
+                                      memo.isEmpty
+                                  ? Colors.black38
+                                  : secondaryColor,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        _statusBadge(student),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      '${student.typeLabel} · ${student.branchName}',
-                      overflow: TextOverflow.ellipsis,
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.black54,
-                        fontSize: 13,
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      student.teacherName == null
-                          ? '담당 선생님 미배정'
-                          : '${student.teacherName} 선생님',
-                      overflow: TextOverflow.ellipsis,
-                      style: forestringTextStyle.copyWith(
-                        color: secondaryColor,
-                        fontSize: 13,
+                      const SizedBox(height: 3),
+                      _infoLine(
+                        Icons.calendar_today_outlined,
+                        enrollment,
+                        color: Colors.black45,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right, color: primaryColor),
-            ],
+                const Padding(
+                  padding: EdgeInsets.only(top: 10),
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    color: primaryColor,
+                    size: 21,
+                  ),
+                ),
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  String _teacherLine(ManagedStudent student) {
+    final teacher = student.teacherName == null
+        ? '담당 선생님 미배정'
+        : student.teacherName! + ' 선생님';
+    if (!widget.profile.isMaster) return teacher;
+    return teacher + ' · ' + student.branchName;
+  }
+
+  Widget _infoLine(
+    IconData icon,
+    String text, {
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 5),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: forestringTextStyle.copyWith(
+              color: color,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w400,
+              height: 1.25,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _typeBadge(ManagedStudent student) {
+    final color =
+        student.isRegular ? primaryColor : const Color(0xff4B7892);
+    final label = student.isRegular ? '정규' : '자율';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 3,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: forestringTextStyle.copyWith(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -442,10 +845,13 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
 
   Widget _statusBadge(ManagedStudent student) {
     final color = student.isActive
-        ? (student.hasScheduledWithdrawal ? Colors.orange.shade700 : primaryColor)
+        ? Colors.orange.shade700
         : Colors.black45;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 3,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(999),
@@ -454,11 +860,54 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
         student.statusLabel,
         style: forestringTextStyle.copyWith(
           color: color,
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: FontWeight.w500,
         ),
       ),
     );
+  }
+
+  String _enrollmentLabel(DateTime? date) {
+    if (date == null) {
+      return '등록 기준일 확인 필요';
+    }
+
+    final normalized =
+        DateTime(date.year, date.month, date.day);
+    final elapsed = _elapsedSince(normalized);
+    return '등록 기준 ' +
+        DateFormat('yyyy.MM.dd').format(normalized) +
+        ' · ' +
+        elapsed;
+  }
+
+  String _elapsedSince(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (date.isAfter(today)) return '시작 예정';
+
+    var months =
+        (today.year - date.year) * 12 + today.month - date.month;
+    if (today.day < date.day) {
+      months -= 1;
+    }
+    if (months < 0) months = 0;
+
+    final years = months ~/ 12;
+    final remainingMonths = months % 12;
+
+    if (years == 0) {
+      return remainingMonths == 0
+          ? '1개월 미만'
+          : remainingMonths.toString() + '개월';
+    }
+    if (remainingMonths == 0) {
+      return years.toString() + '년';
+    }
+    return years.toString() +
+        '년 ' +
+        remainingMonths.toString() +
+        '개월';
   }
 
   Widget _errorCard(String message) {
@@ -466,15 +915,65 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.red.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.22)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.redAccent.withValues(alpha: 0.18),
+        ),
       ),
       child: Text(
         message,
         style: forestringTextStyle.copyWith(
           color: Colors.redAccent,
-          fontSize: 13,
+          fontSize: 12,
         ),
+      ),
+    );
+  }
+}
+
+class _FilterPillSurface extends StatelessWidget {
+  const _FilterPillSurface({
+    required this.label,
+    this.icon,
+  });
+
+  final String label;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 11),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.10),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 15, color: primaryColor),
+            const SizedBox(width: 5),
+          ],
+          Text(
+            label,
+            style: forestringTextStyle.copyWith(
+              color: Colors.black.withValues(alpha: 0.72),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(
+            Icons.expand_more_rounded,
+            size: 17,
+            color: primaryColor,
+          ),
+        ],
       ),
     );
   }
