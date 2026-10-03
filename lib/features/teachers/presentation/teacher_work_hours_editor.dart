@@ -73,132 +73,252 @@ class TeacherWorkHoursEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (values.isEmpty)
-          Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: primaryColor.withValues(alpha: 0.18),
-              ),
-            ),
-            child: Text(
-              '등록된 근무시간이 없습니다.',
-              style: forestringTextStyle.copyWith(color: Colors.black54),
-            ),
-          ),
-        ...List.generate(
-          values.length,
-          (index) => _workHourCard(context, index),
-        ),
-        OutlinedButton.icon(
-          onPressed: enabled ? _addWorkHour : null,
-          icon: const Icon(Icons.add),
-          label: const Text('근무시간 추가'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: primaryColor,
-            side: const BorderSide(color: primaryColor),
-            padding: const EdgeInsets.symmetric(vertical: 12),
-          ),
-        ),
+        for (var weekday = 1; weekday <= 7; weekday += 1) ...[
+          _weekdayCard(context, weekday),
+          if (weekday != 7) const SizedBox(height: 8),
+        ],
       ],
     );
   }
 
-  Widget _workHourCard(BuildContext context, int index) {
-    final value = values[index];
+  Widget _weekdayCard(BuildContext context, int weekday) {
+    final entries = values
+        .where((value) => value.weekday == weekday)
+        .toList()
+      ..sort(
+        (a, b) => _minutes(a.startTime).compareTo(
+          _minutes(b.startTime),
+        ),
+      );
+    final working = entries.isNotEmpty;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: primaryColor.withValues(alpha: 0.18)),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 170),
+      padding: EdgeInsets.fromLTRB(
+        13,
+        working ? 12 : 9,
+        10,
+        working ? 12 : 9,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: value.weekday,
-                    decoration: _decoration('요일'),
-                    items: const [
-                      DropdownMenuItem(value: 1, child: Text('월요일')),
-                      DropdownMenuItem(value: 2, child: Text('화요일')),
-                      DropdownMenuItem(value: 3, child: Text('수요일')),
-                      DropdownMenuItem(value: 4, child: Text('목요일')),
-                      DropdownMenuItem(value: 5, child: Text('금요일')),
-                      DropdownMenuItem(value: 6, child: Text('토요일')),
-                      DropdownMenuItem(value: 7, child: Text('일요일')),
-                    ],
-                    onChanged: !enabled
-                        ? null
-                        : (weekday) {
-                            if (weekday != null) {
-                              _replaceAt(
-                                index,
-                                value.copyWith(weekday: weekday),
-                              );
-                            }
-                          },
+      decoration: BoxDecoration(
+        color: working
+            ? Colors.white
+            : primaryColor.withValues(alpha: 0.025),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(
+          color: working
+              ? primaryColor.withValues(alpha: 0.10)
+              : primaryColor.withValues(alpha: 0.055),
+        ),
+        boxShadow: working
+            ? const [
+                BoxShadow(
+                  color: Color(0x07000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 3),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: working
+                      ? primaryColor.withValues(alpha: 0.10)
+                      : Colors.black.withValues(alpha: 0.035),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  teacherWeekdayLabel(weekday),
+                  style: forestringTextStyle.copyWith(
+                    color: working ? primaryColor : Colors.black45,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                if (allowEmpty || values.length > 1) ...[
-                  const SizedBox(width: 4),
-                  IconButton(
-                    tooltip: '삭제',
-                    onPressed: enabled ? () => _removeAt(index) : null,
-                    icon: const Icon(Icons.delete_outline),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  working ? '근무' : '휴무',
+                  style: forestringTextStyle.copyWith(
+                    color: working ? Colors.black87 : Colors.black45,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                   ),
-                ],
-              ],
+                ),
+              ),
+              Switch.adaptive(
+                value: working,
+                activeTrackColor: primaryColor,
+                onChanged: !enabled
+                    ? null
+                    : (next) {
+                        if (next) {
+                          _enableWeekday(weekday);
+                        } else {
+                          _disableWeekday(weekday);
+                        }
+                      },
+              ),
+            ],
+          ),
+          if (working) ...[
+            const SizedBox(height: 9),
+            ...List.generate(
+              entries.length,
+              (index) => Padding(
+                padding: EdgeInsets.only(
+                  bottom: index == entries.length - 1 ? 0 : 7,
+                ),
+                child: _rangeRow(
+                  context,
+                  entries[index],
+                  canDelete: entries.length > 1,
+                ),
+              ),
             ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _timeButton(
-                    context: context,
-                    label: '시작',
-                    value: value.startTime,
-                    onPressed: () => _editTimeRange(
-                      context,
-                      index,
-                      initialEditingStart: true,
+            if (_canAddRange(entries)) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: enabled
+                      ? () => _addRange(weekday, entries)
+                      : null,
+                  style: TextButton.styleFrom(
+                    foregroundColor: primaryColor,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 4,
                     ),
                   ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Icon(
-                    Icons.arrow_forward_rounded,
+                  icon: const Icon(
+                    Icons.add_rounded,
                     size: 18,
-                    color: Colors.black45,
                   ),
-                ),
-                Expanded(
-                  child: _timeButton(
-                    context: context,
-                    label: '종료',
-                    value: value.endTime,
-                    onPressed: () => _editTimeRange(
-                      context,
-                      index,
-                      initialEditingStart: false,
+                  label: Text(
+                    '시간대 추가',
+                    style: forestringTextStyle.copyWith(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
-              ],
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _rangeRow(
+    BuildContext context,
+    TeacherWorkHourDraft value, {
+    required bool canDelete,
+  }) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 8, 6, 8),
+      decoration: BoxDecoration(
+        color: primaryColor.withValues(alpha: 0.035),
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _compactTimeButton(
+              label: '시작',
+              value: value.startTime,
+              onTap: () => _editTimeRange(
+                context,
+                value,
+                initialEditingStart: true,
+              ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 7),
+            child: Icon(
+              Icons.arrow_forward_rounded,
+              size: 17,
+              color: Colors.black38,
+            ),
+          ),
+          Expanded(
+            child: _compactTimeButton(
+              label: '종료',
+              value: value.endTime,
+              onTap: () => _editTimeRange(
+                context,
+                value,
+                initialEditingStart: false,
+              ),
+            ),
+          ),
+          if (canDelete) ...[
+            const SizedBox(width: 4),
+            IconButton(
+              tooltip: '시간대 삭제',
+              visualDensity: VisualDensity.compact,
+              onPressed: enabled ? () => _removeValue(value) : null,
+              icon: const Icon(
+                Icons.close_rounded,
+                size: 19,
+                color: Colors.black38,
+              ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _compactTimeButton({
+    required String label,
+    required TimeOfDay value,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.88),
+      borderRadius: BorderRadius.circular(11),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(11),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 8,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: forestringTextStyle.copyWith(
+                  color: Colors.black45,
+                  fontSize: 9.5,
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                formatTeacherWorkTime(value),
+                style: forestringTextStyle.copyWith(
+                  color: enabled ? primaryColor : Colors.black38,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -206,12 +326,11 @@ class TeacherWorkHoursEditor extends StatelessWidget {
 
   Future<void> _editTimeRange(
     BuildContext context,
-    int index, {
+    TeacherWorkHourDraft current, {
     required bool initialEditingStart,
   }) async {
     if (!enabled) return;
 
-    final current = values[index];
     final picked = await showTeacherWorkTimeRangePicker(
       context: context,
       initialStartTime: current.startTime,
@@ -221,8 +340,8 @@ class TeacherWorkHoursEditor extends StatelessWidget {
 
     if (picked == null) return;
 
-    _replaceAt(
-      index,
+    _replaceValue(
+      current,
       current.copyWith(
         startTime: picked.startTime,
         endTime: picked.endTime,
@@ -230,75 +349,92 @@ class TeacherWorkHoursEditor extends StatelessWidget {
     );
   }
 
-  Widget _timeButton({
-    required BuildContext context,
-    required String label,
-    required TimeOfDay value,
-    required VoidCallback onPressed,
-  }) {
-    return OutlinedButton(
-      onPressed: enabled ? onPressed : null,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: primaryColor,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: forestringTextStyle.copyWith(
-              color: Colors.black54,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            formatTeacherWorkTime(value),
-            style: forestringTextStyle.copyWith(
-              color: primaryColor,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _addWorkHour() {
-    final usedWeekdays = values.map((value) => value.weekday).toSet();
-    var weekday = 1;
-    for (var candidate = 1; candidate <= 7; candidate += 1) {
-      if (!usedWeekdays.contains(candidate)) {
-        weekday = candidate;
-        break;
-      }
-    }
-
-    onChanged([
+  void _enableWeekday(int weekday) {
+    _emit([
       ...values,
       TeacherWorkHourDraft(weekday: weekday),
     ]);
   }
 
-  void _replaceAt(int index, TeacherWorkHourDraft value) {
-    final updated = List<TeacherWorkHourDraft>.of(values);
-    updated[index] = value;
-    onChanged(updated);
-  }
-
-  void _removeAt(int index) {
-    final updated = List<TeacherWorkHourDraft>.of(values)..removeAt(index);
-    onChanged(updated);
-  }
-
-  InputDecoration _decoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      border: const OutlineInputBorder(),
-      isDense: true,
+  void _disableWeekday(int weekday) {
+    if (!allowEmpty &&
+        values.where((value) => value.weekday != weekday).isEmpty) {
+      return;
+    }
+    _emit(
+      values
+          .where((value) => value.weekday != weekday)
+          .toList(),
     );
+  }
+
+  bool _canAddRange(List<TeacherWorkHourDraft> entries) {
+    if (entries.isEmpty) return false;
+    final latest = entries
+        .map((entry) => _minutes(entry.endTime))
+        .reduce((a, b) => a > b ? a : b);
+    return latest < 23 * 60 + 45;
+  }
+
+  void _addRange(
+    int weekday,
+    List<TeacherWorkHourDraft> entries,
+  ) {
+    var startMinutes = 9 * 60;
+    if (entries.isNotEmpty) {
+      startMinutes = entries
+          .map((entry) => _minutes(entry.endTime))
+          .reduce((a, b) => a > b ? a : b);
+    }
+    startMinutes =
+        ((startMinutes + 14) ~/ 15) * 15;
+    if (startMinutes > 23 * 60) return;
+
+    final endMinutes =
+        (startMinutes + 60).clamp(startMinutes + 15, 23 * 60 + 45);
+
+    _emit([
+      ...values,
+      TeacherWorkHourDraft(
+        weekday: weekday,
+        startTime: TimeOfDay(
+          hour: startMinutes ~/ 60,
+          minute: startMinutes % 60,
+        ),
+        endTime: TimeOfDay(
+          hour: endMinutes ~/ 60,
+          minute: endMinutes % 60,
+        ),
+      ),
+    ]);
+  }
+
+  void _replaceValue(
+    TeacherWorkHourDraft current,
+    TeacherWorkHourDraft next,
+  ) {
+    final updated = List<TeacherWorkHourDraft>.of(values);
+    final index = updated.indexOf(current);
+    if (index < 0) return;
+    updated[index] = next;
+    _emit(updated);
+  }
+
+  void _removeValue(TeacherWorkHourDraft value) {
+    final updated = List<TeacherWorkHourDraft>.of(values)
+      ..remove(value);
+    _emit(updated);
+  }
+
+  void _emit(List<TeacherWorkHourDraft> updated) {
+    updated.sort((a, b) {
+      final weekday = a.weekday.compareTo(b.weekday);
+      if (weekday != 0) return weekday;
+      return _minutes(a.startTime).compareTo(
+        _minutes(b.startTime),
+      );
+    });
+    onChanged(updated);
   }
 }
 
