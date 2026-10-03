@@ -195,8 +195,20 @@ class _StudentRegularSchedulePageState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: neutralIvory,
-      appBar: ForestringAppBar(
-        title: '정규 일정 관리',
+      appBar: AppBar(
+        backgroundColor: neutralIvory,
+        foregroundColor: primaryColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text(
+          '정규 일정 관리',
+          style: forestringTextStyle.copyWith(
+            color: primaryColor,
+            fontSize: 19,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: '새로고침',
@@ -294,8 +306,8 @@ class _StudentRegularSchedulePageState
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryColor.withValues(alpha: 0.16)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: primaryColor.withValues(alpha: 0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -322,98 +334,118 @@ class _StudentRegularSchedulePageState
     );
   }
 
-  Widget _scheduleCard(int index, ManagedRegularSchedule schedule) {
+  Widget _scheduleCard(
+    int index,
+    ManagedRegularSchedule schedule,
+  ) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: primaryColor.withValues(alpha: 0.16)),
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.07),
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _loading ? null : () => _edit(schedule),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(13, 12, 8, 12),
+            child: Row(
               children: [
-                Expanded(
-                  child: Text(
-                    '정규 수업 ${index + 1}',
-                    style: forestringTextStyle.copyWith(
-                      color: primaryColor,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w500,
-                    ),
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: primaryColor.withValues(alpha: 0.07),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.calendar_today_outlined,
+                    color: primaryColor,
+                    size: 19,
                   ),
                 ),
-                Flexible(
-                  child: Wrap(
-                    alignment: WrapAlignment.end,
-                    spacing: 6,
-                    runSpacing: 4,
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (schedule.hasFutureVersion)
-                        _statusChip('변경 예정', secondaryColor),
-                      if (schedule.slotStartsOn.isAfter(today))
-                        _statusChip('시작 예정', secondaryColor),
-                      if (schedule.slotEndsOn != null &&
-                          !schedule.slotEndsOn!.isBefore(today))
-                        _statusChip('종료 예정', Colors.orange.shade800),
+                      Text(
+                        '${schedule.weekdayLabel} · '
+                        '${schedule.timeLabel} · '
+                        '${schedule.durationMinutes}분',
+                        style: forestringTextStyle.copyWith(
+                          color: Colors.black87,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 5,
+                        runSpacing: 4,
+                        children: [
+                          Text(
+                            schedule.teacherName,
+                            style: forestringTextStyle.copyWith(
+                              color: Colors.black45,
+                              fontSize: 10.5,
+                            ),
+                          ),
+                          if (schedule.hasFutureVersion)
+                            _statusChip(
+                              '변경 예정',
+                              secondaryColor,
+                            ),
+                          if (schedule.slotStartsOn.isAfter(today))
+                            _statusChip(
+                              '시작 예정',
+                              secondaryColor,
+                            ),
+                          if (schedule.slotEndsOn != null &&
+                              !schedule.slotEndsOn!.isBefore(today))
+                            _statusChip(
+                              '종료 예정',
+                              Colors.orange.shade800,
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
+                PopupMenuButton<String>(
+                  tooltip: '더보기',
+                  onSelected: (value) {
+                    if (value == 'end') {
+                      _end(schedule);
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: 'end',
+                      child: Text('정규 일정 종료'),
+                    ),
+                  ],
+                  icon: const Icon(
+                    Icons.more_horiz_rounded,
+                    color: primaryColor,
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: primaryColor,
+                  size: 20,
+                ),
               ],
             ),
-            const SizedBox(height: 10),
-            _row('요일', schedule.weekdayLabel),
-            _row('시간', schedule.timeLabel),
-            _row('수업 길이', '${schedule.durationMinutes}분'),
-            _row('담당 선생님', schedule.teacherName),
-            _row(
-              '일정 시작',
-              DateFormat('yyyy.MM.dd').format(schedule.slotStartsOn),
-            ),
-            if (schedule.slotEndsOn != null)
-              _row(
-                '일정 종료',
-                DateFormat('yyyy.MM.dd').format(schedule.slotEndsOn!),
-              ),
-            _row(
-              '현재 규칙 시작',
-              DateFormat('yyyy.MM.dd').format(schedule.effectiveFrom),
-            ),
-            if (schedule.nextVersionDate != null)
-              _row(
-                '다음 변경 예정',
-                DateFormat('yyyy.MM.dd').format(schedule.nextVersionDate!),
-              ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _loading ? null : () => _edit(schedule),
-              icon: const Icon(Icons.edit_calendar_outlined),
-              label: const Text('요일 · 시간 · 수업 길이 변경'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: primaryColor,
-                side: const BorderSide(color: primaryColor),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: _loading ? null : () => _end(schedule),
-              icon: const Icon(Icons.remove_circle_outline),
-              label: const Text('정규 일정 종료'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.redAccent,
-                side: const BorderSide(color: Colors.redAccent),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -429,33 +461,6 @@ class _StudentRegularSchedulePageState
       child: Text(
         label,
         style: forestringTextStyle.copyWith(color: color, fontSize: 11),
-      ),
-    );
-  }
-
-  Widget _row(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: forestringTextStyle.copyWith(
-                color: Colors.black54,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: forestringTextStyle.copyWith(fontSize: 14),
-            ),
-          ),
-        ],
       ),
     );
   }
