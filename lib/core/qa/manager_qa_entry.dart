@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -39,15 +41,27 @@ class ManagerQaEntry extends StatelessWidget {
           },
         ),
       ],
-      child: Builder(
-        builder: (context) {
-          return MasterSchedulePage(
-            profile: profile,
-            isQaSandbox: true,
-            onQaExit: () => Navigator.of(context).pop(),
-          );
-        },
-      ),
+      child: const _ManagerQaShell(),
+    );
+  }
+}
+
+class _ManagerQaShell extends StatelessWidget {
+  const _ManagerQaShell();
+
+  @override
+  Widget build(BuildContext context) {
+    context.watch<QaSandboxStore>();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.mounted) return;
+      unawaited(context.read<LessonController>().reload());
+    });
+
+    return MasterSchedulePage(
+      profile: ManagerQaEntry.profile,
+      isQaSandbox: true,
+      onQaExit: () => Navigator.of(context).pop(),
     );
   }
 }
