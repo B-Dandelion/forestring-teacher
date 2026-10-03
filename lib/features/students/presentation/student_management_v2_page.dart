@@ -560,7 +560,7 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.person_outline_rounded,
+                        Icons.person_rounded,
                         color: typeColor,
                         size: 22,
                       ),
@@ -596,7 +596,7 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
                           ),
                           const SizedBox(height: 5),
                           _infoLine(
-                            Icons.person_outline_rounded,
+                            Icons.person_rounded,
                             _teacherLine(student),
                             color: student.teacherName == null
                                 ? Colors.black45
@@ -1248,6 +1248,13 @@ class _StudentManagementDetailPageState
         border: Border.all(
           color: primaryColor.withValues(alpha: 0.06),
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 16,
+            offset: Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -1259,7 +1266,7 @@ class _StudentManagementDetailPageState
               shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.person_outline_rounded,
+              Icons.person_rounded,
               color: typeColor,
               size: 30,
             ),
@@ -1278,7 +1285,7 @@ class _StudentManagementDetailPageState
                       _student.displayName,
                       style: forestringTextStyle.copyWith(
                         color: Colors.black87,
-                        fontSize: 22,
+                        fontSize: 24,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1297,17 +1304,17 @@ class _StudentManagementDetailPageState
                   _student.branchName,
                   style: forestringTextStyle.copyWith(
                     color: Colors.black54,
-                    fontSize: 12,
+                    fontSize: 13.5,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   _student.teacherName == null
                       ? '담당 선생님 미배정'
                       : '${_student.teacherName} 선생님',
                   style: forestringTextStyle.copyWith(
                     color: Colors.black54,
-                    fontSize: 12,
+                    fontSize: 13.5,
                   ),
                 ),
               ],
@@ -1415,7 +1422,7 @@ class _StudentManagementDetailPageState
               '수업권 관리',
               style: forestringTextStyle.copyWith(
                 color: primaryColor,
-                fontSize: 13,
+                fontSize: 14.5,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1450,7 +1457,7 @@ class _StudentManagementDetailPageState
               '${schedule.durationMinutes}분',
               style: forestringTextStyle.copyWith(
                 color: Colors.black87,
-                fontSize: 13,
+                fontSize: 14.5,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1538,6 +1545,13 @@ class _StudentManagementDetailPageState
         border: Border.all(
           color: primaryColor.withValues(alpha: 0.06),
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1546,7 +1560,7 @@ class _StudentManagementDetailPageState
             title,
             style: forestringTextStyle.copyWith(
               color: primaryColor,
-              fontSize: 15,
+              fontSize: 17,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -1609,7 +1623,7 @@ class _StudentManagementDetailPageState
                     color: color == primaryColor
                         ? Colors.black87
                         : color,
-                    fontSize: 13,
+                    fontSize: 14.5,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1621,8 +1635,8 @@ class _StudentManagementDetailPageState
                     overflow: TextOverflow.ellipsis,
                     style: forestringTextStyle.copyWith(
                       color: Colors.black45,
-                      fontSize: 10.5,
-                      height: 1.25,
+                      fontSize: 11.5,
+                      height: 1.3,
                     ),
                   ),
                 ],
@@ -1638,7 +1652,7 @@ class _StudentManagementDetailPageState
                 overflow: TextOverflow.ellipsis,
                 style: forestringTextStyle.copyWith(
                   color: Colors.black54,
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1667,7 +1681,7 @@ class _StudentManagementDetailPageState
         label,
         style: forestringTextStyle.copyWith(
           color: primaryColor,
-          fontSize: 13,
+          fontSize: 15,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -1688,7 +1702,7 @@ class _StudentManagementDetailPageState
         label,
         style: forestringTextStyle.copyWith(
           color: color,
-          fontSize: 9.5,
+          fontSize: 10.5,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -2416,7 +2430,8 @@ class _StudentEditScaffold extends StatelessWidget {
             child: Text(
               saving ? '저장 중...' : actionLabel,
               style: forestringTextStyle.copyWith(
-                fontSize: 14,
+                color: Colors.white,
+                fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -2446,7 +2461,7 @@ class _StudentEditHeader extends StatelessWidget {
             student.displayName,
             style: forestringTextStyle.copyWith(
               color: primaryColor,
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -2455,7 +2470,7 @@ class _StudentEditHeader extends StatelessWidget {
             '${student.branchName} · ${student.typeLabel}',
             style: forestringTextStyle.copyWith(
               color: Colors.black54,
-              fontSize: 12,
+              fontSize: 13,
             ),
           ),
           const SizedBox(height: 10),
@@ -2463,7 +2478,7 @@ class _StudentEditHeader extends StatelessWidget {
             description,
             style: forestringTextStyle.copyWith(
               color: Colors.black54,
-              fontSize: 12,
+              fontSize: 13,
               height: 1.45,
             ),
           ),
@@ -2490,6 +2505,13 @@ class _StudentEditCard extends StatelessWidget {
         border: Border.all(
           color: primaryColor.withValues(alpha: 0.06),
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: child,
     );
