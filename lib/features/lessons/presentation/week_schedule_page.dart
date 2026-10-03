@@ -4,6 +4,7 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/theme/student_accent.dart';
+import '../../../core/theme/student_accent_controller.dart';
 import '../../../core/widgets/forestring_navigation.dart';
 import '../../auth/domain/current_profile.dart';
 import '../domain/lesson.dart';
@@ -25,9 +26,11 @@ class WeekSchedulePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = context.watch<LessonController>();
     final teacherId = controller.selectedTeacherId ?? profile.id;
-    final studentAccents = buildStudentAccentAssignments(
-      controller.visibleLessons.map((lesson) => lesson.studentId),
-    );
+    final studentAccents = context
+        .watch<StudentAccentController>()
+        .assignments(
+          controller.visibleLessons.map((lesson) => lesson.studentId),
+        );
     final meetings = <Object>[
       ...controller.visibleLessons
           .where((lesson) => !lesson.isCanceled)

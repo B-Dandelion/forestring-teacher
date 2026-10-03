@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../core/theme/forestring_theme.dart';
-import '../../../core/theme/student_accent.dart';
+import '../../../core/theme/student_accent_controller.dart';
 import '../../auth/domain/current_profile.dart';
 import '../domain/lesson.dart';
 import 'lesson_controller.dart';
@@ -647,9 +647,11 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
         return aStart.compareTo(bStart);
       });
 
-    final studentAccents = buildStudentAccentAssignments(
-      controller.visibleLessons.map((lesson) => lesson.studentId),
-    );
+    final studentAccents = context
+        .watch<StudentAccentController>()
+        .assignments(
+          controller.visibleLessons.map((lesson) => lesson.studentId),
+        );
 
     final now = DateTime.now();
     final firstDay = DateTime(now.year, now.month - 2, 1);
