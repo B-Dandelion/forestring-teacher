@@ -647,7 +647,6 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
 
   Widget _studentCard(ManagedStudent student) {
     final memo = _localMemos[student.id]?.trim();
-    final enrollment = _enrollmentLabel(student.enrolledOn);
     final typeColor =
         student.isRegular ? primaryColor : const Color(0xff4B7892);
 
@@ -686,15 +685,10 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
                     color: typeColor.withValues(alpha: 0.09),
                     shape: BoxShape.circle,
                   ),
-                  child: Text(
-                    student.displayName.isEmpty
-                        ? '?'
-                        : student.displayName.substring(0, 1),
-                    style: forestringTextStyle.copyWith(
-                      color: typeColor,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Icon(
+                    Icons.person_outline_rounded,
+                    color: typeColor,
+                    size: 22,
                   ),
                 ),
                 const SizedBox(width: 11),
@@ -734,37 +728,28 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
                             ? Colors.black45
                             : Colors.black54,
                       ),
-                      const SizedBox(height: 3),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => _editLocalMemo(student),
-                          borderRadius:
-                              BorderRadius.circular(8),
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(
-                              vertical: 2,
-                            ),
-                            child: _infoLine(
-                              Icons.sticky_note_2_outlined,
-                              memo == null || memo.isEmpty
-                                  ? '메모 추가'
-                                  : memo,
-                              color: memo == null ||
-                                      memo.isEmpty
-                                  ? Colors.black38
-                                  : secondaryColor,
+                      if (memo != null && memo.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => _editLocalMemo(student),
+                            borderRadius:
+                                BorderRadius.circular(8),
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(
+                                vertical: 2,
+                              ),
+                              child: _infoLine(
+                                Icons.sticky_note_2_outlined,
+                                memo,
+                                color: secondaryColor,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 3),
-                      _infoLine(
-                        Icons.calendar_today_outlined,
-                        enrollment,
-                        color: Colors.black45,
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -865,43 +850,6 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
         ),
       ),
     );
-  }
-
-  String _enrollmentLabel(DateTime? date) {
-    if (date == null) {
-      return '등록 기준일 확인 필요';
-    }
-
-    final normalized =
-        DateTime(date.year, date.month, date.day);
-    final elapsed = _elapsedSince(normalized);
-    return '등록 기준 ${DateFormat('yyyy.MM.dd').format(normalized)} · $elapsed';
-  }
-
-  String _elapsedSince(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    if (date.isAfter(today)) return '시작 예정';
-
-    var months =
-        (today.year - date.year) * 12 + today.month - date.month;
-    if (today.day < date.day) {
-      months -= 1;
-    }
-    if (months < 0) months = 0;
-
-    final years = months ~/ 12;
-    final remainingMonths = months % 12;
-
-    if (years == 0) {
-      return remainingMonths == 0
-          ? '1개월 미만'
-          : '$remainingMonths개월';
-    }
-    if (remainingMonths == 0) {
-      return '$years년';
-    }
-    return '$years년 $remainingMonths개월';
   }
 
   Widget _errorCard(String message) {
