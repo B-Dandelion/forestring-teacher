@@ -43,6 +43,8 @@ class LessonController extends ChangeNotifier {
   bool get isMaster => _profile.role == AppRole.master;
   bool get isManager => _profile.role == AppRole.manager;
   bool get canManageLessons => isMaster || isManager;
+  LessonRepository get repository => _repository;
+
 
   List<VisibleTeacher> get branchTeachers {
     if (!canManageLessons || _selectedBranchId == null) {
