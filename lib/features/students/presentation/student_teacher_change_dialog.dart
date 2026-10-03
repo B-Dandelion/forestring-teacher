@@ -8,19 +8,27 @@ import '../data/student_teacher_management_repository.dart';
 Future<bool?> showStudentTeacherChangeDialog({
   required BuildContext context,
   required ManagedStudent student,
+  StudentTeacherManagementRepository? repository,
 }) {
   return showDialog<bool>(
     context: context,
     useRootNavigator: true,
     barrierDismissible: false,
-    builder: (_) => _StudentTeacherChangeDialog(student: student),
+    builder: (_) => _StudentTeacherChangeDialog(
+      student: student,
+      repository: repository,
+    ),
   );
 }
 
 class _StudentTeacherChangeDialog extends StatefulWidget {
-  const _StudentTeacherChangeDialog({required this.student});
+  const _StudentTeacherChangeDialog({
+    required this.student,
+    this.repository,
+  });
 
   final ManagedStudent student;
+  final StudentTeacherManagementRepository? repository;
 
   @override
   State<_StudentTeacherChangeDialog> createState() =>
@@ -29,7 +37,7 @@ class _StudentTeacherChangeDialog extends StatefulWidget {
 
 class _StudentTeacherChangeDialogState
     extends State<_StudentTeacherChangeDialog> {
-  final _repository = StudentTeacherManagementRepository();
+  late final StudentTeacherManagementRepository _repository;
 
   List<ManagedTeacherOption> _teachers = const [];
   String? _teacherId;
@@ -41,6 +49,8 @@ class _StudentTeacherChangeDialogState
   @override
   void initState() {
     super.initState();
+    _repository =
+        widget.repository ?? StudentTeacherManagementRepository();
     final now = DateTime.now();
     _effectiveOn = DateTime(now.year, now.month, now.day);
     _loadTeachers();
