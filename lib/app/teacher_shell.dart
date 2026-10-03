@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
 import '../core/theme/forestring_theme.dart';
-import '../core/theme/student_accent_controller.dart';
 import '../features/auth/domain/current_profile.dart';
 import '../features/lessons/presentation/teacher_home_page.dart';
 import '../features/lessons/presentation/teacher_my_page.dart';
@@ -23,24 +20,8 @@ class TeacherShell extends StatefulWidget {
 class _TeacherShellState extends State<TeacherShell> {
   static const int _scheduleIndex = 1;
 
-  late final StudentAccentController _studentAccentController;
-
   int _currentIndex = _scheduleIndex;
   int _weekFocusRevision = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _studentAccentController = StudentAccentController(
-      widget.profile.id,
-    )..load();
-  }
-
-  @override
-  void dispose() {
-    _studentAccentController.dispose();
-    super.dispose();
-  }
 
   void _selectTab(int index) {
     if (index == 0) {
@@ -62,9 +43,7 @@ class _TeacherShellState extends State<TeacherShell> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: _studentAccentController,
-      child: PopScope(
+    return PopScope(
         canPop: _currentIndex == _scheduleIndex,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop || _currentIndex == _scheduleIndex) {
@@ -148,7 +127,6 @@ class _TeacherShellState extends State<TeacherShell> {
             ),
           ),
         ),
-      ),
     );
   }
 }
