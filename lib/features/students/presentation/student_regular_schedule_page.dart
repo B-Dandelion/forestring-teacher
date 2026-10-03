@@ -10,9 +10,11 @@ class StudentRegularSchedulePage extends StatefulWidget {
   const StudentRegularSchedulePage({
     super.key,
     required this.student,
+    this.repository,
   });
 
   final ManagedStudent student;
+  final StudentRegularScheduleRepository? repository;
 
   @override
   State<StudentRegularSchedulePage> createState() =>
@@ -21,7 +23,7 @@ class StudentRegularSchedulePage extends StatefulWidget {
 
 class _StudentRegularSchedulePageState
     extends State<StudentRegularSchedulePage> {
-  final _repository = StudentRegularScheduleRepository();
+  late final StudentRegularScheduleRepository _repository;
 
   List<ManagedRegularSchedule> _schedules = const [];
   bool _loading = true;
@@ -30,6 +32,8 @@ class _StudentRegularSchedulePageState
   @override
   void initState() {
     super.initState();
+    _repository =
+        widget.repository ?? StudentRegularScheduleRepository();
     _load();
   }
 
