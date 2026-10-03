@@ -51,6 +51,21 @@ class _LoginPageState extends State<LoginPage> {
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
     final compact = keyboardInset > 0;
 
+    final loginPanel = _GlassLoginPanel(
+      auth: auth,
+      nameController: _nameController,
+      pinController: _pinController,
+      nameFocusNode: _nameFocusNode,
+      pinFocusNode: _pinFocusNode,
+      obscurePin: _obscurePin,
+      onTogglePinVisibility: () {
+        setState(() {
+          _obscurePin = !_obscurePin;
+        });
+      },
+      onLogin: _login,
+    );
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: primaryColor,
@@ -65,6 +80,45 @@ class _LoginPageState extends State<LoginPage> {
             SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
+                  if (!compact) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        22,
+                        18,
+                        22,
+                        22,
+                      ),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: 430,
+                          ),
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: Center(
+                                  child: _LoginBrand(
+                                    compact: false,
+                                  ),
+                                ),
+                              ),
+                              loginPanel,
+                              if (widget.onManagerQaStart != null) ...[
+                                const SizedBox(height: 14),
+                                _QaEntryButton(
+                                  onPressed:
+                                      widget.onManagerQaStart!,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
                   final availableHeight =
                       constraints.maxHeight - keyboardInset - 16;
 
@@ -73,9 +127,9 @@ class _LoginPageState extends State<LoginPage> {
                     curve: Curves.easeOutCubic,
                     padding: EdgeInsets.fromLTRB(
                       22,
-                      compact ? 10 : 18,
+                      10,
                       22,
-                      compact ? keyboardInset + 10 : 22,
+                      keyboardInset + 10,
                     ),
                     child: SingleChildScrollView(
                       keyboardDismissBehavior:
@@ -83,8 +137,9 @@ class _LoginPageState extends State<LoginPage> {
                       physics: const ClampingScrollPhysics(),
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
-                          minHeight:
-                              availableHeight > 0 ? availableHeight : 0,
+                          minHeight: availableHeight > 0
+                              ? availableHeight
+                              : 0,
                         ),
                         child: Align(
                           alignment: Alignment.topCenter,
@@ -97,28 +152,13 @@ class _LoginPageState extends State<LoginPage> {
                               crossAxisAlignment:
                                   CrossAxisAlignment.stretch,
                               children: [
-                                _LoginBrand(compact: compact),
-                                SizedBox(
-                                  height: compact ? 20 : 34,
+                                const _LoginBrand(
+                                  compact: true,
                                 ),
-                                _GlassLoginPanel(
-                                  auth: auth,
-                                  nameController: _nameController,
-                                  pinController: _pinController,
-                                  nameFocusNode: _nameFocusNode,
-                                  pinFocusNode: _pinFocusNode,
-                                  obscurePin: _obscurePin,
-                                  onTogglePinVisibility: () {
-                                    setState(() {
-                                      _obscurePin = !_obscurePin;
-                                    });
-                                  },
-                                  onLogin: _login,
-                                ),
+                                const SizedBox(height: 20),
+                                loginPanel,
                                 if (widget.onManagerQaStart != null) ...[
-                                  SizedBox(
-                                    height: compact ? 10 : 14,
-                                  ),
+                                  const SizedBox(height: 10),
                                   _QaEntryButton(
                                     onPressed:
                                         widget.onManagerQaStart!,
@@ -311,29 +351,6 @@ class _GlassLoginPanel extends StatelessWidget {
                           Colors.white.withValues(alpha: 0.025),
                           Colors.white.withValues(alpha: 0),
                         ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 18,
-                left: 22,
-                child: IgnorePointer(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(
-                        sigmaX: 6,
-                        sigmaY: 6,
-                      ),
-                      child: Container(
-                        width: 140,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          color: Colors.white.withValues(alpha: 0.06),
-                        ),
                       ),
                     ),
                   ),
@@ -618,8 +635,8 @@ class _GlassActionButton extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.white.withValues(alpha: 0.24),
-                      Colors.white.withValues(alpha: 0.16),
+                      Colors.white.withValues(alpha: 0.22),
+                      Colors.white.withValues(alpha: 0.15),
                     ],
                   ),
                   border: Border.all(
@@ -635,18 +652,6 @@ class _GlassActionButton extends StatelessWidget {
                 ),
                 child: Stack(
                   children: [
-                    Positioned(
-                      top: 1,
-                      left: 18,
-                      right: 18,
-                      child: Container(
-                        height: 1.1,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          color: Colors.white.withValues(alpha: 0.30),
-                        ),
-                      ),
-                    ),
                     Center(
                       child: isLoading
                           ? const SizedBox(
