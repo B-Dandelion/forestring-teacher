@@ -277,6 +277,7 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
               ],
             ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'manager-student-registration-fab',
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         elevation: 2,
