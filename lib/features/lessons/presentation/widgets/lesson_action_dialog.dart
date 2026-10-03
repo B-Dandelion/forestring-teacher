@@ -29,7 +29,7 @@ Future<void> showLessonActionDialog({
   var selectedDuration = lesson.durationMinutes;
   var isSaving = false;
 
-  const durations = <int>[30, 45, 60];
+  const durations = <int>[15, 30, 45, 60];
 
   await showDialog<void>(
     context: hostContext,
