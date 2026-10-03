@@ -14,18 +14,34 @@ import 'widgets/blocked_period_info_dialog.dart';
 import 'widgets/lesson_calendar_appointment.dart';
 import 'widgets/lesson_info_dialog.dart';
 
-class WeekSchedulePage extends StatelessWidget {
+class WeekSchedulePage extends StatefulWidget {
   const WeekSchedulePage({
     super.key,
     required this.profile,
+    required this.focusRevision,
   });
 
   final CurrentProfile profile;
+  final int focusRevision;
+
+  @override
+  State<WeekSchedulePage> createState() => _WeekSchedulePageState();
+}
+
+class _WeekSchedulePageState extends State<WeekSchedulePage> {
+  final CalendarController _calendarController = CalendarController();
+  int _lastAppliedFocusRevision = -1;
+
+  @override
+  void dispose() {
+    _calendarController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<LessonController>();
-    final teacherId = controller.selectedTeacherId ?? profile.id;
+    final teacherId = controller.selectedTeacherId ?? widget.profile.id;
     final studentAccents = context
         .watch<StudentAccentController>()
         .assignments(
@@ -45,6 +61,21 @@ class WeekSchedulePage extends StatelessWidget {
         (period) => _BlockedMeeting(period),
       ),
     ];
+
+    final focusTarget = _focusTarget(controller.visibleLessons);
+
+    if (!controller.isLoading &&
+        _lastAppliedFocusRevision != widget.focusRevision) {
+      _lastAppliedFocusRevision = widget.focusRevision;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+
+        _calendarController.displayDate = focusTarget;
+      });
+    }
 
     return Scaffold(
       appBar: ForestringAppBar(
@@ -79,6 +110,7 @@ class WeekSchedulePage extends StatelessWidget {
                         child: CircularProgressIndicator(),
                       )
                     : SfCalendar(
+                        controller: _calendarController,
                         minDate: DateTime(
                           DateTime.now().year,
                           DateTime.now().month - 2,
@@ -89,7 +121,7 @@ class WeekSchedulePage extends StatelessWidget {
                           DateTime.now().month + 4,
                           0,
                         ),
-                        initialDisplayDate: DateTime.now(),
+                        initialDisplayDate: focusTarget,
                         timeZone: 'Korea Standard Time',
                         view: CalendarView.week,
                         cellBorderColor: Colors.black12,
@@ -190,6 +222,47 @@ class WeekSchedulePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  DateTime _focusTarget(List<Lesson> lessons) {
+    final now = DateTime.now();
+    final activeLessons = lessons
+        .where((lesson) => !lesson.isCanceled)
+        .toList()
+      ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+
+    if (activeLessons.isEmpty) {
+      return now;
+    }
+
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final tomorrowStart = todayStart.add(const Duration(days: 1));
+
+    final todayLessons = activeLessons
+        .where(
+          (lesson) =>
+              !lesson.startsAt.isBefore(todayStart) &&
+              lesson.startsAt.isBefore(tomorrowStart),
+        )
+        .toList();
+
+    if (todayLessons.isNotEmpty) {
+      for (final lesson in todayLessons) {
+        if (!lesson.endsAt.isBefore(now)) {
+          return lesson.startsAt;
+        }
+      }
+
+      return todayLessons.last.startsAt;
+    }
+
+    for (final lesson in activeLessons) {
+      if (lesson.startsAt.isAfter(now)) {
+        return lesson.startsAt;
+      }
+    }
+
+    return activeLessons.last.startsAt;
   }
 
   List<TimeRegion> _timeRegions(
