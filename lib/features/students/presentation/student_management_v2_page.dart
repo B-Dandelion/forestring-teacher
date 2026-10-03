@@ -225,6 +225,7 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
     final next = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
+      requestFocus: false,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.46),
       builder: (_) => _StudentMemoSheet(
@@ -848,7 +849,7 @@ class _StudentMemoSheetState extends State<_StudentMemoSheet> {
                 const SizedBox(height: 10),
                 TextField(
                   controller: _controller,
-                  autofocus: true,
+                  autofocus: false,
                   minLines: 2,
                   maxLines: 4,
                   maxLength: 120,
