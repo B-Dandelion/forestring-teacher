@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/forestring_theme.dart';
-import '../../../core/widgets/forestring_navigation.dart';
 import '../data/student_management_repository.dart';
 import '../data/student_regular_schedule_repository.dart';
 
