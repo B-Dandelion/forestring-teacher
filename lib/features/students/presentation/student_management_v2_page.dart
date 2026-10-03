@@ -1934,8 +1934,8 @@ class _StudentManagementDetailPageState
   }
 }
 
-class _StudentNameEditDialog extends StatefulWidget {
-  const _StudentNameEditDialog({
+class _StudentNameEditPage extends StatefulWidget {
+  const _StudentNameEditPage({
     required this.student,
     required this.repository,
   });
@@ -1944,11 +1944,11 @@ class _StudentNameEditDialog extends StatefulWidget {
   final StudentManagementRepository repository;
 
   @override
-  State<_StudentNameEditDialog> createState() =>
-      _StudentNameEditDialogState();
+  State<_StudentNameEditPage> createState() =>
+      _StudentNameEditPageState();
 }
 
-class _StudentNameEditDialogState extends State<_StudentNameEditDialog> {
+class _StudentNameEditPageState extends State<_StudentNameEditPage> {
   late final TextEditingController _nameController;
   bool _saving = false;
   String? _validationMessage;
@@ -1956,11 +1956,8 @@ class _StudentNameEditDialogState extends State<_StudentNameEditDialog> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.student.displayName);
-    _nameController.selection = TextSelection(
-      baseOffset: 0,
-      extentOffset: _nameController.text.length,
-    );
+    _nameController =
+        TextEditingController(text: widget.student.displayName);
   }
 
   @override
@@ -1970,8 +1967,11 @@ class _StudentNameEditDialogState extends State<_StudentNameEditDialog> {
   }
 
   Future<void> _save() async {
-    final name = _nameController.text.trim().replaceAll(RegExp(r'\s+'), ' ');
-    final current = widget.student.displayName.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final name =
+        _nameController.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final current =
+        widget.student.displayName.trim().replaceAll(RegExp(r'\s+'), ' ');
+
     if (name.isEmpty) {
       setState(() => _validationMessage = '이름을 입력해주세요.');
       return;
@@ -1989,8 +1989,12 @@ class _StudentNameEditDialogState extends State<_StudentNameEditDialog> {
       _saving = true;
       _validationMessage = null;
     });
+
     try {
-      await widget.repository.updateStudentName(studentId: widget.student.id, name: name);
+      await widget.repository.updateStudentName(
+        studentId: widget.student.id,
+        name: name,
+      );
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } on StudentManagementFailure catch (error) {
@@ -2004,58 +2008,50 @@ class _StudentNameEditDialogState extends State<_StudentNameEditDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('학생 이름 수정'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              '이름을 변경하면 학생이 로그인할 때 사용하는 이름도 함께 변경됩니다.',
-              style: forestringTextStyle.copyWith(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            TextField(
+    return _StudentEditScaffold(
+      title: '학생 이름 수정',
+      saving: _saving,
+      actionLabel: '이름 변경',
+      onSave: _save,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _StudentEditHeader(
+            student: widget.student,
+            description:
+                '이름을 변경하면 학생 앱 로그인에 사용하는 이름도 함께 변경됩니다.',
+          ),
+          const SizedBox(height: 12),
+          _StudentEditCard(
+            child: TextField(
               controller: _nameController,
               enabled: !_saving,
-              autofocus: true,
               maxLength: 100,
-              decoration: const InputDecoration(
-                labelText: '학생 이름',
-                border: OutlineInputBorder(),
-              ),
+              onChanged: (_) {
+                if (_validationMessage != null) {
+                  setState(() => _validationMessage = null);
+                } else {
+                  setState(() {});
+                }
+              },
+              decoration: _studentEditDecoration('학생 이름'),
             ),
-            if (_validationMessage != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                _validationMessage!,
-                style: forestringTextStyle.copyWith(
-                  color: Colors.redAccent,
-                  fontSize: 13,
-                ),
-              ),
-            ],
+          ),
+          if (_validationMessage != null) ...[
+            const SizedBox(height: 10),
+            _StudentEditMessage(
+              message: _validationMessage!,
+              isError: true,
+            ),
           ],
-        ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.of(context).pop(false),
-          child: const Text('취소'),
-        ),
-        FilledButton(
-          onPressed: _saving ? null : _save,
-          style: FilledButton.styleFrom(backgroundColor: primaryColor),
-          child: Text(_saving ? '변경 중...' : '변경'),
-        ),
-      ],
     );
   }
 }
 
-class _PinResetDialog extends StatefulWidget {
-  const _PinResetDialog({
+class _PinResetPage extends StatefulWidget {
+  const _PinResetPage({
     required this.student,
     required this.repository,
   });
@@ -2064,10 +2060,10 @@ class _PinResetDialog extends StatefulWidget {
   final StudentManagementRepository repository;
 
   @override
-  State<_PinResetDialog> createState() => _PinResetDialogState();
+  State<_PinResetPage> createState() => _PinResetPageState();
 }
 
-class _PinResetDialogState extends State<_PinResetDialog> {
+class _PinResetPageState extends State<_PinResetPage> {
   final _pinController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _saving = false;
@@ -2095,8 +2091,12 @@ class _PinResetDialogState extends State<_PinResetDialog> {
       _saving = true;
       _validationMessage = null;
     });
+
     try {
-      await widget.repository.resetStudentPin(studentId: widget.student.id, pin: pin);
+      await widget.repository.resetStudentPin(
+        studentId: widget.student.id,
+        pin: pin,
+      );
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } on StudentManagementFailure catch (error) {
@@ -2110,70 +2110,68 @@ class _PinResetDialogState extends State<_PinResetDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('PIN 재설정'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _pinController,
-              enabled: !_saving,
-              autofocus: true,
-              obscureText: true,
-              keyboardType: TextInputType.number,
-              maxLength: 4,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: '새 PIN (4자리)',
-                counterText: '',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _confirmController,
-              enabled: !_saving,
-              obscureText: true,
-              keyboardType: TextInputType.number,
-              maxLength: 4,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: '새 PIN 확인',
-                counterText: '',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            if (_validationMessage != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                _validationMessage!,
-                style: forestringTextStyle.copyWith(
-                  color: Colors.redAccent,
-                  fontSize: 13,
+    return _StudentEditScaffold(
+      title: '로그인 PIN 재설정',
+      saving: _saving,
+      actionLabel: 'PIN 저장',
+      onSave: _save,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _StudentEditHeader(
+            student: widget.student,
+            description: '학생 앱 로그인에 사용할 새로운 4자리 PIN을 설정합니다.',
+          ),
+          const SizedBox(height: 12),
+          _StudentEditCard(
+            child: Column(
+              children: [
+                TextField(
+                  controller: _pinController,
+                  enabled: !_saving,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  decoration: _studentEditDecoration('새 PIN').copyWith(
+                    counterText: '',
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _confirmController,
+                  enabled: !_saving,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  decoration:
+                      _studentEditDecoration('새 PIN 확인').copyWith(
+                    counterText: '',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_validationMessage != null) ...[
+            const SizedBox(height: 10),
+            _StudentEditMessage(
+              message: _validationMessage!,
+              isError: true,
+            ),
           ],
-        ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.of(context).pop(false),
-          child: const Text('취소'),
-        ),
-        FilledButton(
-          onPressed: _saving ? null : _save,
-          style: FilledButton.styleFrom(backgroundColor: primaryColor),
-          child: Text(_saving ? '변경 중...' : '변경'),
-        ),
-      ],
     );
   }
 }
 
-class _FlexRightCountDialog extends StatefulWidget {
-  const _FlexRightCountDialog({
+class _FlexRightCountPage extends StatefulWidget {
+  const _FlexRightCountPage({
     required this.student,
     required this.repository,
   });
@@ -2182,16 +2180,17 @@ class _FlexRightCountDialog extends StatefulWidget {
   final StudentManagementRepository repository;
 
   @override
-  State<_FlexRightCountDialog> createState() =>
-      _FlexRightCountDialogState();
+  State<_FlexRightCountPage> createState() =>
+      _FlexRightCountPageState();
 }
 
-class _FlexRightCountDialogState extends State<_FlexRightCountDialog> {
+class _FlexRightCountPageState extends State<_FlexRightCountPage> {
   late final TextEditingController _countController;
   bool _saving = false;
   String? _validationMessage;
 
-  int? get _enteredCount => int.tryParse(_countController.text.trim());
+  int? get _enteredCount =>
+      int.tryParse(_countController.text.trim());
 
   @override
   void initState() {
@@ -2210,43 +2209,60 @@ class _FlexRightCountDialogState extends State<_FlexRightCountDialog> {
   }
 
   void _changed() {
-    if (mounted) setState(() => _validationMessage = null);
+    if (mounted) {
+      setState(() => _validationMessage = null);
+    }
   }
 
   Future<void> _save() async {
     final current = widget.student.flexBaseRightCount;
     final next = _enteredCount;
+
     if (current == null) {
-      setState(() => _validationMessage = '현재 학기의 자율 수업권 설정을 찾지 못했습니다.');
+      setState(
+        () => _validationMessage =
+            '현재 학기의 자율 수업권 설정을 찾지 못했습니다.',
+      );
       return;
     }
     if (next == null || next <= 0) {
-      setState(() => _validationMessage = '수업권 개수를 1개 이상 입력해주세요.');
+      setState(
+        () => _validationMessage =
+            '수업권 개수를 1개 이상 입력해주세요.',
+      );
       return;
     }
     if (next == current) {
-      setState(() => _validationMessage = '현재 수업권 개수와 동일합니다.');
+      setState(
+        () => _validationMessage =
+            '현재 수업권 개수와 동일합니다.',
+      );
       return;
     }
 
     if (next < current) {
       final confirmed = await showDialog<bool>(
         context: context,
-        useRootNavigator: true,
         builder: (confirmContext) => AlertDialog(
           title: const Text('수업권 감액 확인'),
           content: Text(
-            '${widget.student.displayName} 학생의 수업권을 $current개에서 $next개로 줄일까요?\n\n'
-            '사용 가능한 수업권부터 회수되며, 이미 사용한 취소 횟수는 유지됩니다.',
+            '${widget.student.displayName} 학생의 수업권을 '
+            '$current개에서 $next개로 줄일까요?\n\n'
+            '사용 가능한 수업권부터 회수되며, '
+            '이미 사용한 취소 횟수는 유지됩니다.',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(confirmContext).pop(false),
+              onPressed: () =>
+                  Navigator.of(confirmContext).pop(false),
               child: const Text('취소'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(confirmContext).pop(true),
-              style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+              onPressed: () =>
+                  Navigator.of(confirmContext).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+              ),
               child: const Text('감액'),
             ),
           ],
@@ -2259,8 +2275,10 @@ class _FlexRightCountDialogState extends State<_FlexRightCountDialog> {
       _saving = true;
       _validationMessage = null;
     });
+
     try {
-      final result = await widget.repository.changeFlexBaseRightCount(
+      final result =
+          await widget.repository.changeFlexBaseRightCount(
         studentId: widget.student.id,
         newBaseRightCount: next,
       );
@@ -2278,75 +2296,244 @@ class _FlexRightCountDialogState extends State<_FlexRightCountDialog> {
   @override
   Widget build(BuildContext context) {
     final entered = _enteredCount;
-    final cancellationLimit = entered == null ? null : (entered ~/ 4) * 2;
-    final carryoverCap = entered == null ? null : entered ~/ 4;
+    final cancellationLimit =
+        entered == null ? null : (entered ~/ 4) * 2;
+    final carryoverCap =
+        entered == null ? null : entered ~/ 4;
 
-    return AlertDialog(
-      title: const Text('현재 학기 자율 수업권 변경'),
-      content: SizedBox(
-        width: 420,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                '${widget.student.displayName} · 현재 ${widget.student.flexBaseRightCount ?? '-'}개',
-                style: forestringTextStyle.copyWith(
-                  color: primaryColor,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: _countController,
-                enabled: !_saving && widget.student.flexBaseRightCount != null,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: '변경할 수업권 개수',
-                  suffixText: '개',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 10),
-              if (entered != null && entered > 0)
-                Text(
-                  '변경 후 취소 $cancellationLimit회 · 이월 $carryoverCap개',
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.black54,
-                    fontSize: 13,
+    return _StudentEditScaffold(
+      title: '자율 수업권 관리',
+      saving: _saving,
+      actionLabel: '수업권 변경',
+      onSave: widget.student.flexBaseRightCount == null ? null : _save,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _StudentEditHeader(
+            student: widget.student,
+            description:
+                '현재 학기의 기본 수업권 개수를 변경합니다.',
+          ),
+          const SizedBox(height: 12),
+          _StudentEditCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _countController,
+                  enabled: !_saving &&
+                      widget.student.flexBaseRightCount != null,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  decoration:
+                      _studentEditDecoration('수업권 개수').copyWith(
+                    suffixText: '개',
                   ),
                 ),
-              if (_validationMessage != null) ...[
-                const SizedBox(height: 10),
-                Text(
-                  _validationMessage!,
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.redAccent,
-                    fontSize: 13,
+                if (entered != null && entered > 0) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    '변경 후 취소 $cancellationLimit회 · '
+                    '이월 $carryoverCap개',
+                    style: forestringTextStyle.copyWith(
+                      color: Colors.black54,
+                      fontSize: 12,
+                    ),
                   ),
-                ),
+                ],
               ],
-            ],
+            ),
+          ),
+          if (_validationMessage != null) ...[
+            const SizedBox(height: 10),
+            _StudentEditMessage(
+              message: _validationMessage!,
+              isError: true,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StudentEditScaffold extends StatelessWidget {
+  const _StudentEditScaffold({
+    required this.title,
+    required this.child,
+    required this.saving,
+    required this.actionLabel,
+    required this.onSave,
+  });
+
+  final String title;
+  final Widget child;
+  final bool saving;
+  final String actionLabel;
+  final VoidCallback? onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: neutralIvory,
+      appBar: AppBar(
+        backgroundColor: neutralIvory,
+        foregroundColor: primaryColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          title,
+          style: forestringTextStyle.copyWith(
+            color: primaryColor,
+            fontSize: 19,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('취소'),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 110),
+          children: [child],
         ),
-        FilledButton(
-          onPressed: _saving || widget.student.flexBaseRightCount == null
-              ? null
-              : _save,
-          style: FilledButton.styleFrom(backgroundColor: primaryColor),
-          child: Text(_saving ? '변경 중...' : '변경'),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+          child: FilledButton(
+            onPressed: saving ? null : onSave,
+            style: FilledButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: Text(
+              saving ? '저장 중...' : actionLabel,
+              style: forestringTextStyle.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
         ),
-      ],
+      ),
     );
   }
+}
+
+class _StudentEditHeader extends StatelessWidget {
+  const _StudentEditHeader({
+    required this.student,
+    required this.description,
+  });
+
+  final ManagedStudent student;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StudentEditCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            student.displayName,
+            style: forestringTextStyle.copyWith(
+              color: primaryColor,
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            '${student.branchName} · ${student.typeLabel}',
+            style: forestringTextStyle.copyWith(
+              color: Colors.black54,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            description,
+            style: forestringTextStyle.copyWith(
+              color: Colors.black54,
+              fontSize: 12,
+              height: 1.45,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StudentEditCard extends StatelessWidget {
+  const _StudentEditCard({
+    required this.child,
+  });
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.06),
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _StudentEditMessage extends StatelessWidget {
+  const _StudentEditMessage({
+    required this.message,
+    this.isError = false,
+  });
+
+  final String message;
+  final bool isError;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isError ? Colors.redAccent : primaryColor;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        message,
+        style: forestringTextStyle.copyWith(
+          color: isError ? Colors.redAccent : Colors.black74,
+          fontSize: 12,
+          height: 1.4,
+        ),
+      ),
+    );
+  }
+}
+
+InputDecoration _studentEditDecoration(String label) {
+  return InputDecoration(
+    labelText: label,
+    filled: true,
+    fillColor: primaryColor.withValues(alpha: 0.035),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(13),
+      borderSide: BorderSide.none,
+    ),
+  );
 }
