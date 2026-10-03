@@ -35,6 +35,7 @@ Future<DateTime?> showLessonDatePicker({
           final canGoNext = !nextMonth.isAfter(
             DateTime(maximum.year, maximum.month),
           );
+          final hasChanged = !_sameDate(selectedDate, initial);
 
           void changeMonth(int delta) {
             final target = DateTime(
@@ -179,11 +180,17 @@ Future<DateTime?> showLessonDatePicker({
                         ),
                         const SizedBox(width: 6),
                         FilledButton(
-                          onPressed: () =>
-                              Navigator.of(sheetContext).pop(selectedDate),
+                          onPressed: hasChanged
+                              ? () => Navigator.of(sheetContext)
+                                  .pop(selectedDate)
+                              : null,
                           style: FilledButton.styleFrom(
                             backgroundColor: primaryColor,
                             foregroundColor: Colors.white,
+                            disabledBackgroundColor:
+                                primaryColor.withValues(alpha: 0.13),
+                            disabledForegroundColor:
+                                Colors.black.withValues(alpha: 0.28),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 20,
                               vertical: 12,
@@ -195,6 +202,9 @@ Future<DateTime?> showLessonDatePicker({
                           child: Text(
                             '선택',
                             style: forestringTextStyle.copyWith(
+                              color: hasChanged
+                                  ? Colors.white
+                                  : Colors.black.withValues(alpha: 0.28),
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
                             ),
