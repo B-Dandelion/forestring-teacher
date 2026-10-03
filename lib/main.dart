@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -47,7 +48,14 @@ Future<void> main() async {
     ),
   );
 
-  unawaited(authController.initialize());
+  final managerQaSandbox =
+      !kReleaseMode && AppConfig.managerQaEnabled;
+
+  unawaited(
+    authController.initialize(
+      restoreSession: !managerQaSandbox,
+    ),
+  );
 }
 
 class ForestringTeacher extends StatelessWidget {
