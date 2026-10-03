@@ -13,9 +13,13 @@ class TeacherCreatePage extends StatefulWidget {
   const TeacherCreatePage({
     super.key,
     required this.profile,
+    this.repository,
+    this.branchRepository,
   });
 
   final CurrentProfile profile;
+  final TeacherRepository? repository;
+  final BranchRepository? branchRepository;
 
   @override
   State<TeacherCreatePage> createState() => _TeacherCreatePageState();
@@ -26,8 +30,8 @@ class _TeacherCreatePageState extends State<TeacherCreatePage> {
   final _nameController = TextEditingController();
   final _pinController = TextEditingController();
   final _pinConfirmController = TextEditingController();
-  final _repository = TeacherRepository();
-  final _branchRepository = BranchRepository();
+  late final TeacherRepository _repository;
+  late final BranchRepository _branchRepository;
 
   List<AcademyBranch> _branches = const [];
   List<TeacherWorkHourDraft> _workHours = const [
@@ -42,6 +46,9 @@ class _TeacherCreatePageState extends State<TeacherCreatePage> {
   @override
   void initState() {
     super.initState();
+    _repository = widget.repository ?? TeacherRepository();
+    _branchRepository =
+        widget.branchRepository ?? BranchRepository();
     _loadBranches();
   }
 
