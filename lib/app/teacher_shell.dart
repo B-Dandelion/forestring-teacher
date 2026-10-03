@@ -26,6 +26,7 @@ class _TeacherShellState extends State<TeacherShell> {
   late final StudentAccentController _studentAccentController;
 
   int _currentIndex = _scheduleIndex;
+  int _weekFocusRevision = 0;
 
   @override
   void initState() {
@@ -42,6 +43,14 @@ class _TeacherShellState extends State<TeacherShell> {
   }
 
   void _selectTab(int index) {
+    if (index == 0) {
+      setState(() {
+        _currentIndex = index;
+        _weekFocusRevision += 1;
+      });
+      return;
+    }
+
     if (_currentIndex == index) {
       return;
     }
@@ -72,6 +81,7 @@ class _TeacherShellState extends State<TeacherShell> {
             children: [
               WeekSchedulePage(
                 profile: widget.profile,
+                focusRevision: _weekFocusRevision,
               ),
               TeacherHomePage(
                 profile: widget.profile,
