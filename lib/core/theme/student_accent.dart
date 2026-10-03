@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 const List<Color> _studentAccentPalette = [
-  Color(0xff2F6B4F),
-  Color(0xff4B7EA8),
-  Color(0xffC47A55),
-  Color(0xff7C6FA8),
-  Color(0xff4C8C87),
-  Color(0xffA37B42),
+  Color(0xff2F6B4F), // forest green
+  Color(0xff397A76), // muted teal
+  Color(0xff4C6FA8), // soft blue
+  Color(0xffB5655D), // muted coral
+  Color(0xff9B5F78), // dusty rose
+  Color(0xff6266A1), // muted indigo
 ];
 
 Color studentAccentColor(String studentId) {
