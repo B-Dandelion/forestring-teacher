@@ -61,7 +61,7 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
       ),
     ];
 
-    final focusTarget = _focusTarget(controller.visibleLessons);
+    final focusTarget = DateTime.now();
 
     if (!controller.isLoading &&
         _lastAppliedFocusRevision != widget.focusRevision) {
@@ -78,171 +78,150 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
 
     return Scaffold(
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: controller.reload,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              SizedBox(
-                height: MediaQuery.of(context).size.height - 100,
-                child: controller.isLoading && controller.lessons.isEmpty
-                    ? const Center(
-                        child: CircularProgressIndicator(),
-                      )
-                    : SfCalendar(
-                        controller: _calendarController,
-                        minDate: DateTime(
-                          DateTime.now().year,
-                          DateTime.now().month - 2,
-                          1,
-                        ),
-                        maxDate: DateTime(
-                          DateTime.now().year,
-                          DateTime.now().month + 4,
-                          0,
-                        ),
-                        initialDisplayDate: focusTarget,
-                        timeZone: 'Korea Standard Time',
-                        view: CalendarView.week,
-                        cellBorderColor: Colors.black12,
-                        todayHighlightColor: primaryColor,
-                        showCurrentTimeIndicator: true,
-                        showNavigationArrow: true,
-                        cellEndPadding: 0,
-                        dataSource: _LessonDataSource(meetings),
-                        appointmentBuilder: (context, details) {
-                          if (details.appointments.isEmpty) {
-                            return const SizedBox.shrink();
-                          }
-
-                          final meeting = details.appointments.first;
-                          if (meeting is! _LessonMeeting) {
-                            if (meeting is _BlockedMeeting) {
-                              return BlockedPeriodCalendarAppointment(
-                                period: meeting.period,
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          }
-
-                          return LessonCalendarAppointment(
-                            lesson: meeting.lesson,
-                            accentColor: meeting.accentColor,
-                          );
-                        },
-                        specialRegions: _timeRegions(
-                          controller.workHoursFor(teacherId),
-                        ),
-                        viewHeaderHeight: 50,
-                        headerDateFormat: 'M월',
-                        headerStyle: const CalendarHeaderStyle(
-                          backgroundColor: Colors.transparent,
-                          textAlign: TextAlign.center,
-                          textStyle: TextStyle(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 2, 8, 0),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  tooltip: '새로고침',
+                  onPressed: controller.isLoading
+                      ? null
+                      : controller.reload,
+                  icon: controller.isLoading
+                      ? const SizedBox(
+                          width: 19,
+                          height: 19,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
                             color: primaryColor,
-                            fontFamily: 'ELAND',
-                            fontWeight: FontWeight.w500,
-                            fontSize: 20,
                           ),
+                        )
+                      : const Icon(
+                          Icons.refresh_rounded,
+                          color: primaryColor,
                         ),
-                        viewHeaderStyle: const ViewHeaderStyle(
-                          dateTextStyle: TextStyle(
-                            color: Colors.black,
-                            fontFamily: 'ELAND',
-                            fontWeight: FontWeight.w500,
-                          ),
-                          dayTextStyle: TextStyle(
-                            color: Colors.black,
-                            fontFamily: 'ELAND',
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        timeSlotViewSettings: const TimeSlotViewSettings(
-                          dayFormat: 'EEE',
-                          timeTextStyle: TextStyle(
-                            fontFamily: 'OpenSans',
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black,
-                            fontSize: 11,
-                          ),
-                          timeInterval: Duration(minutes: 15),
-                          timeIntervalHeight: 36,
-                          timeFormat: 'H:mm',
-                          startHour: 7,
-                          endHour: 23,
-                        ),
-                        onTap: (details) {
-                          final appointments = details.appointments;
-                          if (appointments == null || appointments.isEmpty) {
-                            return;
-                          }
+                ),
+              ),
+            ),
+            Expanded(
+              child: controller.isLoading && controller.lessons.isEmpty
+                  ? const Center(
+                      child: CircularProgressIndicator(),
+                    )
+                  : SfCalendar(
+                      controller: _calendarController,
+                      minDate: DateTime(
+                        DateTime.now().year,
+                        DateTime.now().month - 2,
+                        1,
+                      ),
+                      maxDate: DateTime(
+                        DateTime.now().year,
+                        DateTime.now().month + 4,
+                        0,
+                      ),
+                      initialDisplayDate: focusTarget,
+                      timeZone: 'Korea Standard Time',
+                      view: CalendarView.week,
+                      cellBorderColor: Colors.black12,
+                      todayHighlightColor: primaryColor,
+                      showCurrentTimeIndicator: true,
+                      showNavigationArrow: true,
+                      cellEndPadding: 0,
+                      dataSource: _LessonDataSource(meetings),
+                      appointmentBuilder: (context, details) {
+                        if (details.appointments.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
 
-                          final meeting = appointments.first;
+                        final meeting = details.appointments.first;
+                        if (meeting is! _LessonMeeting) {
                           if (meeting is _BlockedMeeting) {
-                            showBlockedPeriodInfoDialog(
-                              context: context,
+                            return BlockedPeriodCalendarAppointment(
                               period: meeting.period,
                             );
-                            return;
                           }
+                          return const SizedBox.shrink();
+                        }
 
-                          if (meeting is! _LessonMeeting) {
-                            return;
-                          }
-
-                          showLessonInfoDialog(
-                            context: context,
-                            lesson: meeting.lesson,
-                          );
-                        },
+                        return LessonCalendarAppointment(
+                          lesson: meeting.lesson,
+                          accentColor: meeting.accentColor,
+                        );
+                      },
+                      specialRegions: _timeRegions(
+                        controller.workHoursFor(teacherId),
                       ),
-              ),
-            ],
-          ),
+                      viewHeaderHeight: 50,
+                      headerDateFormat: 'M월',
+                      headerStyle: const CalendarHeaderStyle(
+                        backgroundColor: Colors.transparent,
+                        textAlign: TextAlign.center,
+                        textStyle: TextStyle(
+                          color: primaryColor,
+                          fontFamily: 'ELAND',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 20,
+                        ),
+                      ),
+                      viewHeaderStyle: const ViewHeaderStyle(
+                        dateTextStyle: TextStyle(
+                          color: Colors.black,
+                          fontFamily: 'ELAND',
+                          fontWeight: FontWeight.w500,
+                        ),
+                        dayTextStyle: TextStyle(
+                          color: Colors.black,
+                          fontFamily: 'ELAND',
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      timeSlotViewSettings: const TimeSlotViewSettings(
+                        dayFormat: 'EEE',
+                        timeTextStyle: TextStyle(
+                          fontFamily: 'OpenSans',
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black,
+                          fontSize: 11,
+                        ),
+                        timeInterval: Duration(minutes: 15),
+                        timeIntervalHeight: 36,
+                        timeFormat: 'H:mm',
+                        startHour: 7,
+                        endHour: 23,
+                      ),
+                      onTap: (details) {
+                        final appointments = details.appointments;
+                        if (appointments == null || appointments.isEmpty) {
+                          return;
+                        }
+
+                        final meeting = appointments.first;
+                        if (meeting is _BlockedMeeting) {
+                          showBlockedPeriodInfoDialog(
+                            context: context,
+                            period: meeting.period,
+                          );
+                          return;
+                        }
+
+                        if (meeting is! _LessonMeeting) {
+                          return;
+                        }
+
+                        showLessonInfoDialog(
+                          context: context,
+                          lesson: meeting.lesson,
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  DateTime _focusTarget(List<Lesson> lessons) {
-    final now = DateTime.now();
-    final activeLessons = lessons
-        .where((lesson) => !lesson.isCanceled)
-        .toList()
-      ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
-
-    if (activeLessons.isEmpty) {
-      return now;
-    }
-
-    final todayStart = DateTime(now.year, now.month, now.day);
-    final tomorrowStart = todayStart.add(const Duration(days: 1));
-
-    final todayLessons = activeLessons
-        .where(
-          (lesson) =>
-              !lesson.startsAt.isBefore(todayStart) &&
-              lesson.startsAt.isBefore(tomorrowStart),
-        )
-        .toList();
-
-    if (todayLessons.isNotEmpty) {
-      for (final lesson in todayLessons) {
-        if (!lesson.endsAt.isBefore(now)) {
-          return lesson.startsAt;
-        }
-      }
-
-      return todayLessons.last.startsAt;
-    }
-
-    for (final lesson in activeLessons) {
-      if (lesson.startsAt.isAfter(now)) {
-        return lesson.startsAt;
-      }
-    }
-
-    return activeLessons.last.startsAt;
   }
 
   List<TimeRegion> _timeRegions(
