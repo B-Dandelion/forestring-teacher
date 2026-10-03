@@ -652,177 +652,404 @@ class _RegularScheduleAddPageState extends State<_RegularScheduleAddPage> {
   @override
   Widget build(BuildContext context) {
     final timeOptions = _availableStartMinutes;
-    const durationOptions = [15, 30, 45, 60, 75, 90];
+    const durationOptions = [15, 30, 45, 60];
 
     return Scaffold(
       backgroundColor: neutralIvory,
-      appBar: const ForestringAppBar(title: '정규 수업 추가'),
+      appBar: AppBar(
+        backgroundColor: neutralIvory,
+        foregroundColor: primaryColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text(
+          '정규 수업 추가',
+          style: forestringTextStyle.copyWith(
+            color: primaryColor,
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
       body: SafeArea(
+        top: false,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 110),
           children: [
-            Text(
-              widget.student.displayName,
-              style: forestringTextStyle.copyWith(
-                color: primaryColor,
-                fontSize: 21,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              '진행 중인 학기는 오늘부터, 미래 학기는 학기 시작일부터 적용됩니다.',
-              style: forestringTextStyle.copyWith(
-                color: Colors.black54,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 18),
-            DropdownButtonFormField<String>(
-              initialValue: _semester?.id,
-              decoration: const InputDecoration(
-                labelText: '적용 학기',
-                border: OutlineInputBorder(),
-              ),
-              items: _semesters
-                  .map(
-                    (semester) => DropdownMenuItem(
-                      value: semester.id,
-                      child: Text(
-                        semester.isInProgressOn(DateTime.now())
-                            ? '${semester.code} · 진행 중'
-                            : '${semester.code} · '
-                                '${DateFormat('yyyy.MM.dd').format(semester.startsOn)}부터',
+            _addStudentHeader(),
+            const SizedBox(height: 12),
+            _addSectionCard(
+              icon: Icons.calendar_month_rounded,
+              title: '적용 학기',
+              subtitle: '새 정규 수업을 어느 학기부터 적용할지 선택합니다.',
+              child: DropdownButtonFormField<String>(
+                initialValue: _semester?.id,
+                decoration: _addInputDecoration('학기 선택'),
+                items: _semesters
+                    .map(
+                      (semester) => DropdownMenuItem(
+                        value: semester.id,
+                        child: Text(
+                          semester.isInProgressOn(DateTime.now())
+                              ? '${semester.code} · 진행 중'
+                              : '${semester.code} · '
+                                  '${DateFormat('yyyy.MM.dd').format(semester.startsOn)}부터',
+                        ),
                       ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: _saving || _loading
-                  ? null
-                  : (value) async {
-                      if (value == null) return;
-                      final selected = _semesters.firstWhere(
-                        (item) => item.id == value,
-                      );
-                      setState(() => _semester = selected);
-                      await _loadTeacherContext(keepCurrentTime: true);
-                    },
-            ),
-            const SizedBox(height: 10),
-            InputDecorator(
-              decoration: const InputDecoration(
-                labelText: '담당 선생님',
-                border: OutlineInputBorder(),
-              ),
-              child: _loading
-                  ? const SizedBox(
-                      height: 20,
-                      child: LinearProgressIndicator(),
                     )
-                  : Text(_teacher?.displayName ?? '확인 불가'),
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<int>(
-              initialValue: _weekday,
-              decoration: const InputDecoration(
-                labelText: '요일',
-                border: OutlineInputBorder(),
+                    .toList(),
+                onChanged: _saving || _loading
+                    ? null
+                    : (value) async {
+                        if (value == null) return;
+                        final selected = _semesters.firstWhere(
+                          (item) => item.id == value,
+                        );
+                        setState(() => _semester = selected);
+                        await _loadTeacherContext(
+                          keepCurrentTime: true,
+                        );
+                      },
               ),
-              items: const [
-                DropdownMenuItem(value: 1, child: Text('월요일')),
-                DropdownMenuItem(value: 2, child: Text('화요일')),
-                DropdownMenuItem(value: 3, child: Text('수요일')),
-                DropdownMenuItem(value: 4, child: Text('목요일')),
-                DropdownMenuItem(value: 5, child: Text('금요일')),
-                DropdownMenuItem(value: 6, child: Text('토요일')),
-                DropdownMenuItem(value: 7, child: Text('일요일')),
-              ],
-              onChanged: _saving || _loading
-                  ? null
-                  : (value) {
-                      if (value == null) return;
-                      setState(() => _weekday = value);
-                      _ensureValidStart();
-                    },
             ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<int>(
-              initialValue: _durationMinutes,
-              decoration: const InputDecoration(
-                labelText: '수업 길이',
-                border: OutlineInputBorder(),
+            const SizedBox(height: 12),
+            _addSectionCard(
+              icon: Icons.event_repeat_rounded,
+              title: '수업 일정',
+              subtitle: '담당 선생님의 근무시간 안에서 가능한 일정만 선택됩니다.',
+              child: Column(
+                children: [
+                  DropdownButtonFormField<int>(
+                    initialValue: _weekday,
+                    decoration: _addInputDecoration('요일'),
+                    items: const [
+                      DropdownMenuItem(value: 1, child: Text('월요일')),
+                      DropdownMenuItem(value: 2, child: Text('화요일')),
+                      DropdownMenuItem(value: 3, child: Text('수요일')),
+                      DropdownMenuItem(value: 4, child: Text('목요일')),
+                      DropdownMenuItem(value: 5, child: Text('금요일')),
+                      DropdownMenuItem(value: 6, child: Text('토요일')),
+                      DropdownMenuItem(value: 7, child: Text('일요일')),
+                    ],
+                    onChanged: _saving || _loading
+                        ? null
+                        : (value) {
+                            if (value == null) return;
+                            setState(() => _weekday = value);
+                            _ensureValidStart();
+                          },
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          initialValue: _startMinutes != null &&
+                                  timeOptions.contains(_startMinutes)
+                              ? _startMinutes
+                              : null,
+                          decoration:
+                              _addInputDecoration('시작 시간'),
+                          items: timeOptions
+                              .map(
+                                (minutes) => DropdownMenuItem(
+                                  value: minutes,
+                                  child: Text(
+                                    _formatMinutes(minutes),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: _saving ||
+                                  _loading ||
+                                  timeOptions.isEmpty
+                              ? null
+                              : (value) => setState(
+                                    () => _startMinutes = value,
+                                  ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          initialValue: _durationMinutes,
+                          decoration: _addInputDecoration('수업 길이'),
+                          items: durationOptions
+                              .map(
+                                (minutes) => DropdownMenuItem(
+                                  value: minutes,
+                                  child: Text('$minutes분'),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: _saving || _loading
+                              ? null
+                              : (value) {
+                                  if (value == null) return;
+                                  setState(
+                                    () => _durationMinutes = value,
+                                  );
+                                  _ensureValidStart(
+                                    keepCurrent: true,
+                                  );
+                                },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              items: durationOptions
-                  .map(
-                    (minutes) => DropdownMenuItem(
-                      value: minutes,
-                      child: Text('$minutes분'),
+            ),
+            const SizedBox(height: 12),
+            _addSectionCard(
+              icon: Icons.person_rounded,
+              title: '담당 선생님',
+              child: _loading
+                  ? const LinearProgressIndicator(
+                      color: primaryColor,
+                    )
+                  : Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: primaryColor.withValues(
+                              alpha: 0.08,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.person_rounded,
+                            color: primaryColor,
+                            size: 21,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _teacher?.displayName ?? '확인 불가',
+                            style: forestringTextStyle.copyWith(
+                              color: Colors.black87,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  )
-                  .toList(),
-              onChanged: _saving || _loading
-                  ? null
-                  : (value) {
-                      if (value == null) return;
-                      setState(() => _durationMinutes = value);
-                      _ensureValidStart(keepCurrent: true);
-                    },
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<int>(
-              initialValue: _startMinutes != null &&
-                      timeOptions.contains(_startMinutes)
-                  ? _startMinutes
-                  : null,
-              decoration: const InputDecoration(
-                labelText: '시작 시간',
-                border: OutlineInputBorder(),
-              ),
-              items: timeOptions
-                  .map(
-                    (minutes) => DropdownMenuItem(
-                      value: minutes,
-                      child: Text(_formatMinutes(minutes)),
-                    ),
-                  )
-                  .toList(),
-              onChanged: _saving || _loading || timeOptions.isEmpty
-                  ? null
-                  : (value) => setState(() => _startMinutes = value),
             ),
             if (!_loading && timeOptions.isEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               _addMessageBox(
                 '선택한 요일에는 담당 선생님의 근무시간이 없거나, '
                 '선택한 수업 길이를 배치할 수 없습니다.',
                 isError: true,
               ),
             ],
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             _addMessageBox(
-              '진행 중인 학기는 이미 지난 수업을 만들지 않고 남은 회차만 생성합니다. '
-              '다음 학기부터는 기존 정규 일정 기준으로 수업권 4개와 예정 수업이 생성됩니다.',
+              '진행 중인 학기는 오늘 이후의 남은 회차만 생성합니다. '
+              '미래 학기는 학기 시작일부터 새 정규 일정이 적용됩니다.',
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 10),
               _addMessageBox(_errorMessage!, isError: true),
             ],
-            const SizedBox(height: 18),
-            FilledButton(
-              onPressed: _saving ||
-                      _loading ||
-                      _semester == null ||
-                      _teacher == null ||
-                      _startMinutes == null
-                  ? null
-                  : _save,
-              style: FilledButton.styleFrom(
-                backgroundColor: primaryColor,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+          child: FilledButton(
+            onPressed: _saving ||
+                    _loading ||
+                    _semester == null ||
+                    _teacher == null ||
+                    _startMinutes == null
+                ? null
+                : _save,
+            style: FilledButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
               ),
-              child: Text(_saving ? '추가 중...' : '정규 수업 추가'),
+            ),
+            child: Text(
+              _saving ? '추가 중...' : '정규 수업 추가',
+              style: forestringTextStyle.copyWith(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _addStudentHeader() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.06),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x09000000),
+            blurRadius: 16,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: primaryColor.withValues(alpha: 0.09),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.person_rounded,
+              color: primaryColor,
+              size: 27,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.student.displayName,
+                  style: forestringTextStyle.copyWith(
+                    color: Colors.black87,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  widget.student.branchName,
+                  style: forestringTextStyle.copyWith(
+                    color: Colors.black54,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _addSectionCard({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required Widget child,
+  }) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.06),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x07000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: primaryColor.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: primaryColor,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  title,
+                  style: forestringTextStyle.copyWith(
+                    color: primaryColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              subtitle,
+              style: forestringTextStyle.copyWith(
+                color: Colors.black54,
+                fontSize: 12,
+                height: 1.35,
+              ),
             ),
           ],
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _addInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: forestringTextStyle.copyWith(
+        color: Colors.black54,
+        fontSize: 13,
+      ),
+      filled: true,
+      fillColor: primaryColor.withValues(alpha: 0.035),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 13,
+        vertical: 14,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(13),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(13),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(13),
+        borderSide: BorderSide(
+          color: primaryColor.withValues(alpha: 0.45),
         ),
       ),
     );
@@ -1011,53 +1238,47 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
 
     return Scaffold(
       backgroundColor: neutralIvory,
-      appBar: const ForestringAppBar(title: '정규 일정 변경'),
+      appBar: AppBar(
+        backgroundColor: neutralIvory,
+        foregroundColor: primaryColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text(
+          '정규 일정 변경',
+          style: forestringTextStyle.copyWith(
+            color: primaryColor,
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
       body: SafeArea(
+        top: false,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 110),
           children: [
-            Text(
-              widget.student.displayName,
-              style: forestringTextStyle.copyWith(
-                color: primaryColor,
-                fontSize: 21,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              '현재 ${widget.schedule.weekdayLabel} '
-              '${widget.schedule.timeLabel} · ${widget.schedule.durationMinutes}분',
-              style: forestringTextStyle.copyWith(
-                color: Colors.black54,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 18),
+            _editStudentHeader(),
+            const SizedBox(height: 12),
             _editSectionCard(
+              icon: Icons.history_rounded,
               title: '현재 일정',
-              child: Text(
-                '${widget.schedule.weekdayLabel} · '
-                '${widget.schedule.timeLabel} · '
-                '${widget.schedule.durationMinutes}분',
-                style: forestringTextStyle.copyWith(
-                  color: Colors.black87,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
+              child: _scheduleSummary(
+                weekday: widget.schedule.weekdayLabel,
+                time: widget.schedule.timeLabel,
+                duration: widget.schedule.durationMinutes,
               ),
             ),
             const SizedBox(height: 12),
             _editSectionCard(
+              icon: Icons.edit_calendar_rounded,
               title: '변경할 일정',
+              subtitle: '담당 선생님의 근무시간 안에서 가능한 시간만 표시됩니다.',
               child: Column(
                 children: [
                   DropdownButtonFormField<int>(
                     initialValue: _weekday,
-                    decoration: const InputDecoration(
-                      labelText: '요일',
-                      border: OutlineInputBorder(),
-                    ),
+                    decoration: _editInputDecoration('요일'),
                     items: const [
                       DropdownMenuItem(value: 1, child: Text('월요일')),
                       DropdownMenuItem(value: 2, child: Text('화요일')),
@@ -1076,117 +1297,138 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
                           },
                   ),
                   const SizedBox(height: 10),
-                  DropdownButtonFormField<int>(
-                    initialValue:
-                        durationOptions.contains(_durationMinutes)
-                            ? _durationMinutes
-                            : null,
-                    decoration: const InputDecoration(
-                      labelText: '수업 길이',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: durationOptions
-                        .map(
-                          (minutes) => DropdownMenuItem(
-                            value: minutes,
-                            child: Text('$minutes분'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: _saving || _loadingContext
-                        ? null
-                        : (value) {
-                            if (value == null) return;
-                            setState(() => _durationMinutes = value);
-                            _ensureValidStart(keepCurrent: true);
-                          },
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<int>(
-                    initialValue: _startMinutes != null &&
-                            timeOptions.contains(_startMinutes)
-                        ? _startMinutes
-                        : null,
-                    decoration: const InputDecoration(
-                      labelText: '시작 시간',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: timeOptions
-                        .map(
-                          (minutes) => DropdownMenuItem(
-                            value: minutes,
-                            child: Text(_formatMinutes(minutes)),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: _saving ||
-                            _loadingContext ||
-                            timeOptions.isEmpty
-                        ? null
-                        : (value) =>
-                            setState(() => _startMinutes = value),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          initialValue: _startMinutes != null &&
+                                  timeOptions.contains(_startMinutes)
+                              ? _startMinutes
+                              : null,
+                          decoration:
+                              _editInputDecoration('시작 시간'),
+                          items: timeOptions
+                              .map(
+                                (minutes) => DropdownMenuItem(
+                                  value: minutes,
+                                  child: Text(
+                                    _formatMinutes(minutes),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: _saving ||
+                                  _loadingContext ||
+                                  timeOptions.isEmpty
+                              ? null
+                              : (value) => setState(
+                                    () => _startMinutes = value,
+                                  ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          initialValue:
+                              durationOptions.contains(_durationMinutes)
+                                  ? _durationMinutes
+                                  : null,
+                          decoration:
+                              _editInputDecoration('수업 길이'),
+                          items: durationOptions
+                              .map(
+                                (minutes) => DropdownMenuItem(
+                                  value: minutes,
+                                  child: Text('$minutes분'),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: _saving || _loadingContext
+                              ? null
+                              : (value) {
+                                  if (value == null) return;
+                                  setState(
+                                    () => _durationMinutes = value,
+                                  );
+                                  _ensureValidStart(
+                                    keepCurrent: true,
+                                  );
+                                },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 12),
             _editSectionCard(
-              title: '적용할 주차',
+              icon: Icons.date_range_rounded,
+              title: '적용할 주',
+              subtitle: '선택한 주의 수업부터 변경된 정규 일정이 적용됩니다.',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(
-                    height: 58,
+                    height: 72,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: _weekOptions.length,
                       separatorBuilder: (_, __) =>
-                          const SizedBox(width: 7),
+                          const SizedBox(width: 8),
                       itemBuilder: (context, index) {
                         final week = _weekOptions[index];
-                        final selected =
-                            _sameDay(
-                              week,
-                              _startOfWeek(_effectiveOn),
-                            );
+                        final selected = _sameDay(
+                          week,
+                          _startOfWeek(_effectiveOn),
+                        );
+                        final weekEnd =
+                            week.add(const Duration(days: 6));
                         return ChoiceChip(
                           selected: selected,
                           showCheckmark: false,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 7,
+                          ),
                           label: Column(
                             mainAxisAlignment:
                                 MainAxisAlignment.center,
                             children: [
                               Text(
-                                DateFormat('M/d').format(week),
-                                style:
-                                    forestringTextStyle.copyWith(
+                                '${DateFormat('M/d').format(week)} 주',
+                                style: forestringTextStyle.copyWith(
                                   color: selected
                                       ? Colors.white
                                       : Colors.black87,
-                                  fontSize: 12,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
+                              const SizedBox(height: 2),
                               Text(
-                                '${index + 1}주차',
-                                style:
-                                    forestringTextStyle.copyWith(
+                                '~ ${DateFormat('M/d').format(weekEnd)}',
+                                style: forestringTextStyle.copyWith(
                                   color: selected
                                       ? Colors.white70
                                       : Colors.black45,
-                                  fontSize: 9,
+                                  fontSize: 10,
                                 ),
                               ),
                             ],
                           ),
                           selectedColor: primaryColor,
-                          backgroundColor: Colors.white,
+                          backgroundColor:
+                              primaryColor.withValues(alpha: 0.025),
                           side: BorderSide(
                             color: selected
                                 ? primaryColor
                                 : primaryColor.withValues(
-                                    alpha: 0.12,
+                                    alpha: 0.14,
                                   ),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(13),
                           ),
                           onSelected: _saving
                               ? null
@@ -1212,45 +1454,80 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
                       },
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${DateFormat('M월 d일').format(_effectiveOn)}이 '
-                    '포함된 주부터 새 일정이 적용됩니다.',
-                    style: forestringTextStyle.copyWith(
-                      color: Colors.black54,
-                      fontSize: 11,
-                    ),
+                  const SizedBox(height: 9),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        size: 16,
+                        color: primaryColor,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '${DateFormat('M월 d일').format(_startOfWeek(_effectiveOn))}이 '
+                          '포함된 주부터 적용됩니다.',
+                          style: forestringTextStyle.copyWith(
+                            color: Colors.black54,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 12),
             _editSectionCard(
-              title: '적용 주차 담당 선생님',
+              icon: Icons.person_rounded,
+              title: '담당 선생님',
               child: _loadingContext
-                  ? const LinearProgressIndicator()
-                  : Text(
-                      _teacher?.displayName ?? '확인 불가',
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.black87,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+                  ? const LinearProgressIndicator(
+                      color: primaryColor,
+                    )
+                  : Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: primaryColor.withValues(
+                              alpha: 0.08,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.person_rounded,
+                            color: primaryColor,
+                            size: 21,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _teacher?.displayName ?? '확인 불가',
+                            style: forestringTextStyle.copyWith(
+                              color: Colors.black87,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
             ),
-            const SizedBox(height: 12),
             if (!_loadingContext && timeOptions.isEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               _editMessageBox(
                 '선택한 요일에는 담당 선생님의 근무시간이 없거나, '
                 '선택한 수업 길이를 배치할 수 없습니다.',
                 isError: true,
               ),
             ],
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             _editMessageBox(
-              '정규 수업의 요일·시간을 변경할 때는 기존 시간표 수업을 먼저 취소하지 마세요. '
-              '정규 일정만 변경하면 적용일 이후의 예정 수업이 새 일정에 맞춰 자동으로 조정됩니다. '
+              '적용 주 이후의 예정 수업은 새 일정에 맞춰 자동으로 조정됩니다. '
               '이미 개별 변경하거나 취소한 수업은 그대로 유지됩니다.',
             ),
             if (widget.schedule.hasFutureVersion &&
@@ -1258,8 +1535,7 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
               const SizedBox(height: 10),
               _editMessageBox(
                 '${DateFormat('yyyy.MM.dd').format(widget.schedule.nextVersionDate!)}부터 '
-                '적용될 다른 정규 일정 변경이 이미 예정되어 있습니다. '
-                '적용일에 따라 서버에서 중복 변경을 막을 수 있습니다.',
+                '적용될 다른 정규 일정 변경이 이미 예정되어 있습니다.',
                 isError: true,
               ),
             ],
@@ -1267,21 +1543,167 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
               const SizedBox(height: 10),
               _editMessageBox(_errorMessage!, isError: true),
             ],
-            const SizedBox(height: 18),
-            FilledButton(
-              onPressed: _saving ||
-                      _loadingContext ||
-                      _teacher == null ||
-                      _startMinutes == null
-                  ? null
-                  : _save,
-              style: FilledButton.styleFrom(
-                backgroundColor: primaryColor,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: Text(_saving ? '변경 중...' : '정규 일정 변경'),
-            ),
           ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+          child: FilledButton(
+            onPressed: _saving ||
+                    _loadingContext ||
+                    _teacher == null ||
+                    _startMinutes == null
+                ? null
+                : _save,
+            style: FilledButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+            child: Text(
+              _saving ? '변경 중...' : '정규 일정 변경',
+              style: forestringTextStyle.copyWith(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _editStudentHeader() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.06),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x09000000),
+            blurRadius: 16,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: primaryColor.withValues(alpha: 0.09),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.person_rounded,
+              color: primaryColor,
+              size: 27,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.student.displayName,
+                  style: forestringTextStyle.copyWith(
+                    color: Colors.black87,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '현재 ${widget.schedule.weekdayLabel} · '
+                  '${widget.schedule.timeLabel} · '
+                  '${widget.schedule.durationMinutes}분',
+                  style: forestringTextStyle.copyWith(
+                    color: Colors.black54,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _scheduleSummary({
+    required String weekday,
+    required String time,
+    required int duration,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 13,
+        vertical: 13,
+      ),
+      decoration: BoxDecoration(
+        color: primaryColor.withValues(alpha: 0.045),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.event_repeat_rounded,
+            color: primaryColor,
+            size: 21,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '$weekday · $time · $duration분',
+              style: forestringTextStyle.copyWith(
+                color: Colors.black87,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _editInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: forestringTextStyle.copyWith(
+        color: Colors.black54,
+        fontSize: 13,
+      ),
+      filled: true,
+      fillColor: primaryColor.withValues(alpha: 0.035),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 13,
+        vertical: 14,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(13),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(13),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(13),
+        borderSide: BorderSide(
+          color: primaryColor.withValues(alpha: 0.45),
         ),
       ),
     );
@@ -1325,30 +1747,70 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
       a.day == b.day;
 
   Widget _editSectionCard({
+    required IconData icon,
     required String title,
+    String? subtitle,
     required Widget child,
   }) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 15),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: primaryColor.withValues(alpha: 0.07),
+          color: primaryColor.withValues(alpha: 0.06),
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x07000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            title,
-            style: forestringTextStyle.copyWith(
-              color: primaryColor,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: primaryColor.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: primaryColor,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  title,
+                  style: forestringTextStyle.copyWith(
+                    color: primaryColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 9),
+          if (subtitle != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              subtitle,
+              style: forestringTextStyle.copyWith(
+                color: Colors.black54,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
           child,
         ],
       ),
