@@ -113,11 +113,10 @@ class _LoginPageState extends State<LoginPage> {
                               crossAxisAlignment:
                                   CrossAxisAlignment.stretch,
                               children: [
+                                if (!compact)
+                                  const SizedBox(height: 72),
                                 Expanded(
-                                  child: Align(
-                                    alignment: compact
-                                        ? Alignment.center
-                                        : const Alignment(0, 0.42),
+                                  child: Center(
                                     child: _LoginBrand(
                                       compact: compact,
                                     ),
