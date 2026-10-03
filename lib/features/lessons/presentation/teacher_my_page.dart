@@ -80,37 +80,68 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
   }
 
   Future<void> _pickProfilePhoto() async {
-    final picked = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1200,
-      imageQuality: 88,
-    );
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        imageQuality: 88,
+        requestFullMetadata: false,
+      );
 
-    if (picked == null) {
-      return;
+      if (picked == null) {
+        return;
+      }
+
+      final directory = await getApplicationDocumentsDirectory();
+      final extension = _profilePhotoExtension(picked.name);
+      final file = File(
+        '${directory.path}/teacher_profile_${widget.profile.id}_'
+        '${DateTime.now().millisecondsSinceEpoch}.$extension',
+      );
+
+      await picked.saveTo(file.path);
+
+      final previousFile = _profilePhoto;
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(
+        _profilePhotoStorageKey,
+        file.path,
+      );
+
+      if (previousFile != null &&
+          previousFile.path != file.path &&
+          await previousFile.exists()) {
+        await previousFile.delete();
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _profilePhoto = file;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('사진을 저장하지 못했습니다. 다시 선택해주세요.'),
+        ),
+      );
     }
+  }
 
-    final directory = await getApplicationDocumentsDirectory();
-    final file = File(
-      '${directory.path}/teacher_profile_${widget.profile.id}.jpg',
-    );
+  String _profilePhotoExtension(String fileName) {
+    final parts = fileName.toLowerCase().split('.');
+    final extension = parts.length > 1 ? parts.last : '';
 
-    final bytes = await picked.readAsBytes();
-    await file.writeAsBytes(bytes, flush: true);
-
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(
-      _profilePhotoStorageKey,
-      file.path,
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _profilePhoto = file;
-    });
+    return switch (extension) {
+      'jpg' || 'jpeg' || 'png' || 'heic' || 'heif' || 'webp' => extension,
+      _ => 'jpg',
+    };
   }
 
   Future<void> _removeProfilePhoto() async {
@@ -146,39 +177,22 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(
-                    Icons.photo_library_outlined,
-                    color: primaryColor,
-                  ),
-                  title: const Text('앨범에서 사진 선택'),
-                  subtitle: const Text('이 기기의 선생님 화면에만 표시됩니다.'),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    _pickProfilePhoto();
-                  },
-                ),
-                if (_profilePhoto != null) ...[
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(
-                      Icons.delete_outline_rounded,
-                      color: Colors.redAccent,
-                    ),
-                    title: const Text(
-                      '프로필 사진 삭제',
-                      style: TextStyle(color: Colors.redAccent),
-                    ),
-                    onTap: () {
-                      Navigator.of(sheetContext).pop();
-                      _removeProfilePhoto();
-                    },
-                  ),
-                ],
-              ],
+            child: ListTile(
+              leading: const Icon(
+                Icons.photo_library_outlined,
+                color: primaryColor,
+              ),
+              title: const Text('앨범에서 사진 선택'),
+              onTap: () async {
+                Navigator.of(sheetContext).pop();
+                await Future<void>.delayed(
+                  const Duration(milliseconds: 250),
+                );
+
+                if (mounted) {
+                  await _pickProfilePhoto();
+                }
+              },
             ),
           ),
         );
@@ -520,7 +534,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  '사진을 눌러 이 기기에서만 프로필을 꾸밀 수 있어요.',
+                  '사진을 눌러 프로필을 설정할 수 있습니다.',
                   style: forestringTextStyle.copyWith(
                     color: Colors.white70,
                     fontSize: 12,
@@ -675,7 +689,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                       child: CircularProgressIndicator(
                         value: progress,
                         strokeWidth: 10,
-                        backgroundColor: Colors.white,
+                        backgroundColor: const Color(0xffE4EAE2),
                         valueColor: const AlwaysStoppedAnimation<Color>(
                           primaryColor,
                         ),
@@ -732,14 +746,6 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '완료는 수업 종료 시각이 지난 취소되지 않은 수업을 기준으로 계산합니다.',
-            style: forestringTextStyle.copyWith(
-              color: Colors.black45,
-              fontSize: 10,
-            ),
           ),
         ],
       ),
@@ -1473,6 +1479,22 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (_profilePhoto != null) ...[
+                  ListTile(
+                    leading: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: primaryColor,
+                    ),
+                    title: const Text('프로필 사진 삭제'),
+                    onTap: () async {
+                      await _removeProfilePhoto();
+                      if (sheetContext.mounted) {
+                        Navigator.of(sheetContext).pop();
+                      }
+                    },
+                  ),
+                  const Divider(height: 1),
+                ],
                 ListTile(
                   leading: const Icon(
                     Icons.palette_outlined,
