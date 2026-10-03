@@ -1509,7 +1509,7 @@ class _StudentManagementDetailPageState
               ),
             ),
             label: Text(
-              '수업권 관리',
+              '자율 수업 설정',
               style: forestringTextStyle.copyWith(
                 color: Colors.white,
                 fontSize: 14,
