@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/forestring_theme.dart';
 import '../../../../core/theme/student_accent.dart';
 import '../../domain/lesson.dart';
+import '../lesson_visual_style.dart';
 
 class LessonCard extends StatelessWidget {
   const LessonCard({
@@ -28,7 +29,7 @@ class LessonCard extends StatelessWidget {
         lesson.isStudentRebooked ? secondaryColor : primaryColor;
     final resolvedAccentColor = lesson.isCanceled
         ? Colors.black38
-        : accentColor ?? studentAccentColor(lesson.studentId);
+        : accentColor ?? lessonStatusAccentColor(lesson);
     final accentTextColor = lesson.isCanceled
         ? Colors.black45
         : studentAccentForeground(resolvedAccentColor);
