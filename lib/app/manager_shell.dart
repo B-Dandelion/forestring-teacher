@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../core/qa/qa_sandbox_repositories.dart';
 import '../core/qa/qa_sandbox_store.dart';
 import '../core/theme/forestring_theme.dart';
-import '../core/widgets/forestring_navigation.dart';
 import '../features/auth/domain/current_profile.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import '../features/lessons/presentation/lesson_controller.dart';
