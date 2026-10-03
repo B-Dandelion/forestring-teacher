@@ -220,8 +220,8 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
               widget.profile.isMaster || widget.profile.isManager ? 100 : 28,
             ),
             children: [
-              _buildFilters(),
-              const SizedBox(height: 14),
+              _buildFilters(visibleTeachers.length),
+              const SizedBox(height: 12),
               if (_errorMessage != null) ...[
                 _errorCard(_errorMessage!),
                 const SizedBox(height: 12),
@@ -243,18 +243,8 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
                     ),
                   ),
                 )
-              else ...[
-                Text(
-                  '${visibleTeachers.length}명',
-                  style: forestringTextStyle.copyWith(
-                    color: primaryColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
+              else
                 ...visibleTeachers.map(_teacherCard),
-              ],
             ],
           ),
         ),
@@ -262,84 +252,157 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
     );
   }
 
-  Widget _buildFilters() {
+  Widget _buildFilters(int visibleCount) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: '선생님 이름 검색',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: _searchController.text.isEmpty
-                ? null
-                : IconButton(
-                    onPressed: _searchController.clear,
-                    icon: const Icon(Icons.close),
-                  ),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.94),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: primaryColor.withValues(alpha: 0.07),
+            ),
+          ),
+          child: TextField(
+            controller: _searchController,
+            textInputAction: TextInputAction.search,
+            onTapOutside: (_) =>
+                FocusManager.instance.primaryFocus?.unfocus(),
+            decoration: InputDecoration(
+              hintText: '선생님 이름 또는 지점 검색',
+              hintStyle: forestringTextStyle.copyWith(
+                color: Colors.black38,
+                fontSize: 13,
+              ),
+              prefixIcon: const Icon(
+                Icons.search_rounded,
+                color: primaryColor,
+                size: 21,
+              ),
+              suffixIcon: _searchController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: '검색어 지우기',
+                      onPressed: _searchController.clear,
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        size: 19,
+                      ),
+                    ),
+              filled: true,
+              fillColor: Colors.transparent,
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 13),
+              border: InputBorder.none,
             ),
           ),
         ),
-        const SizedBox(height: 10),
         if (widget.profile.isMaster) ...[
-          DropdownButtonFormField<String>(
-            initialValue: _branchId ?? _allBranches,
-            decoration: _filterDecoration('지점'),
-            items: [
-              const DropdownMenuItem(
-                value: _allBranches,
-                child: Text('전체 지점'),
-              ),
-              ..._branches.map(
-                (branch) => DropdownMenuItem(
-                  value: branch.id,
-                  child: Text(branch.name),
-                ),
-              ),
-            ],
-            onChanged: _loading
-                ? null
-                : (value) async {
-                    setState(() {
-                      _branchId = value == _allBranches ? null : value;
-                    });
-                    await _loadTeachers();
-                  },
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _branchFilterPill(),
           ),
-          const SizedBox(height: 10),
         ],
-        DropdownButtonFormField<String>(
-          initialValue: _statusFilter,
-          decoration: _filterDecoration('상태'),
-          items: const [
-            DropdownMenuItem(value: 'all', child: Text('전체')),
-            DropdownMenuItem(value: 'active', child: Text('재직')),
-            DropdownMenuItem(value: 'departed', child: Text('퇴사')),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            _statusFilterPill(),
+            const Spacer(),
+            Text(
+              '$visibleCount명',
+              style: forestringTextStyle.copyWith(
+                color: primaryColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 2),
           ],
-          onChanged: (value) {
-            if (value != null) {
-              setState(() => _statusFilter = value);
-            }
-          },
         ),
       ],
     );
   }
 
-  InputDecoration _filterDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: Colors.white,
-      isDense: true,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: primaryColor.withValues(alpha: 0.18)),
+  Widget _statusFilterPill() {
+    final label = switch (_statusFilter) {
+      'all' => '전체 상태',
+      'departed' => '퇴사',
+      _ => '재직',
+    };
+
+    return _filterPill(
+      label: label,
+      value: _statusFilter,
+      items: const [
+        ('active', '재직'),
+        ('departed', '퇴사'),
+        ('all', '전체 상태'),
+      ],
+      onSelected: (value) {
+        setState(() => _statusFilter = value);
+      },
+    );
+  }
+
+  Widget _branchFilterPill() {
+    return PopupMenuButton<String>(
+      initialValue: _branchId ?? _allBranches,
+      onSelected: _loading
+          ? null
+          : (value) async {
+              setState(() {
+                _branchId =
+                    value == _allBranches ? null : value;
+              });
+              await _loadTeachers();
+            },
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: _allBranches,
+          child: Text('전체 지점'),
+        ),
+        for (final branch in _branches)
+          PopupMenuItem(
+            value: branch.id,
+            child: Text(branch.name),
+          ),
+      ],
+      child: _TeacherFilterPillSurface(
+        label: _selectedBranchLabel(),
+        icon: Icons.location_on_outlined,
       ),
+    );
+  }
+
+  String _selectedBranchLabel() {
+    final selected = _branchId;
+    if (selected == null) return '전체 지점';
+    for (final branch in _branches) {
+      if (branch.id == selected) return branch.name;
+    }
+    return '전체 지점';
+  }
+
+  Widget _filterPill({
+    required String label,
+    required String value,
+    required List<(String, String)> items,
+    required ValueChanged<String> onSelected,
+  }) {
+    return PopupMenuButton<String>(
+      initialValue: value,
+      onSelected: onSelected,
+      itemBuilder: (context) => [
+        for (final item in items)
+          PopupMenuItem(
+            value: item.$1,
+            child: Text(item.$2),
+          ),
+      ],
+      child: _TeacherFilterPillSurface(label: label),
     );
   }
 
@@ -1399,6 +1462,54 @@ class _TeacherNameEditDialogState extends State<_TeacherNameEditDialog> {
           child: Text(_saving ? '변경 중...' : '변경'),
         ),
       ],
+    );
+  }
+}
+
+class _TeacherFilterPillSurface extends StatelessWidget {
+  const _TeacherFilterPillSurface({
+    required this.label,
+    this.icon,
+  });
+
+  final String label;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 11),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.10),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 15, color: primaryColor),
+            const SizedBox(width: 5),
+          ],
+          Text(
+            label,
+            style: forestringTextStyle.copyWith(
+              color: Colors.black.withValues(alpha: 0.72),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(
+            Icons.expand_more_rounded,
+            size: 17,
+            color: primaryColor,
+          ),
+        ],
+      ),
     );
   }
 }
