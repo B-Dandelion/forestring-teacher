@@ -12,11 +12,13 @@ class TeacherWorkHoursEditPage extends StatefulWidget {
     required this.teacher,
     this.title = '근무시간 변경',
     this.allowEmpty = true,
+    this.repository,
   });
 
   final ManagedTeacher teacher;
   final String title;
   final bool allowEmpty;
+  final TeacherWorkHoursScheduleRepository? repository;
 
   @override
   State<TeacherWorkHoursEditPage> createState() =>
@@ -24,7 +26,7 @@ class TeacherWorkHoursEditPage extends StatefulWidget {
 }
 
 class _TeacherWorkHoursEditPageState extends State<TeacherWorkHoursEditPage> {
-  final _repository = TeacherWorkHoursScheduleRepository();
+  late final TeacherWorkHoursScheduleRepository _repository;
 
   late List<TeacherWorkHourDraft> _workHours;
   late List<ManagedTeacherWorkHour> _loadedWorkHours;
@@ -36,6 +38,8 @@ class _TeacherWorkHoursEditPageState extends State<TeacherWorkHoursEditPage> {
   @override
   void initState() {
     super.initState();
+    _repository =
+        widget.repository ?? TeacherWorkHoursScheduleRepository();
     final now = DateTime.now();
     _effectiveOn = DateTime(now.year, now.month, now.day);
     _loadedWorkHours = List.of(widget.teacher.workHours);
