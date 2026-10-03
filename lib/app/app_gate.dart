@@ -35,7 +35,9 @@ class AppGate extends StatelessWidget {
       return const LoginPage();
     }
 
-    if (profile.isReviewAccount) {
+    if (profile.isReviewAccount &&
+        profile.role != AppRole.manager &&
+        profile.role != AppRole.master) {
       final reviewProfile = CurrentProfile(
         id: profile.id,
         displayName: '박지은',
