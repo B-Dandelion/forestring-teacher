@@ -131,10 +131,10 @@ class _StudentLessonHistoryPageState
         backgroundColor: neutralIvory,
         foregroundColor: primaryColor,
         title: Text(
-          '${widget.student.displayName} · 수업 일정',
+          '수업 내역',
           style: forestringTextStyle.copyWith(
             color: primaryColor,
-            fontSize: 20,
+            fontSize: 21,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -143,7 +143,7 @@ class _StudentLessonHistoryPageState
         onRefresh: _load,
         color: primaryColor,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 28),
           children: [
             _SummaryCard(
               student: widget.student,
@@ -151,29 +151,51 @@ class _StudentLessonHistoryPageState
               canceledCount: canceledCount,
             ),
             const SizedBox(height: 14),
-            SegmentedButton<_HistoryRange>(
-              segments: const [
-                ButtonSegment(
-                  value: _HistoryRange.upcoming,
-                  label: Text('예정'),
+            Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(17),
+                border: Border.all(
+                  color: primaryColor.withValues(alpha: 0.06),
                 ),
-                ButtonSegment(
-                  value: _HistoryRange.past,
-                  label: Text('지난 수업'),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x07000000),
+                    blurRadius: 12,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: SegmentedButton<_HistoryRange>(
+                segments: const [
+                  ButtonSegment(
+                    value: _HistoryRange.upcoming,
+                    label: Text('예정'),
+                  ),
+                  ButtonSegment(
+                    value: _HistoryRange.past,
+                    label: Text('지난 수업'),
+                  ),
+                  ButtonSegment(
+                    value: _HistoryRange.all,
+                    label: Text('전체'),
+                  ),
+                ],
+                selected: {_range},
+                onSelectionChanged: (values) {
+                  setState(() => _range = values.single);
+                },
+                style: SegmentedButton.styleFrom(
+                  selectedBackgroundColor: primaryColor,
+                  selectedForegroundColor: Colors.white,
+                  foregroundColor: primaryColor,
+                  side: BorderSide.none,
+                  textStyle: forestringTextStyle.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                ButtonSegment(
-                  value: _HistoryRange.all,
-                  label: Text('전체'),
-                ),
-              ],
-              selected: {_range},
-              onSelectionChanged: (values) {
-                setState(() => _range = values.single);
-              },
-              style: SegmentedButton.styleFrom(
-                selectedBackgroundColor: primaryColor,
-                selectedForegroundColor: Colors.white,
-                foregroundColor: primaryColor,
               ),
             ),
             const SizedBox(height: 16),
@@ -226,7 +248,7 @@ class _StudentLessonHistoryPageState
               DateFormat('yyyy년 M월 d일 (E)', 'ko_KR').format(day),
               style: forestringTextStyle.copyWith(
                 color: primaryColor,
-                fontSize: 15,
+                fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -261,41 +283,111 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final typeColor =
+        student.isRegular ? primaryColor : const Color(0xff4B7892);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.06),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x09000000),
+            blurRadius: 16,
+            offset: Offset(0, 5),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            '${student.branchName} · ${student.typeLabel}',
-            style: forestringTextStyle.copyWith(
-              color: Colors.black54,
-              fontSize: 13,
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: typeColor.withValues(alpha: 0.09),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.person_rounded,
+              color: typeColor,
+              size: 29,
             ),
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _CountBadge(label: '수업', count: scheduledCount),
-              _CountBadge(
-                label: '취소',
-                count: canceledCount,
-                color: Colors.redAccent,
-              ),
-            ],
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        student.displayName,
+                        overflow: TextOverflow.ellipsis,
+                        style: forestringTextStyle.copyWith(
+                          color: Colors.black87,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: typeColor.withValues(alpha: 0.09),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        student.typeLabel,
+                        style: forestringTextStyle.copyWith(
+                          color: typeColor,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  student.branchName,
+                  style: forestringTextStyle.copyWith(
+                    color: Colors.black54,
+                    fontSize: 12.5,
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Wrap(
+                  spacing: 7,
+                  runSpacing: 7,
+                  children: [
+                    _CountBadge(
+                      label: '수업',
+                      count: scheduledCount,
+                    ),
+                    _CountBadge(
+                      label: '취소',
+                      count: canceledCount,
+                      color: Colors.redAccent,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 }
-
 class _CountBadge extends StatelessWidget {
   const _CountBadge({
     required this.label,
@@ -310,7 +402,7 @@ class _CountBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(999),
@@ -319,7 +411,7 @@ class _CountBadge extends StatelessWidget {
         '$label $count회',
         style: forestringTextStyle.copyWith(
           color: color,
-          fontSize: 12,
+          fontSize: 12.5,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -346,14 +438,14 @@ class _LessonHistoryCard extends StatelessWidget {
 
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(17),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(17),
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.fromLTRB(13, 13, 11, 13),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(17),
             border: Border.all(
               color: lesson.isCanceled
                   ? Colors.redAccent.withValues(alpha: 0.18)
@@ -363,13 +455,27 @@ class _LessonHistoryCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                lesson.isCanceled
-                    ? Icons.event_busy_outlined
-                    : Icons.event_available_outlined,
-                color: lesson.isCanceled ? Colors.redAccent : primaryColor,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: (lesson.isCanceled
+                          ? Colors.redAccent
+                          : primaryColor)
+                      .withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  lesson.isCanceled
+                      ? Icons.event_busy_rounded
+                      : Icons.event_available_rounded,
+                  color: lesson.isCanceled
+                      ? Colors.redAccent
+                      : primaryColor,
+                  size: 21,
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 11),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,7 +486,7 @@ class _LessonHistoryCard extends StatelessWidget {
                           child: Text(
                             time,
                             style: forestringTextStyle.copyWith(
-                              fontSize: 17,
+                              fontSize: 18,
                               fontWeight: FontWeight.w500,
                               decoration: lesson.isCanceled
                                   ? TextDecoration.lineThrough
@@ -404,7 +510,7 @@ class _LessonHistoryCard extends StatelessWidget {
                       '${lesson.displayTypeLabel} · ${lesson.durationMinutes}분',
                       style: forestringTextStyle.copyWith(
                         color: Colors.black54,
-                        fontSize: 13,
+                        fontSize: 13.5,
                       ),
                     ),
                     Text(
@@ -413,7 +519,7 @@ class _LessonHistoryCard extends StatelessWidget {
                           : '${lesson.teacherName} 선생님',
                       style: forestringTextStyle.copyWith(
                         color: Colors.black54,
-                        fontSize: 13,
+                        fontSize: 13.5,
                       ),
                     ),
                     if (wasMoved) ...[
