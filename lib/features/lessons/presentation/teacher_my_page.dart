@@ -366,11 +366,12 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                 changed: changedMonthLessons,
               ),
               const SizedBox(height: 20),
-              _sectionTitle(
-                title: '내 수강생',
-                trailing: activeStudents.isEmpty
-                    ? null
-                    : '${activeStudents.length}명',
+              _studentSectionHeader(
+                showViewAll: activeStudents.length > 4,
+                onViewAll: () => _showAllStudents(
+                  activeStudents,
+                  lessonController,
+                ),
               ),
               const SizedBox(height: 10),
               if (_studentError != null) ...[
@@ -390,28 +391,11 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                   message: '현재 담당 중인 수강생이 없습니다.',
                 )
               else
-                ...activeStudents.take(5).map(
-                      (student) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _studentCard(
-                          student,
-                          lessonController,
-                          studentAccents[student.id] ??
-                              accentController.colorFor(student.id),
-                        ),
-                      ),
-                    ),
-              if (activeStudents.length > 5)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () => _showAllStudents(
-                      activeStudents,
-                      lessonController,
-                    ),
-                    icon: const Icon(Icons.people_alt_outlined, size: 18),
-                    label: Text('전체 ${activeStudents.length}명 보기'),
-                  ),
+                _studentListCard(
+                  activeStudents.take(4).toList(),
+                  lessonController,
+                  accentController,
+                  studentAccents,
                 ),
               const SizedBox(height: 10),
               _sectionTitle(
@@ -817,7 +801,97 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
     );
   }
 
-  Widget _studentCard(
+  Widget _studentSectionHeader({
+    required bool showViewAll,
+    required VoidCallback onViewAll,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            '내 수강생',
+            style: forestringTextStyle.copyWith(
+              color: Colors.black87,
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        if (showViewAll)
+          InkWell(
+            onTap: onViewAll,
+            borderRadius: BorderRadius.circular(999),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 4,
+                vertical: 5,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '전체 보기',
+                    style: forestringTextStyle.copyWith(
+                      color: primaryColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: primaryColor,
+                    size: 18,
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _studentListCard(
+    List<AssignedStudentSummary> students,
+    LessonController lessonController,
+    StudentAccentController accentController,
+    Map<String, Color> accents,
+  ) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: primaryColor.withValues(alpha: 0.07),
+          ),
+        ),
+        child: Column(
+          children: [
+            for (var i = 0; i < students.length; i++) ...[
+              _studentRow(
+                students[i],
+                lessonController,
+                accents[students[i].id] ??
+                    accentController.colorFor(students[i].id),
+              ),
+              if (i != students.length - 1)
+                Padding(
+                  padding: const EdgeInsets.only(left: 68),
+                  child: Divider(
+                    height: 1,
+                    color: Colors.black.withValues(alpha: 0.07),
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _studentRow(
     AssignedStudentSummary student,
     LessonController lessonController,
     Color accentColor,
@@ -827,100 +901,83 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
       lessonController.visibleLessons,
     );
 
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(17),
-      child: InkWell(
-        onTap: () => _showStudentColorPicker(student),
-        borderRadius: BorderRadius.circular(17),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(13, 13, 12, 13),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(17),
-            border: Border.all(
-              color: accentColor.withValues(alpha: 0.24),
+    return InkWell(
+      onTap: () => _showStudentColorPicker(student),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(13, 12, 12, 12),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: accentColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.person_rounded,
+                color: studentAccentForeground(accentColor),
+                size: 25,
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 43,
-                height: 43,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: accentColor,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  student.displayName.trim().isEmpty
-                      ? '학'
-                      : student.displayName.trim().substring(0, 1),
-                  style: forestringTextStyle.copyWith(
-                    color: studentAccentForeground(accentColor),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
+            const SizedBox(width: 11),
+            Expanded(
+              flex: 3,
+              child: Text(
+                student.displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: forestringTextStyle.copyWith(
+                  color: Colors.black87,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            student.displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: forestringTextStyle.copyWith(
-                              color: Colors.black87,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
+            ),
+            const SizedBox(width: 7),
+            _studentTypeBadge(student),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 5,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    student.isFlex
+                        ? _flexLabel(student)
+                        : _regularScheduleLabel(
+                            student.regularSchedules,
                           ),
-                        ),
-                        const SizedBox(width: 7),
-                        _studentTypeBadge(student),
-                      ],
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: forestringTextStyle.copyWith(
+                      color: Colors.black87,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
-                    const SizedBox(height: 5),
+                  ),
+                  if (nextLesson != null) ...[
+                    const SizedBox(height: 3),
                     Text(
-                      student.isFlex
-                          ? _flexLabel(student)
-                          : _regularScheduleLabel(
-                              student.regularSchedules,
-                            ),
-                      maxLines: 2,
+                      '다음 수업 ${DateFormat('M.d (E) HH:mm', 'ko_KR').format(nextLesson.startsAt)}',
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: forestringTextStyle.copyWith(
-                        color: studentAccentForeground(accentColor),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                        color: Colors.black45,
+                        fontSize: 10,
                       ),
                     ),
-                    if (nextLesson != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        '다음 수업 ${DateFormat('M.d (E) HH:mm', 'ko_KR').format(nextLesson.startsAt)}',
-                        style: forestringTextStyle.copyWith(
-                          color: Colors.black45,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
                   ],
-                ),
+                ],
               ),
-              const SizedBox(width: 6),
-              Icon(
-                Icons.palette_outlined,
-                color: accentColor,
-                size: 21,
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 7),
+            Icon(
+              Icons.palette_outlined,
+              color: studentAccentForeground(accentColor),
+              size: 21,
+            ),
+          ],
         ),
       ),
     );
@@ -1305,16 +1362,12 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    for (final student in students)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _studentCard(
-                          student,
-                          lessonController,
-                          accents[student.id] ??
-                              accentController.colorFor(student.id),
-                        ),
-                      ),
+                    _studentListCard(
+                      students,
+                      lessonController,
+                      accentController,
+                      accents,
+                    ),
                   ],
                 );
               },
