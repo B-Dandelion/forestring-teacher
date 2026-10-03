@@ -27,11 +27,13 @@ class MasterSchedulePage extends StatelessWidget {
     required this.profile,
     this.isQaSandbox = false,
     this.onQaExit,
+    this.embeddedInShell = false,
   });
 
   final CurrentProfile profile;
   final bool isQaSandbox;
   final VoidCallback? onQaExit;
+  final bool embeddedInShell;
 
   @override
   Widget build(BuildContext context) {
@@ -96,26 +98,31 @@ class MasterSchedulePage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: neutralIvory,
-      appBar: ForestringAppBar(
-        actions: [
-          IconButton(
-            tooltip: '새로고침',
-            onPressed: controller.isLoading ? null : controller.reload,
-            icon: controller.isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.refresh_rounded),
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      drawer: ForestringDrawer(
+      appBar: embeddedInShell
+          ? null
+          : ForestringAppBar(
+              actions: [
+                IconButton(
+                  tooltip: '새로고침',
+                  onPressed:
+                      controller.isLoading ? null : controller.reload,
+                  icon: controller.isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.refresh_rounded),
+                ),
+                const SizedBox(width: 4),
+              ],
+            ),
+      drawer: embeddedInShell
+          ? null
+          : ForestringDrawer(
         displayName: profile.displayName,
         nameSuffix: profile.isManager ? '지점장님' : '선생님',
         roleLabel: isQaSandbox
@@ -363,7 +370,8 @@ class MasterSchedulePage extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               SizedBox(
-                height: MediaQuery.of(context).size.height - 180,
+                height: MediaQuery.of(context).size.height -
+                    (embeddedInShell ? 250 : 180),
                 child: controller.isLoading && controller.lessons.isEmpty
                     ? const Center(
                         child: CircularProgressIndicator(),
