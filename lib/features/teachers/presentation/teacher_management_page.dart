@@ -459,7 +459,9 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
             }) async {
               await action(currentTeacher);
 
-              if (!refreshTeacher || !mounted || !pageContext.mounted) {
+              if (!refreshTeacher ||
+                  !mounted ||
+                  !pageContext.mounted) {
                 return;
               }
 
@@ -476,133 +478,179 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
                 return;
               }
 
-              setPageState(() => currentTeacher = refreshedTeacher!);
+              setPageState(
+                () => currentTeacher = refreshedTeacher!,
+              );
             }
 
             return Scaffold(
-              backgroundColor: neutralIvory,
-              appBar: const ForestringAppBar(title: '선생님 관리'),
-              body: SafeArea(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
-                  children: [
-                    Text(
-                      currentTeacher.displayName,
-                      style: forestringTextStyle.copyWith(
-                        color: primaryColor,
-                        fontSize: 23,
-                        fontWeight: FontWeight.w500,
+              backgroundColor: primaryColor,
+              appBar: AppBar(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                surfaceTintColor: Colors.transparent,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                centerTitle: true,
+                systemOverlayStyle: SystemUiOverlayStyle.light,
+                title: Text(
+                  currentTeacher.displayName,
+                  style: forestringTextStyle.copyWith(
+                    color: Colors.white,
+                    fontSize: 21,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              body: Container(
+                decoration: const BoxDecoration(
+                  color: neutralIvory,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(30),
+                  ),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: SafeArea(
+                  top: false,
+                  child: ListView(
+                    padding:
+                        const EdgeInsets.fromLTRB(12, 14, 12, 34),
+                    children: [
+                      _teacherProfileHeader(currentTeacher),
+                      const SizedBox(height: 12),
+                      _teacherWorkHoursCard(
+                        currentTeacher,
+                        onEdit: currentTeacher.isActive
+                            ? () => runAction(
+                                  _showWorkHoursEdit,
+                                  refreshTeacher: true,
+                                )
+                            : null,
                       ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      currentTeacher.branchName,
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.black54,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      '근무시간',
-                      style: forestringTextStyle.copyWith(
-                        color: primaryColor,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (currentTeacher.workHours.isEmpty)
-                      _emptyWorkHours()
-                    else
-                      ...currentTeacher.workHours.map(_workHourRow),
-                    const SizedBox(height: 18),
-                    _detailActionSection(
-                      title: '수업 정보',
-                      actions: [
-                        _detailActionButton(
-                          icon: Icons.groups_2_outlined,
-                          label:
-                              '담당 수강생 ${currentTeacher.assignedStudentCount}명',
-                          onPressed: () => runAction(
-                            _showAssignedStudents,
-                          ),
-                        ),
-                        _detailActionButton(
-                          icon: Icons.bar_chart_outlined,
-                          label: '학기별 수업 통계',
-                          onPressed: () => runAction(
-                            _showLessonStats,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    _detailActionSection(
-                      title: '일정 관리',
-                      actions: [
-                        _detailActionButton(
-                          icon: Icons.event_busy_outlined,
-                          label: '개인 일정 관리',
-                          color: personalScheduleColor,
-                          onPressed: () => runAction(
-                            _showBlockedPeriods,
-                          ),
-                        ),
-                        if (currentTeacher.isActive)
-                          _detailActionButton(
-                            icon: Icons.schedule_outlined,
-                            label: '근무시간 변경',
-                            onPressed: () => runAction(
-                              _showWorkHoursEdit,
-                              refreshTeacher: true,
+                      const SizedBox(height: 12),
+                      _teacherNavigationCard(
+                        backgroundColor:
+                            const Color(0xffEFF8F5),
+                        borderColor:
+                            const Color(0xffDDEFE7),
+                        children: [
+                          _teacherDetailRow(
+                            icon: Icons.groups_2_rounded,
+                            title: '담당 수강생',
+                            value:
+                                '${currentTeacher.assignedStudentCount}명',
+                            color: const Color(0xff166B56),
+                            onTap: () => runAction(
+                              _showAssignedStudents,
                             ),
                           ),
-                      ],
-                    ),
-                    if (currentTeacher.isActive) ...[
-                      const SizedBox(height: 14),
-                      _detailActionSection(
-                        title: '계정 관리',
-                        actions: [
-                          _detailActionButton(
-                            icon: Icons.drive_file_rename_outline,
-                            label: '이름 수정',
-                            onPressed: () => runAction(
-                              _showNameEditDialog,
-                              refreshTeacher: true,
+                          _teacherCardDivider(),
+                          _teacherDetailRow(
+                            icon: Icons.bar_chart_rounded,
+                            title: '학기별 수업 통계',
+                            subtitle: '학기별 수업 진행 현황을 확인합니다.',
+                            color: const Color(0xff166B56),
+                            onTap: () => runAction(
+                              _showLessonStats,
                             ),
                           ),
-                          _detailActionButton(
-                            icon: Icons.lock_reset_outlined,
-                            label: 'PIN 재설정',
-                            onPressed: () => runAction(
-                              _showPinResetDialog,
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _teacherNavigationCard(
+                        backgroundColor:
+                            const Color(0xffFFF6EC),
+                        borderColor:
+                            const Color(0xffF4E5D5),
+                        children: [
+                          _teacherDetailRow(
+                            icon: Icons.event_busy_rounded,
+                            title: '개인 일정 관리',
+                            subtitle: '휴무와 개인 일정을 관리합니다.',
+                            color: const Color(0xffB36A2E),
+                            onTap: () => runAction(
+                              _showBlockedPeriods,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 15),
+                      _teacherSectionLabel('선생님 정보'),
+                      const SizedBox(height: 7),
+                      _teacherNavigationCard(
+                        children: [
+                          _teacherDetailRow(
+                            icon: Icons.edit_rounded,
+                            title: '이름',
+                            value: currentTeacher.displayName,
+                            color: const Color(0xff2B7A58),
+                            onTap: currentTeacher.isActive
+                                ? () => runAction(
+                                      _showNameEditDialog,
+                                      refreshTeacher: true,
+                                    )
+                                : null,
+                          ),
+                          _teacherCardDivider(),
+                          _teacherDetailRow(
+                            icon: Icons.location_on_rounded,
+                            title: '지점',
+                            value: currentTeacher.branchName,
+                            color: const Color(0xff4D78A8),
+                          ),
+                        ],
+                      ),
+                      if (currentTeacher.isActive) ...[
+                        const SizedBox(height: 15),
+                        _teacherSectionLabel('계정'),
+                        const SizedBox(height: 7),
+                        _teacherNavigationCard(
+                          backgroundColor:
+                              const Color(0xffF7F5FB),
+                          borderColor:
+                              const Color(0xffECE8F5),
+                          children: [
+                            _teacherDetailRow(
+                              icon: Icons.lock_reset_rounded,
+                              title: '로그인 PIN 재설정',
+                              subtitle:
+                                  '선생님 앱 로그인 PIN을 변경합니다.',
+                              color: const Color(0xff6C5CA5),
+                              onTap: () => runAction(
+                                _showPinResetDialog,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      _teacherNavigationCard(
+                        backgroundColor: const Color(0xffFFF5F3),
+                        borderColor: const Color(0xffF6E0DB),
+                        children: [
+                          _teacherDetailRow(
+                            icon: currentTeacher.isActive
+                                ? Icons.person_off_rounded
+                                : Icons.badge_rounded,
+                            title: currentTeacher.isActive
+                                ? '퇴사 관리'
+                                : '퇴사 정보',
+                            subtitle: currentTeacher.hasScheduledWithdrawal &&
+                                    currentTeacher.withdrawalDate != null
+                                ? '퇴사 예정일이 등록되어 있습니다.'
+                                : currentTeacher.isActive
+                                    ? '퇴사일 지정 및 퇴사 처리를 관리합니다.'
+                                    : '퇴사 처리 정보를 확인합니다.',
+                            color: Colors.redAccent,
+                            onTap: () => runAction(
+                              _showDeparture,
+                              refreshTeacher: true,
                             ),
                           ),
                         ],
                       ),
                     ],
-                    const SizedBox(height: 14),
-                    _detailActionSection(
-                      title: '재직 관리',
-                      actions: [
-                        _detailActionButton(
-                          icon: currentTeacher.isActive
-                              ? Icons.person_off_outlined
-                              : Icons.badge_outlined,
-                          label: currentTeacher.isActive
-                              ? '퇴사 관리'
-                              : '퇴사 정보',
-                          color: Colors.red.shade700,
-                          onPressed: () => runAction(
-                            _showDeparture,
-                            refreshTeacher: true,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
             );
@@ -616,66 +664,452 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
     }
   }
 
-  Widget _detailActionSection({
-    required String title,
-    required List<Widget> actions,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          title,
-          style: forestringTextStyle.copyWith(
-            color: Colors.black54,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 7),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final itemWidth = actions.length == 1
-                ? constraints.maxWidth
-                : (constraints.maxWidth - 8) / 2;
+  Widget _teacherProfileHeader(ManagedTeacher teacher) {
+    final statusColor = !teacher.isActive
+        ? Colors.black54
+        : teacher.hasScheduledWithdrawal
+            ? Colors.orange.shade800
+            : primaryColor;
 
-            return Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final action in actions)
-                  SizedBox(
-                    width: itemWidth,
-                    height: 52,
-                    child: action,
-                  ),
-              ],
-            );
-          },
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.055),
         ),
-      ],
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0B000000),
+            blurRadius: 18,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned(
+            right: -30,
+            bottom: -34,
+            child: Container(
+              width: 126,
+              height: 126,
+              decoration: const BoxDecoration(
+                color: Color(0xffEAF5ED),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            right: 18,
+            bottom: 7,
+            child: Icon(
+              Icons.school_rounded,
+              size: 65,
+              color: primaryColor.withValues(alpha: 0.11),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+            child: Row(
+              children: [
+                Container(
+                  width: 62,
+                  height: 62,
+                  decoration: BoxDecoration(
+                    color: primaryColor.withValues(alpha: 0.11),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.badge_rounded,
+                    color: primaryColor,
+                    size: 34,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment:
+                            WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            teacher.displayName,
+                            style: forestringTextStyle.copyWith(
+                              color: Colors.black87,
+                              fontSize: 25,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(
+                                alpha: 0.10,
+                              ),
+                              borderRadius:
+                                  BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              teacher.statusLabel,
+                              style:
+                                  forestringTextStyle.copyWith(
+                                color: statusColor,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_rounded,
+                            size: 16,
+                            color: primaryColor,
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              teacher.branchName,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  forestringTextStyle.copyWith(
+                                color: Colors.black54,
+                                fontSize: 13.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.groups_2_rounded,
+                            size: 16,
+                            color: primaryColor,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            '담당 수강생 ${teacher.assignedStudentCount}명',
+                            style: forestringTextStyle.copyWith(
+                              color: Colors.black54,
+                              fontSize: 13.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _detailActionButton({
+  Widget _teacherWorkHoursCard(
+    ManagedTeacher teacher, {
+    VoidCallback? onEdit,
+  }) {
+    final grouped = <int, List<ManagedTeacherWorkHour>>{};
+    for (final hour in teacher.workHours) {
+      grouped.putIfAbsent(hour.weekday, () => []).add(hour);
+    }
+    for (final hours in grouped.values) {
+      hours.sort(
+        (a, b) => a.startTime.compareTo(b.startTime),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 15),
+      decoration: BoxDecoration(
+        color: const Color(0xffF1F8F3),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.10),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: primaryColor.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.schedule_rounded,
+                  color: primaryColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  '근무시간',
+                  style: forestringTextStyle.copyWith(
+                    color: primaryColor,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Text(
+                '${grouped.length}일 근무',
+                style: forestringTextStyle.copyWith(
+                  color: Colors.black45,
+                  fontSize: 11.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 11),
+          if (grouped.isEmpty)
+            Text(
+              '등록된 근무시간이 없습니다.',
+              style: forestringTextStyle.copyWith(
+                color: Colors.black45,
+                fontSize: 12.5,
+              ),
+            )
+          else
+            ...grouped.entries.map(
+              (entry) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        _weekdayLabel(entry.key),
+                        style: forestringTextStyle.copyWith(
+                          color: primaryColor,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 5),
+                        child: Text(
+                          entry.value
+                              .map(
+                                (hour) =>
+                                    '${hour.startTime}–${hour.endTime}',
+                              )
+                              .join('  ·  '),
+                          style: forestringTextStyle.copyWith(
+                            color: Colors.black87,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (onEdit != null) ...[
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed: onEdit,
+              style: FilledButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              icon: const Icon(
+                Icons.edit_calendar_rounded,
+                size: 19,
+              ),
+              label: Text(
+                '근무시간 변경',
+                style: forestringTextStyle.copyWith(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _teacherNavigationCard({
+    required List<Widget> children,
+    Color backgroundColor = Colors.white,
+    Color? borderColor,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: borderColor ??
+              primaryColor.withValues(alpha: 0.06),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(children: children),
+    );
+  }
+
+  Widget _teacherDetailRow({
     required IconData icon,
-    required String label,
-    required VoidCallback onPressed,
+    required String title,
+    String? subtitle,
+    String? value,
+    VoidCallback? onTap,
     Color color = primaryColor,
   }) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 20),
-      label: Text(
+    final row = Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 13,
+        vertical: 11,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 19),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: forestringTextStyle.copyWith(
+                    color: color == primaryColor
+                        ? Colors.black87
+                        : color,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: forestringTextStyle.copyWith(
+                      color: Colors.black45,
+                      fontSize: 11.5,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (value != null) ...[
+            const SizedBox(width: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 170),
+              child: Text(
+                value,
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: forestringTextStyle.copyWith(
+                  color: Colors.black54,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(width: 5),
+          if (onTap != null)
+            Icon(
+              Icons.chevron_right_rounded,
+              color: color.withValues(alpha: 0.70),
+              size: 20,
+            )
+          else
+            const SizedBox(width: 20),
+        ],
+      ),
+    );
+
+    if (onTap == null) return row;
+    return InkWell(onTap: onTap, child: row);
+  }
+
+  Widget _teacherSectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 3),
+      child: Text(
         label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        style: forestringTextStyle.copyWith(
+          color: primaryColor,
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+        ),
       ),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: color,
-        side: BorderSide(color: color),
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 11),
-        textStyle: forestringTextStyle.copyWith(fontSize: 13),
-      ),
+    );
+  }
+
+  Widget _teacherCardDivider() {
+    return Divider(
+      height: 1,
+      indent: 59,
+      color: primaryColor.withValues(alpha: 0.06),
     );
   }
 
