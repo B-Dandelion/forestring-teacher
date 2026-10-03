@@ -10,6 +10,7 @@ import '../../features/students/data/student_next_semester_type_repository.dart'
 import '../../features/students/data/student_regular_schedule_repository.dart';
 import '../../features/students/data/student_teacher_management_repository.dart';
 import '../../features/teachers/data/teacher_repository.dart';
+import '../../features/teachers/data/teacher_work_hours_schedule_repository.dart';
 import 'qa_sandbox_store.dart';
 
 class QaBranchRepository extends BranchRepository {
@@ -377,6 +378,57 @@ class QaStudentManagementRepository extends StudentManagementRepository {
           flexBaseRightCount ?? source.flexBaseRightCount,
       flexDurationMinutes: source.flexDurationMinutes,
     );
+  }
+}
+
+class QaTeacherWorkHoursScheduleRepository
+    extends TeacherWorkHoursScheduleRepository {
+  QaTeacherWorkHoursScheduleRepository(this.store);
+
+  final QaSandboxStore store;
+
+  @override
+  Future<List<ManagedTeacherWorkHour>> fetchForDate({
+    required String teacherId,
+    required DateTime onDate,
+  }) async {
+    final teacher = store.teacherById(teacherId);
+    if (teacher == null) {
+      throw const TeacherFailure('QA 선생님을 찾을 수 없습니다.');
+    }
+    return List<ManagedTeacherWorkHour>.from(teacher.workHours);
+  }
+
+  @override
+  Future<bool> replace({
+    required String teacherId,
+    required DateTime effectiveOn,
+    required List<TeacherWorkHourInput> workHours,
+  }) async {
+    final teacher = store.teacherById(teacherId);
+    if (teacher == null) {
+      throw const TeacherFailure('QA 선생님을 찾을 수 없습니다.');
+    }
+
+    final next = workHours
+        .map(
+          (hour) => ManagedTeacherWorkHour(
+            weekday: hour.weekday,
+            startTime: hour.startTime,
+            endTime: hour.endTime,
+          ),
+        )
+        .toList();
+
+    final before = teacher.workHours
+        .map((hour) => '${hour.weekday}:${hour.startTime}-${hour.endTime}')
+        .join('|');
+    final after = next
+        .map((hour) => '${hour.weekday}:${hour.startTime}-${hour.endTime}')
+        .join('|');
+
+    store.replaceTeacherWorkHours(teacherId, next);
+    return before != after;
   }
 }
 
