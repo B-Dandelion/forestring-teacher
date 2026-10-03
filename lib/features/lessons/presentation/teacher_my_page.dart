@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/theme/student_accent.dart';
 import '../../../core/theme/student_accent_controller.dart';
+import '../../../core/widgets/forestring_navigation.dart';
 import '../../auth/domain/current_profile.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../teachers/data/teacher_repository.dart';
@@ -337,21 +338,9 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xffF6F8F4),
-      appBar: AppBar(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        centerTitle: true,
-        elevation: 0,
-        title: const Text(
-          '마이페이지',
-          style: TextStyle(
-            color: Colors.white,
-            fontFamily: 'ELAND',
-            fontWeight: FontWeight.w500,
-            fontSize: 20,
-          ),
-        ),
+      appBar: const ForestringAppBar(
+        title: '마이페이지',
+        roundBottomCorners: true,
       ),
       body: SafeArea(
         child: RefreshIndicator(
