@@ -10,7 +10,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/theme/student_accent.dart';
 import '../../../core/theme/student_accent_controller.dart';
-import '../../../core/widgets/forestring_navigation.dart';
 import '../../auth/domain/current_profile.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../teachers/data/teacher_repository.dart';
@@ -348,10 +347,6 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xffF6F8F4),
-      appBar: const ForestringAppBar(
-        title: '마이페이지',
-        roundBottomCorners: true,
-      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _refresh,
@@ -944,8 +939,13 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                 ),
               ),
             ),
-            const SizedBox(width: 7),
-            _studentTypeBadge(student),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 62,
+              child: Center(
+                child: _studentTypeBadge(student),
+              ),
+            ),
             const SizedBox(width: 10),
             Expanded(
               flex: 5,
@@ -994,19 +994,34 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
   }
 
   Widget _studentTypeBadge(AssignedStudentSummary student) {
-    final label = student.isFlex ? '자율' : '정규';
+    final isFlex = student.isFlex;
+    final backgroundColor = isFlex
+        ? const Color(0xffE6F0FF)
+        : const Color(0xffE2F1E7);
+    final foregroundColor = isFlex
+        ? const Color(0xff2F6FBD)
+        : primaryColor;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      constraints: const BoxConstraints(
+        minWidth: 52,
+        minHeight: 30,
+      ),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 6,
+      ),
       decoration: BoxDecoration(
-        color: primaryColor.withValues(alpha: 0.08),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        label,
+        isFlex ? '자율' : '정규',
+        textAlign: TextAlign.center,
         style: forestringTextStyle.copyWith(
-          color: primaryColor,
-          fontSize: 10,
+          color: foregroundColor,
+          fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -1545,7 +1560,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
         Duration(minutes: schedule.durationMinutes),
       );
 
-      return '매주 ${_weekdayLabel(schedule.weekday)} '
+      return '${_weekdayLabel(schedule.weekday)} '
           '${DateFormat('HH:mm').format(start)} ~ '
           '${DateFormat('HH:mm').format(end)}';
     }).join(' · ');
@@ -1555,8 +1570,8 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
     final count = student.flexBaseRightCount;
 
     return count == null
-        ? '자율 예약 학생'
-        : '자율 예약 학생 · 기본 수업권 $count개';
+        ? '수업권 정보 없음'
+        : '수업권 $count개';
   }
 
   DateTime _parseTime(String value) {
