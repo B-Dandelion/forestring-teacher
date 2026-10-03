@@ -156,7 +156,7 @@ class _StudentTeacherChangePageState
           student.teacherId == null ? '담당 선생님 지정' : '담당 선생님 변경',
           style: forestringTextStyle.copyWith(
             color: primaryColor,
-            fontSize: 19,
+            fontSize: 22,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -259,7 +259,8 @@ class _StudentTeacherChangePageState
             child: Text(
               _saving ? '변경 중...' : '담당 선생님 변경',
               style: forestringTextStyle.copyWith(
-                fontSize: 14,
+                color: Colors.white,
+                fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -278,6 +279,16 @@ class _StudentTeacherChangePageState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.06),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,7 +297,7 @@ class _StudentTeacherChangePageState
             student.displayName,
             style: forestringTextStyle.copyWith(
               color: primaryColor,
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -295,7 +306,7 @@ class _StudentTeacherChangePageState
             '${student.branchName} · 현재 담당 $currentTeacher',
             style: forestringTextStyle.copyWith(
               color: Colors.black54,
-              fontSize: 12,
+              fontSize: 13,
             ),
           ),
         ],
@@ -320,7 +331,7 @@ class _StudentTeacherChangePageState
             title,
             style: forestringTextStyle.copyWith(
               color: primaryColor,
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -357,7 +368,7 @@ class _StudentTeacherChangePageState
         message,
         style: forestringTextStyle.copyWith(
           color: isError ? Colors.redAccent : Colors.black87,
-          fontSize: 12,
+          fontSize: 13,
           height: 1.45,
         ),
       ),
