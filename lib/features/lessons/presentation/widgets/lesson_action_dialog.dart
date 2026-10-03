@@ -4,6 +4,7 @@ import '../../../../core/theme/forestring_theme.dart';
 import '../../domain/lesson.dart';
 import '../lesson_controller.dart';
 import 'lesson_activity_detail_sheet.dart';
+import 'lesson_date_picker.dart';
 import 'lesson_time_slot_picker.dart';
 
 Future<void> showLessonActionDialog({
@@ -45,7 +46,7 @@ Future<void> showLessonActionDialog({
 
           Future<void> editDate() async {
             if (isSaving) return;
-            final picked = await showDatePicker(
+            final picked = await showLessonDatePicker(
               context: dialogBodyContext,
               initialDate: selectedDate,
               firstDate: DateTime(2024, 1, 1),
