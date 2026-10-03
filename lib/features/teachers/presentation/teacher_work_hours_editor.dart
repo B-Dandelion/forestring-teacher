@@ -390,8 +390,10 @@ class TeacherWorkHoursEditor extends StatelessWidget {
         ((startMinutes + 14) ~/ 15) * 15;
     if (startMinutes > 23 * 60) return;
 
-    final endMinutes =
-        (startMinutes + 60).clamp(startMinutes + 15, 23 * 60 + 45);
+    final proposedEnd = startMinutes + 60;
+    final endMinutes = proposedEnd > 23 * 60 + 45
+        ? 23 * 60 + 45
+        : proposedEnd;
 
     _emit([
       ...values,
