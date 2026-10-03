@@ -740,128 +740,147 @@ class _StudentNextSemesterTypePageState
     NextSemesterStudentTypePlan plan,
   ) {
     final draft = _regularSchedules[index];
-    final availableWeekdays = _workHours
-        .map((window) => window.weekday)
-        .toSet()
-        .toList()
-      ..sort();
-    if (!availableWeekdays.contains(draft.weekday)) {
-      availableWeekdays.add(draft.weekday);
-      availableWeekdays.sort();
-    }
+    final timeOptions = _availableStartMinutesForDraft(draft);
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: primaryColor.withValues(alpha: 0.18)),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 13),
+      decoration: BoxDecoration(
+        color: primaryColor.withValues(alpha: 0.028),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.09),
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: draft.weekday,
-                    decoration: _decoration('요일'),
-                    items: availableWeekdays
-                        .map(
-                          (weekday) => DropdownMenuItem(
-                            value: weekday,
-                            child: Text(_weekdayLabel(weekday)),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '정규 수업 ${index + 1}',
+                  style: forestringTextStyle.copyWith(
+                    color: primaryColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              if (_regularSchedules.length > 1)
+                IconButton(
+                  tooltip: '삭제',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _saving || !plan.canChange
+                      ? null
+                      : () => setState(
+                            () => _regularSchedules.removeAt(index),
                           ),
-                        )
-                        .toList(),
-                    onChanged: _saving || !plan.canChange
-                        ? null
-                        : (value) {
-                            if (value == null) return;
-                            final firstForDay = _workHours
-                                .where((window) => window.weekday == value)
-                                .firstOrNull;
-                            setState(() {
-                              draft.weekday = value;
-                              if (firstForDay != null) {
-                                draft.startMinutes = firstForDay.startMinutes;
-                              }
-                            });
-                          },
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: Colors.redAccent,
+                    size: 20,
                   ),
                 ),
-                if (_regularSchedules.length > 1) ...[
-                  const SizedBox(width: 4),
-                  IconButton(
-                    tooltip: '삭제',
-                    onPressed: _saving || !plan.canChange
-                        ? null
-                        : () => setState(
-                              () => _regularSchedules.removeAt(index),
-                            ),
-                    icon: const Icon(Icons.delete_outline),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _saving || !plan.canChange
-                        ? null
-                        : () => _pickTime(draft),
-                    icon: const Icon(Icons.access_time),
-                    label: Text(_formatMinutes(draft.startMinutes)),
-                  ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          RegularWeekdaySelector(
+            value: draft.weekday,
+            enabled: !_saving && plan.canChange,
+            onChanged: (value) {
+              setState(() {
+                draft.weekday = value;
+                _ensureDraftTime(draft);
+              });
+            },
+          ),
+          const SizedBox(height: 11),
+          Row(
+            children: [
+              Expanded(
+                child: RegularTimeField(
+                  value: timeOptions.contains(draft.startMinutes)
+                      ? draft.startMinutes
+                      : null,
+                  enabled: !_saving &&
+                      plan.canChange &&
+                      timeOptions.isNotEmpty,
+                  onTap: () async {
+                    final selected = await showRegularTimePicker(
+                      context: context,
+                      options: timeOptions,
+                      selectedMinutes: draft.startMinutes,
+                    );
+                    if (!mounted || selected == null) return;
+                    setState(() => draft.startMinutes = selected);
+                  },
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: draft.durationMinutes,
-                    decoration: _decoration('수업 길이'),
-                    items: _durationItems(),
-                    onChanged: _saving || !plan.canChange
-                        ? null
-                        : (value) {
-                            if (value != null) {
-                              setState(() => draft.durationMinutes = value);
-                            }
-                          },
-                  ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 128,
+                child: DropdownButtonFormField<int>(
+                  initialValue: draft.durationMinutes,
+                  decoration: _decoration('수업 길이'),
+                  items: _durationItems(),
+                  onChanged: _saving || !plan.canChange
+                      ? null
+                      : (value) {
+                          if (value == null) return;
+                          setState(() {
+                            draft.durationMinutes = value;
+                            _ensureDraftTime(draft);
+                          });
+                        },
                 ),
-              ],
+              ),
+            ],
+          ),
+          if (timeOptions.isEmpty) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '이 요일에는 선택한 수업 길이로 가능한 근무시간이 없습니다.',
+                style: forestringTextStyle.copyWith(
+                  color: Colors.redAccent,
+                  fontSize: 11,
+                ),
+              ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Future<void> _pickTime(_NextRegularScheduleDraft draft) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(
-        hour: draft.startMinutes ~/ 60,
-        minute: draft.startMinutes % 60,
-      ),
-    );
-    if (picked == null || !mounted) return;
+  List<int> _availableStartMinutesForDraft(
+    _NextRegularScheduleDraft draft,
+  ) {
+    final result = <int>{};
+    for (final window in _workHours.where(
+      (item) => item.weekday == draft.weekday,
+    )) {
+      var minute = ((window.startMinutes + 14) ~/ 15) * 15;
+      while (minute + draft.durationMinutes <= window.endMinutes) {
+        result.add(minute);
+        minute += 15;
+      }
+    }
+    final list = result.toList()..sort();
+    return list;
+  }
 
-    final minutes = picked.hour * 60 + picked.minute;
-    setState(() {
-      draft.startMinutes = minutes;
-      _errorMessage = minutes % 15 == 0
-          ? null
-          : '정규 수업 시작 시간은 15분 단위로 선택해주세요.';
-    });
+  void _ensureDraftTime(_NextRegularScheduleDraft draft) {
+    final options = _availableStartMinutesForDraft(draft);
+    if (options.isEmpty) return;
+    if (!options.contains(draft.startMinutes)) {
+      draft.startMinutes = options.first;
+    }
   }
 
   List<DropdownMenuItem<int>> _durationItems() {
-    return const [15, 30, 45, 60, 75, 90]
+    return const [15, 30, 45, 60]
         .map(
           (minutes) => DropdownMenuItem(
             value: minutes,
@@ -876,7 +895,7 @@ class _StudentNextSemesterTypePageState
         .map(
           (window) =>
               '${_weekdayLabel(window.weekday)} '
-              '${_formatMinutes(window.startMinutes)}~${_formatMinutes(window.endMinutes)}',
+              '${regularFormatMinutes(window.startMinutes)}~${regularFormatMinutes(window.endMinutes)}',
         )
         .join(' · ');
   }
@@ -894,12 +913,6 @@ class _StudentNextSemesterTypePageState
     };
   }
 
-  String _formatMinutes(int minutes) {
-    final hour = (minutes ~/ 60).toString().padLeft(2, '0');
-    final minute = (minutes % 60).toString().padLeft(2, '0');
-    return '$hour:$minute';
-  }
-
   Widget _sectionTitle(String title) {
     return Text(
       title,
@@ -914,8 +927,31 @@ class _StudentNextSemesterTypePageState
   InputDecoration _decoration(String label) {
     return InputDecoration(
       labelText: label,
+      labelStyle: forestringTextStyle.copyWith(
+        color: Colors.black54,
+        fontSize: 12,
+      ),
       isDense: true,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      filled: true,
+      fillColor: primaryColor.withValues(alpha: 0.04),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 12,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(13),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(13),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(13),
+        borderSide: BorderSide(
+          color: primaryColor.withValues(alpha: 0.4),
+        ),
+      ),
     );
   }
 
