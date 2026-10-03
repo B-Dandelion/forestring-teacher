@@ -114,9 +114,9 @@ class QaLessonRepository extends LessonRepository {
     if (teacherId == null || teacherId.isEmpty) {
       return all;
     }
-    return {
-      if (all[teacherId] case final hours?) teacherId: hours,
-    };
+    final hours = all[teacherId];
+    if (hours == null) return const {};
+    return {teacherId: hours};
   }
 
   @override
