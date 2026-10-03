@@ -200,41 +200,73 @@ class _ManagerShellState extends State<ManagerShell> {
       },
       child: Scaffold(
         backgroundColor: neutralIvory,
-        appBar: ForestringAppBar(
-          title: _titles[_currentIndex],
+        appBar: AppBar(
           automaticallyImplyLeading: false,
+          toolbarHeight: 72,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          backgroundColor: neutralIvory,
+          surfaceTintColor: Colors.transparent,
+          foregroundColor: primaryColor,
+          titleSpacing: 18,
+          title: Text(
+            _titles[_currentIndex],
+            style: forestringTextStyle.copyWith(
+              color: primaryColor,
+              fontSize: 30,
+              fontWeight: FontWeight.w500,
+              height: 1,
+            ),
+          ),
           actions: [
-            PopupMenuButton<String>(
-              tooltip: '더보기',
-              icon: const Icon(Icons.more_vert_rounded),
-              onSelected: _handleMenu,
-              itemBuilder: (context) => [
-                if (widget.isQaSandbox)
-                  const PopupMenuItem(
-                    value: 'reset',
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.restart_alt_rounded),
-                      title: Text('QA 데이터 초기화'),
+            Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: PopupMenuButton<String>(
+                tooltip: '더보기',
+                onSelected: _handleMenu,
+                icon: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.82),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: primaryColor.withValues(alpha: 0.08),
                     ),
                   ),
-                PopupMenuItem(
-                  value: 'exit',
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(
-                      widget.isQaSandbox
-                          ? Icons.close_rounded
-                          : Icons.logout_rounded,
-                    ),
-                    title: Text(
-                      widget.isQaSandbox ? 'QA 종료' : '로그아웃',
-                    ),
+                  child: const Icon(
+                    Icons.more_horiz_rounded,
+                    color: primaryColor,
+                    size: 22,
                   ),
                 ),
-              ],
+                itemBuilder: (context) => [
+                  if (widget.isQaSandbox)
+                    const PopupMenuItem(
+                      value: 'reset',
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(Icons.restart_alt_rounded),
+                        title: Text('QA 데이터 초기화'),
+                      ),
+                    ),
+                  PopupMenuItem(
+                    value: 'exit',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        widget.isQaSandbox
+                            ? Icons.close_rounded
+                            : Icons.logout_rounded,
+                      ),
+                      title: Text(
+                        widget.isQaSandbox ? 'QA 종료' : '로그아웃',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(width: 4),
           ],
         ),
         body: Column(
