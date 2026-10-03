@@ -1234,51 +1234,6 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
     await _loadTeachers();
   }
 
-  Widget _workHourRow(ManagedTeacherWorkHour workHour) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 7),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: primaryColor.withValues(alpha: 0.13)),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 70,
-            child: Text(
-              '${_weekdayLabel(workHour.weekday)}요일',
-              style: forestringTextStyle.copyWith(
-                color: primaryColor,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Text(
-            '${workHour.startTime} ~ ${workHour.endTime}',
-            style: forestringTextStyle.copyWith(fontSize: 14),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _emptyWorkHours() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: primaryColor.withValues(alpha: 0.13)),
-      ),
-      child: Text(
-        '등록된 근무시간이 없습니다.',
-        style: forestringTextStyle.copyWith(color: Colors.black45),
-      ),
-    );
-  }
-
   Widget _errorCard(String message) {
     return Container(
       padding: const EdgeInsets.all(14),
