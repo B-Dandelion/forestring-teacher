@@ -890,7 +890,7 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
     final firstApplicable = widget.schedule.slotStartsOn.isAfter(today)
         ? widget.schedule.slotStartsOn
         : today;
-    _effectiveOn = _startOfWeek(firstApplicable);
+    _effectiveOn = firstApplicable;
     _weekday = widget.schedule.weekday;
     _durationMinutes = widget.schedule.durationMinutes;
     _startMinutes = widget.schedule.startMinutes;
@@ -1145,7 +1145,10 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
                       itemBuilder: (context, index) {
                         final week = _weekOptions[index];
                         final selected =
-                            _sameDay(week, _effectiveOn);
+                            _sameDay(
+                              week,
+                              _startOfWeek(_effectiveOn),
+                            );
                         return ChoiceChip(
                           selected: selected,
                           showCheckmark: false,
@@ -1189,8 +1192,17 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
                               ? null
                               : (_) async {
                                   if (selected) return;
+                                  final now = DateTime.now();
+                                  final today = DateTime(
+                                    now.year,
+                                    now.month,
+                                    now.day,
+                                  );
                                   setState(
-                                    () => _effectiveOn = week,
+                                    () => _effectiveOn =
+                                        week.isBefore(today)
+                                            ? today
+                                            : week,
                                   );
                                   await _loadTeacherContext(
                                     keepCurrentTime: true,
