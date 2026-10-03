@@ -24,21 +24,27 @@ class LessonManagementPage extends StatefulWidget {
     required this.controller,
     this.initialBranchId,
     this.initialStudentId,
+    this.repository,
+    this.semesterRepository,
+    this.branchRepository,
   });
 
   final CurrentProfile profile;
   final LessonController controller;
   final String? initialBranchId;
   final String? initialStudentId;
+  final LessonRepository? repository;
+  final SemesterRepository? semesterRepository;
+  final BranchRepository? branchRepository;
 
   @override
   State<LessonManagementPage> createState() => _LessonManagementPageState();
 }
 
 class _LessonManagementPageState extends State<LessonManagementPage> {
-  final _repository = LessonRepository();
-  final _semesterRepository = SemesterRepository();
-  final _branchRepository = BranchRepository();
+  late final LessonRepository _repository;
+  late final SemesterRepository _semesterRepository;
+  late final BranchRepository _branchRepository;
 
   List<Lesson> _lessons = const [];
   List<VisibleStudent> _students = const [];
@@ -125,6 +131,11 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
   @override
   void initState() {
     super.initState();
+    _repository = widget.repository ?? LessonRepository();
+    _semesterRepository =
+        widget.semesterRepository ?? SemesterRepository();
+    _branchRepository =
+        widget.branchRepository ?? BranchRepository();
     _selectedBranchId = widget.profile.isManager
         ? widget.profile.branchId
         : widget.initialBranchId;
@@ -351,6 +362,7 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
           initialBranchId: _selectedBranchId,
           initialStudentId: _selectedStudentId,
           initialDate: _initialMakeupDate(semester),
+          repository: _repository,
         ),
       ),
     );
