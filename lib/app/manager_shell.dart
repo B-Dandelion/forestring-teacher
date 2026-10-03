@@ -40,6 +40,7 @@ class _ManagerShellState extends State<ManagerShell> {
   ];
 
   int _currentIndex = _scheduleIndex;
+  final List<Widget?> _pages = List<Widget?>.filled(4, null);
 
   void _selectTab(int index) {
     if (_currentIndex == index) return;
@@ -109,6 +110,70 @@ class _ManagerShellState extends State<ManagerShell> {
     }
   }
 
+  Widget _buildPage(
+    int index, {
+    required LessonController controller,
+    required QaSandboxStore? qaStore,
+  }) {
+    return switch (index) {
+      0 => MasterSchedulePage(
+          profile: widget.profile,
+          isQaSandbox: widget.isQaSandbox,
+          onQaExit: widget.onQaExit,
+          embeddedInShell: true,
+        ),
+      1 => StudentManagementPage(
+          profile: widget.profile,
+          repository: qaStore == null
+              ? null
+              : QaStudentManagementRepository(qaStore),
+          branchRepository:
+              qaStore == null ? null : QaBranchRepository(qaStore),
+          lessonRepository:
+              qaStore == null ? null : QaLessonRepository(qaStore),
+          adminRepository:
+              qaStore == null ? null : QaStudentAdminRepository(qaStore),
+          nextSemesterRepository: qaStore == null
+              ? null
+              : QaStudentNextSemesterTypeRepository(qaStore),
+          regularScheduleRepository: qaStore == null
+              ? null
+              : QaStudentRegularScheduleRepository(qaStore),
+          teacherManagementRepository: qaStore == null
+              ? null
+              : QaStudentTeacherManagementRepository(qaStore),
+          isQaSandbox: widget.isQaSandbox,
+          embeddedInShell: true,
+        ),
+      2 => TeacherManagementPage(
+          profile: widget.profile,
+          repository:
+              qaStore == null ? null : QaTeacherRepository(qaStore),
+          branchRepository:
+              qaStore == null ? null : QaBranchRepository(qaStore),
+          workHoursRepository: qaStore == null
+              ? null
+              : QaTeacherWorkHoursScheduleRepository(qaStore),
+          isQaSandbox: widget.isQaSandbox,
+          embeddedInShell: true,
+        ),
+      3 => LessonManagementPage(
+          profile: widget.profile,
+          controller: controller,
+          initialBranchId: controller.selectedBranchId,
+          repository:
+              qaStore == null ? null : QaLessonRepository(qaStore),
+          semesterRepository:
+              qaStore == null ? null : QaSemesterRepository(qaStore),
+          branchRepository:
+              qaStore == null ? null : QaBranchRepository(qaStore),
+          isQaSandbox: widget.isQaSandbox,
+          embeddedInShell: true,
+        ),
+      _ => const SizedBox.shrink(),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<LessonController>();
@@ -116,62 +181,16 @@ class _ManagerShellState extends State<ManagerShell> {
         ? context.read<QaSandboxStore>()
         : null;
 
-    final pages = [
-      MasterSchedulePage(
-        profile: widget.profile,
-        isQaSandbox: widget.isQaSandbox,
-        onQaExit: widget.onQaExit,
-        embeddedInShell: true,
-      ),
-      StudentManagementPage(
-        profile: widget.profile,
-        repository: qaStore == null
-            ? null
-            : QaStudentManagementRepository(qaStore),
-        branchRepository:
-            qaStore == null ? null : QaBranchRepository(qaStore),
-        lessonRepository:
-            qaStore == null ? null : QaLessonRepository(qaStore),
-        adminRepository:
-            qaStore == null ? null : QaStudentAdminRepository(qaStore),
-        nextSemesterRepository: qaStore == null
-            ? null
-            : QaStudentNextSemesterTypeRepository(qaStore),
-        regularScheduleRepository: qaStore == null
-            ? null
-            : QaStudentRegularScheduleRepository(qaStore),
-        teacherManagementRepository: qaStore == null
-            ? null
-            : QaStudentTeacherManagementRepository(qaStore),
-        isQaSandbox: widget.isQaSandbox,
-        embeddedInShell: true,
-      ),
-      TeacherManagementPage(
-        profile: widget.profile,
-        repository:
-            qaStore == null ? null : QaTeacherRepository(qaStore),
-        branchRepository:
-            qaStore == null ? null : QaBranchRepository(qaStore),
-        workHoursRepository: qaStore == null
-            ? null
-            : QaTeacherWorkHoursScheduleRepository(qaStore),
-        isQaSandbox: widget.isQaSandbox,
-        embeddedInShell: true,
-      ),
-      LessonManagementPage(
-        profile: widget.profile,
-        controller: controller,
-        initialBranchId: controller.selectedBranchId,
-        repository:
-            qaStore == null ? null : QaLessonRepository(qaStore),
-        semesterRepository:
-            qaStore == null ? null : QaSemesterRepository(qaStore),
-        branchRepository:
-            qaStore == null ? null : QaBranchRepository(qaStore),
-        isQaSandbox: widget.isQaSandbox,
-        embeddedInShell: true,
-      ),
-    ];
+    _pages[_currentIndex] ??= _buildPage(
+      _currentIndex,
+      controller: controller,
+      qaStore: qaStore,
+    );
+
+    final pages = List<Widget>.generate(
+      _pages.length,
+      (index) => _pages[index] ?? const SizedBox.shrink(),
+    );
 
     return PopScope(
       canPop: _currentIndex == _scheduleIndex,
