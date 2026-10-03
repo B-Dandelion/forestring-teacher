@@ -77,40 +77,35 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
     }
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 2, 8, 0),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  tooltip: '새로고침',
-                  onPressed: controller.isLoading
-                      ? null
-                      : controller.reload,
-                  icon: controller.isLoading
-                      ? const SizedBox(
-                          width: 19,
-                          height: 19,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: primaryColor,
-                          ),
-                        )
-                      : const Icon(
-                          Icons.refresh_rounded,
-                          color: primaryColor,
-                        ),
+      floatingActionButton: FloatingActionButton.small(
+        heroTag: 'teacher-week-refresh',
+        tooltip: '새로고침',
+        onPressed: controller.isLoading
+            ? null
+            : controller.reload,
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 3,
+        child: controller.isLoading
+            ? const SizedBox(
+                width: 17,
+                height: 17,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
                 ),
+              )
+            : const Icon(
+                Icons.refresh_rounded,
+                size: 20,
               ),
-            ),
-            Expanded(
-              child: controller.isLoading && controller.lessons.isEmpty
-                  ? const Center(
-                      child: CircularProgressIndicator(),
-                    )
-                  : SfCalendar(
+      ),
+      body: SafeArea(
+        child: controller.isLoading && controller.lessons.isEmpty
+            ? const Center(
+                child: CircularProgressIndicator(),
+              )
+            : SfCalendar(
                       controller: _calendarController,
                       minDate: DateTime(
                         DateTime.now().year,
@@ -216,10 +211,7 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
                           lesson: meeting.lesson,
                         );
                       },
-                    ),
-            ),
-          ],
-        ),
+              ),
       ),
     );
   }
