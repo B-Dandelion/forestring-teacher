@@ -917,7 +917,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 style: forestringTextStyle.copyWith(
-                  color: Colors.black67,
+                  color: Colors.black54,
                   fontSize: 10,
                   fontWeight: FontWeight.w500,
                 ),
