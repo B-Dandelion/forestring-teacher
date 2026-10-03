@@ -35,9 +35,18 @@ class AuthController extends ChangeNotifier {
 
   bool get isSignedIn => session != null && _profile != null;
 
-  Future<void> initialize() async {
+  Future<void> initialize({
+    bool restoreSession = true,
+  }) async {
     _isInitializing = true;
     _errorMessage = null;
+
+    if (!restoreSession) {
+      _profile = null;
+      _isInitializing = false;
+      notifyListeners();
+      return;
+    }
 
     try {
       if (_repository.currentSession == null) {
