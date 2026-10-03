@@ -985,9 +985,13 @@ class _StudentManagementDetailPageState
   late final StudentManagementRepository _repository;
   late final StudentNextSemesterTypeRepository
       _nextSemesterRepository;
+  late final StudentRegularScheduleRepository
+      _regularScheduleRepository;
 
   late ManagedStudent _student;
   NextSemesterStudentTypePlan? _nextPlan;
+  List<ManagedRegularSchedule> _regularSchedules = const [];
+  bool _regularSchedulesLoading = false;
   bool _refreshing = false;
   bool _nextPlanLoading = false;
   String? _nextPlanError;
@@ -999,8 +1003,11 @@ class _StudentManagementDetailPageState
         widget.repository ?? StudentManagementRepository();
     _nextSemesterRepository = widget.nextSemesterRepository ??
         StudentNextSemesterTypeRepository();
+    _regularScheduleRepository = widget.regularScheduleRepository ??
+        StudentRegularScheduleRepository();
     _student = widget.initialStudent;
     _loadNextPlan();
+    _loadRegularSchedules();
   }
 
   Future<void> _refreshStudent() async {
@@ -1023,7 +1030,10 @@ class _StudentManagementDetailPageState
         return;
       }
       setState(() => _student = refreshed!);
-      await _loadNextPlan();
+      await Future.wait([
+        _loadNextPlan(),
+        _loadRegularSchedules(),
+      ]);
     } finally {
       if (mounted) setState(() => _refreshing = false);
     }
@@ -1057,6 +1067,33 @@ class _StudentManagementDetailPageState
       });
     } finally {
       if (mounted) setState(() => _nextPlanLoading = false);
+    }
+  }
+
+  Future<void> _loadRegularSchedules() async {
+    if (!_student.isActive || !_student.isRegular) {
+      if (mounted) {
+        setState(() {
+          _regularSchedules = const [];
+          _regularSchedulesLoading = false;
+        });
+      }
+      return;
+    }
+
+    setState(() => _regularSchedulesLoading = true);
+    try {
+      final schedules =
+          await _regularScheduleRepository.fetchSchedules(_student.id);
+      if (!mounted) return;
+      setState(() => _regularSchedules = schedules);
+    } on StudentRegularScheduleFailure {
+      if (!mounted) return;
+      setState(() => _regularSchedules = const []);
+    } finally {
+      if (mounted) {
+        setState(() => _regularSchedulesLoading = false);
+      }
     }
   }
 
