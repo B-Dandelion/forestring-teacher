@@ -1100,19 +1100,20 @@ class _StudentManagementDetailPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: neutralIvory,
+      backgroundColor: primaryColor,
       appBar: AppBar(
-        backgroundColor: neutralIvory,
-        foregroundColor: primaryColor,
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
         title: Text(
           _student.displayName,
           style: forestringTextStyle.copyWith(
-            color: primaryColor,
-            fontSize: 20,
+            color: Colors.white,
+            fontSize: 21,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -1126,7 +1127,7 @@ class _StudentManagementDetailPageState
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: primaryColor,
+                      color: Colors.white,
                     ),
                   )
                 : const Icon(Icons.refresh_rounded),
@@ -1134,15 +1135,23 @@ class _StudentManagementDetailPageState
           const SizedBox(width: 4),
         ],
       ),
-      body: SafeArea(
-        top: false,
-        child: RefreshIndicator(
-          onRefresh: _refreshStudent,
-          color: primaryColor,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 34),
-            children: [
+      body: Container(
+        decoration: const BoxDecoration(
+          color: neutralIvory,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(30),
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: SafeArea(
+          top: false,
+          child: RefreshIndicator(
+            onRefresh: _refreshStudent,
+            color: primaryColor,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(12, 14, 12, 34),
+              children: [
               _profileHeader(),
               const SizedBox(height: 12),
               if (_student.isActive) ...[
@@ -1152,11 +1161,14 @@ class _StudentManagementDetailPageState
                 const SizedBox(height: 12),
               ],
               _navigationCard(
+                backgroundColor: const Color(0xffEFF8F5),
+                borderColor: const Color(0xffDDEFE7),
                 children: [
                   _detailRow(
-                    icon: Icons.receipt_long_outlined,
+                    icon: Icons.receipt_long_rounded,
                     title: '수업 내역',
                     subtitle: '이번 학기 · 이전 학기 · 전체',
+                    color: const Color(0xff166B56),
                     onTap: _openLessonHistory,
                   ),
                 ],
@@ -1167,15 +1179,17 @@ class _StudentManagementDetailPageState
               _navigationCard(
                 children: [
                   _detailRow(
-                    icon: Icons.drive_file_rename_outline,
+                    icon: Icons.edit_rounded,
                     title: '이름',
+                    color: const Color(0xff2B7A58),
                     value: _student.displayName,
                     onTap: _student.isActive ? _changeName : null,
                   ),
                   _cardDivider(),
                   _detailRow(
-                    icon: Icons.badge_outlined,
+                    icon: Icons.badge_rounded,
                     title: '담당 선생님',
+                    color: const Color(0xffB56B2B),
                     value: _student.teacherName == null
                         ? '미배정'
                         : '${_student.teacherName} 선생님',
@@ -1183,8 +1197,9 @@ class _StudentManagementDetailPageState
                   ),
                   _cardDivider(),
                   _detailRow(
-                    icon: Icons.location_on_outlined,
+                    icon: Icons.location_on_rounded,
                     title: '지점',
+                    color: const Color(0xff4D78A8),
                     value: _student.branchName,
                   ),
                 ],
@@ -1193,10 +1208,13 @@ class _StudentManagementDetailPageState
               _sectionLabel('계정'),
               const SizedBox(height: 7),
               _navigationCard(
+                backgroundColor: const Color(0xffF7F5FB),
+                borderColor: const Color(0xffECE8F5),
                 children: [
                   _detailRow(
-                    icon: Icons.lock_reset_outlined,
+                    icon: Icons.lock_reset_rounded,
                     title: '로그인 PIN 재설정',
+                    color: const Color(0xff6C5CA5),
                     subtitle: '학생 앱 로그인 PIN을 변경합니다.',
                     onTap: _student.isActive ? _changePin : null,
                   ),
@@ -1229,7 +1247,8 @@ class _StudentManagementDetailPageState
                   ],
                 ),
               ],
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1241,80 +1260,140 @@ class _StudentManagementDetailPageState
         _student.isRegular ? primaryColor : const Color(0xff4B7892);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 14, 16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white.withValues(alpha: 0.98),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: primaryColor.withValues(alpha: 0.06),
+          color: primaryColor.withValues(alpha: 0.055),
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 16,
-            offset: Offset(0, 5),
+            color: Color(0x0B000000),
+            blurRadius: 18,
+            offset: Offset(0, 6),
           ),
         ],
       ),
-      child: Row(
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
         children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: typeColor.withValues(alpha: 0.10),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.person_rounded,
-              color: typeColor,
-              size: 30,
+          Positioned(
+            right: -28,
+            bottom: -34,
+            child: Container(
+              width: 125,
+              height: 125,
+              decoration: BoxDecoration(
+                color: const Color(0xffEAF5ED),
+                shape: BoxShape.circle,
+              ),
             ),
           ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Positioned(
+            right: 20,
+            bottom: 8,
+            child: Icon(
+              Icons.eco_rounded,
+              size: 64,
+              color: primaryColor.withValues(alpha: 0.12),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+            child: Row(
               children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      _student.displayName,
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.black87,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w500,
-                      ),
+                Container(
+                  width: 62,
+                  height: 62,
+                  decoration: BoxDecoration(
+                    color: typeColor.withValues(alpha: 0.11),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: typeColor.withValues(alpha: 0.08),
                     ),
-                    _smallBadge(
-                      _student.isRegular ? '정규' : '자율 예약',
-                      typeColor,
-                    ),
-                    if (!_student.isActive)
-                      _smallBadge('퇴원', Colors.black54)
-                    else if (_student.hasScheduledWithdrawal)
-                      _smallBadge('퇴원 예정', Colors.orange.shade800),
-                  ],
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  _student.branchName,
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.black54,
-                    fontSize: 13.5,
+                  ),
+                  child: Icon(
+                    Icons.person_rounded,
+                    color: typeColor,
+                    size: 34,
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  _student.teacherName == null
-                      ? '담당 선생님 미배정'
-                      : '${_student.teacherName} 선생님',
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.black54,
-                    fontSize: 13.5,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            _student.displayName,
+                            style: forestringTextStyle.copyWith(
+                              color: Colors.black87,
+                              fontSize: 25,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          _smallBadge(
+                            _student.isRegular ? '정규' : '자율 예약',
+                            typeColor,
+                          ),
+                          if (!_student.isActive)
+                            _smallBadge('퇴원', Colors.black54)
+                          else if (_student.hasScheduledWithdrawal)
+                            _smallBadge(
+                              '퇴원 예정',
+                              Colors.orange.shade800,
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_rounded,
+                            size: 16,
+                            color: primaryColor,
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              _student.branchName,
+                              overflow: TextOverflow.ellipsis,
+                              style: forestringTextStyle.copyWith(
+                                color: Colors.black54,
+                                fontSize: 13.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.person_rounded,
+                            size: 16,
+                            color: primaryColor,
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              _student.teacherName == null
+                                  ? '담당 선생님 미배정'
+                                  : '${_student.teacherName} 선생님',
+                              overflow: TextOverflow.ellipsis,
+                              style: forestringTextStyle.copyWith(
+                                color: Colors.black54,
+                                fontSize: 13.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -1329,6 +1408,9 @@ class _StudentManagementDetailPageState
     if (_student.isRegular) {
       return _surfaceCard(
         title: '이번 학기 · 정규 수업',
+        icon: Icons.calendar_month_rounded,
+        accentColor: primaryColor,
+        backgroundColor: const Color(0xffF1F8F3),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1353,23 +1435,25 @@ class _StudentManagementDetailPageState
             else
               ..._regularSchedules.map(_regularScheduleRow),
             const SizedBox(height: 10),
-            OutlinedButton(
+            FilledButton.icon(
               onPressed: _openRegularSchedule,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: primaryColor,
-                side: BorderSide(
-                  color: primaryColor.withValues(alpha: 0.25),
-                ),
-                minimumSize: const Size.fromHeight(46),
+              icon: const Icon(
+                Icons.calendar_month_rounded,
+                size: 19,
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(48),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(13),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: Text(
+              label: Text(
                 '정규 일정 관리',
                 style: forestringTextStyle.copyWith(
-                  color: primaryColor,
-                  fontSize: 13,
+                  color: Colors.white,
+                  fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1383,6 +1467,9 @@ class _StudentManagementDetailPageState
     final duration = _student.flexDurationMinutes;
     return _surfaceCard(
       title: '이번 학기 · 자율 예약',
+      icon: Icons.confirmation_number_rounded,
+      accentColor: const Color(0xff4B7892),
+      backgroundColor: const Color(0xffF1F7FA),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1406,23 +1493,25 @@ class _StudentManagementDetailPageState
             ],
           ),
           const SizedBox(height: 10),
-          OutlinedButton(
+          FilledButton.icon(
             onPressed: _changeFlexRightCount,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: primaryColor,
-              side: BorderSide(
-                color: primaryColor.withValues(alpha: 0.25),
-              ),
-              minimumSize: const Size.fromHeight(46),
+            icon: const Icon(
+              Icons.confirmation_number_rounded,
+              size: 19,
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(48),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(13),
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
-            child: Text(
+            label: Text(
               '수업권 관리',
               style: forestringTextStyle.copyWith(
-                color: primaryColor,
-                fontSize: 14.5,
+                color: Colors.white,
+                fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1479,6 +1568,9 @@ class _StudentManagementDetailPageState
 
     return _surfaceCard(
       title: '다음 학기',
+      icon: Icons.school_rounded,
+      accentColor: const Color(0xffB36A2E),
+      backgroundColor: const Color(0xffFFF6EC),
       child: _detailRow(
         icon: Icons.event_available_outlined,
         title: plan == null
@@ -1536,14 +1628,17 @@ class _StudentManagementDetailPageState
   Widget _surfaceCard({
     required String title,
     required Widget child,
+    IconData? icon,
+    Color accentColor = primaryColor,
+    Color backgroundColor = Colors.white,
   }) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 15),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(18),
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: primaryColor.withValues(alpha: 0.06),
+          color: accentColor.withValues(alpha: 0.10),
         ),
         boxShadow: const [
           BoxShadow(
@@ -1556,15 +1651,37 @@ class _StudentManagementDetailPageState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            title,
-            style: forestringTextStyle.copyWith(
-              color: primaryColor,
-              fontSize: 17,
-              fontWeight: FontWeight.w500,
-            ),
+          Row(
+            children: [
+              if (icon != null) ...[
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    color: accentColor,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 9),
+              ],
+              Expanded(
+                child: Text(
+                  title,
+                  style: forestringTextStyle.copyWith(
+                    color: accentColor,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 11),
           child,
         ],
       ),
@@ -1573,14 +1690,24 @@ class _StudentManagementDetailPageState
 
   Widget _navigationCard({
     required List<Widget> children,
+    Color backgroundColor = Colors.white,
+    Color? borderColor,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.96),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: primaryColor.withValues(alpha: 0.06),
+          color: borderColor ??
+              primaryColor.withValues(alpha: 0.06),
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(children: children),
