@@ -5,7 +5,6 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/theme/student_accent.dart';
 import '../../../core/theme/student_accent_controller.dart';
-import '../../../core/widgets/forestring_navigation.dart';
 import '../../auth/domain/current_profile.dart';
 import '../domain/lesson.dart';
 import 'lesson_controller.dart';
@@ -78,27 +77,6 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
     }
 
     return Scaffold(
-      appBar: ForestringAppBar(
-        title: '주간',
-        roundBottomCorners: true,
-        actions: [
-          IconButton(
-            tooltip: '새로고침',
-            onPressed: controller.isLoading ? null : controller.reload,
-            icon: controller.isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.refresh_rounded),
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: controller.reload,
