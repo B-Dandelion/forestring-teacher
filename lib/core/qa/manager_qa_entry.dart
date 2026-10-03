@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../features/auth/domain/current_profile.dart';
 import '../../features/lessons/presentation/lesson_controller.dart';
-import '../../features/lessons/presentation/master_schedule_page.dart';
+import '../../app/manager_shell.dart';
 import 'qa_sandbox_repositories.dart';
 import 'qa_sandbox_store.dart';
 
@@ -58,7 +58,7 @@ class _ManagerQaShell extends StatelessWidget {
       unawaited(context.read<LessonController>().reload());
     });
 
-    return MasterSchedulePage(
+    return ManagerShell(
       profile: ManagerQaEntry.profile,
       isQaSandbox: true,
       onQaExit: () => Navigator.of(context).pop(),
