@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -173,20 +171,18 @@ Future<TimeOfDay?> _showSlotSheet({
   required int durationMinutes,
   String emptyMessage = '이 날짜에 등록된 근무시간이 없습니다.',
 }) async {
-  final rowCount = (slots.length + 3) ~/ 4;
-  final viewportHeight = math.min(rowCount * 46.0, 220.0);
-  final selectedIndex = slots.indexWhere(
-    (slot) => _sameTime(slot.time, initialTime),
+  final morningSlots = slots
+      .where((slot) => _minutes(slot.time) < 12 * 60)
+      .toList();
+  final afternoonSlots = slots
+      .where((slot) => _minutes(slot.time) >= 12 * 60)
+      .toList();
+
+  final directController = TextEditingController(
+    text: _formatTime(initialTime),
   );
-  final selectedRow = selectedIndex < 0 ? 0 : selectedIndex ~/ 4;
-  final maxScrollOffset = math.max(0.0, rowCount * 46.0 - viewportHeight);
-  final initialScrollOffset = math.min(
-    maxScrollOffset,
-    math.max(0.0, (selectedRow - 2) * 46.0),
-  );
-  final slotScrollController = ScrollController(
-    initialScrollOffset: initialScrollOffset,
-  );
+  var showDirectInput = false;
+  String? directErrorText;
 
   final picked = await showModalBottomSheet<TimeOfDay>(
     context: context,
@@ -194,234 +190,449 @@ Future<TimeOfDay?> _showSlotSheet({
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.46),
     builder: (sheetContext) {
-      return SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-          child: Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(sheetContext).size.height * 0.54,
-            ),
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 16),
-            decoration: BoxDecoration(
-              color: const Color(0xffFCFDF9),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: primaryColor.withValues(alpha: 0.07),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.16),
-                  blurRadius: 26,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '시간 선택',
-                        style: forestringTextStyle.copyWith(
-                          color: primaryColor,
-                          fontSize: 21,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    _TimeSheetCloseButton(
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: primaryColor.withValues(alpha: 0.055),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      '${selectedDate.month}월 ${selectedDate.day}일 · '
-                      '$durationMinutes분 수업',
-                      style: forestringTextStyle.copyWith(
-                        color: primaryColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (slots.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 22),
-                    child: Text(
-                      emptyMessage,
-                      textAlign: TextAlign.center,
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.black54,
-                        fontSize: 13,
-                      ),
-                    ),
-                  )
-                else
-                  SizedBox(
-                    height: viewportHeight,
-                    child: Scrollbar(
-                      controller: slotScrollController,
-                      thumbVisibility: rowCount > 5,
-                      radius: const Radius.circular(999),
-                      child: GridView.builder(
-                        controller: slotScrollController,
-                        padding: EdgeInsets.zero,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          crossAxisSpacing: 6,
-                          mainAxisSpacing: 6,
-                          mainAxisExtent: 40,
-                        ),
-                        itemCount: slots.length,
-                        itemBuilder: (context, index) {
-                          final slot = slots[index];
-                          final selected =
-                              _sameTime(slot.time, initialTime);
+      return StatefulBuilder(
+        builder: (context, setSheetState) {
+          final keyboardInset =
+              MediaQuery.viewInsetsOf(context).bottom;
 
-                          return Material(
-                            color: selected
-                                ? primaryColor
-                                : slot.available
-                                    ? Colors.white
-                                    : Colors.black.withValues(alpha: 0.035),
-                            borderRadius: BorderRadius.circular(11),
-                            child: InkWell(
-                              onTap: slot.available
-                                  ? () => Navigator.of(sheetContext)
-                                      .pop(slot.time)
-                                  : null,
-                              borderRadius: BorderRadius.circular(11),
-                              child: Container(
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(11),
-                                  border: Border.all(
-                                    color: selected
-                                        ? primaryColor
-                                        : slot.available
-                                            ? primaryColor.withValues(
-                                                alpha: 0.16,
-                                              )
-                                            : Colors.black.withValues(
-                                                alpha: 0.05,
-                                              ),
-                                  ),
-                                ),
-                                child: Text(
-                                  _formatTime(slot.time),
-                                  style: forestringTextStyle.copyWith(
-                                    color: selected
-                                        ? Colors.white
-                                        : slot.available
-                                            ? Colors.black87
-                                            : Colors.black26,
-                                    fontSize: 12,
-                                    fontWeight: selected
-                                        ? FontWeight.w500
-                                        : FontWeight.w400,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+          void submitDirectTime() {
+            final parsed = _parseTimeInput(directController.text);
+            if (parsed == null) {
+              setSheetState(
+                () => directErrorText =
+                    '00:00 ~ 23:59 형식으로 입력해주세요.',
+              );
+              return;
+            }
+            Navigator.of(sheetContext).pop(parsed);
+          }
+
+          return AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            padding: EdgeInsets.only(bottom: keyboardInset),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight:
+                        MediaQuery.sizeOf(context).height * 0.62,
                   ),
-                if (slots.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        width: 9,
-                        height: 9,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.07),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          '회색 시간은 기존 수업 또는 개인 일정과 겹칩니다.',
-                          style: forestringTextStyle.copyWith(
-                            color: Colors.black45,
-                            fontSize: 10,
-                          ),
-                        ),
+                  padding:
+                      const EdgeInsets.fromLTRB(18, 10, 18, 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xffFCFDF9),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: primaryColor.withValues(alpha: 0.07),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.16),
+                        blurRadius: 26,
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
-                ],
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () async {
-                      final direct = await _showDirectTimeInput(
-                        context: sheetContext,
-                        initialTime: initialTime,
-                      );
-                      if (direct != null && sheetContext.mounted) {
-                        Navigator.of(sheetContext).pop(direct);
-                      }
-                    },
-                    icon: const Icon(
-                      Icons.keyboard_outlined,
-                      size: 17,
-                    ),
-                    label: Text(
-                      '직접 입력',
-                      style: forestringTextStyle.copyWith(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.stretch,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.14),
+                            borderRadius:
+                                BorderRadius.circular(999),
+                          ),
+                        ),
                       ),
-                    ),
-                    style: TextButton.styleFrom(
-                      foregroundColor: primaryColor,
-                    ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '시간 선택',
+                              style: forestringTextStyle.copyWith(
+                                color: primaryColor,
+                                fontSize: 21,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          _TimeSheetCloseButton(
+                            onPressed: () =>
+                                Navigator.of(sheetContext).pop(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: primaryColor.withValues(
+                              alpha: 0.055,
+                            ),
+                            borderRadius:
+                                BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '${selectedDate.month}월 '
+                            '${selectedDate.day}일 · '
+                            '$durationMinutes분 수업',
+                            style: forestringTextStyle.copyWith(
+                              color: primaryColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Flexible(
+                        child: slots.isEmpty
+                            ? SingleChildScrollView(
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(
+                                    vertical: 22,
+                                  ),
+                                  child: Text(
+                                    emptyMessage,
+                                    textAlign: TextAlign.center,
+                                    style:
+                                        forestringTextStyle.copyWith(
+                                      color: Colors.black54,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    if (morningSlots.isNotEmpty)
+                                      _TimeSlotSection(
+                                        title: '오전',
+                                        slots: morningSlots,
+                                        initialTime: initialTime,
+                                        onSelected: (time) =>
+                                            Navigator.of(sheetContext)
+                                                .pop(time),
+                                      ),
+                                    if (morningSlots.isNotEmpty &&
+                                        afternoonSlots.isNotEmpty)
+                                      const SizedBox(height: 16),
+                                    if (afternoonSlots.isNotEmpty)
+                                      _TimeSlotSection(
+                                        title: '오후',
+                                        slots: afternoonSlots,
+                                        initialTime: initialTime,
+                                        onSelected: (time) =>
+                                            Navigator.of(sheetContext)
+                                                .pop(time),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                      ),
+                      if (slots.isNotEmpty) ...[
+                        const SizedBox(height: 9),
+                        Row(
+                          children: [
+                            Container(
+                              width: 9,
+                              height: 9,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(
+                                  alpha: 0.07,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                '회색 시간은 기존 수업 또는 '
+                                '개인 일정과 겹칩니다.',
+                                style:
+                                    forestringTextStyle.copyWith(
+                                  color: Colors.black45,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      AnimatedSwitcher(
+                        duration:
+                            const Duration(milliseconds: 160),
+                        child: showDirectInput
+                            ? Container(
+                                key: const ValueKey(
+                                  'direct-time-input',
+                                ),
+                                padding:
+                                    const EdgeInsets.fromLTRB(
+                                  10,
+                                  8,
+                                  8,
+                                  8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: primaryColor.withValues(
+                                    alpha: 0.045,
+                                  ),
+                                  borderRadius:
+                                      BorderRadius.circular(14),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller:
+                                            directController,
+                                        autofocus: true,
+                                        keyboardType:
+                                            TextInputType.datetime,
+                                        textInputAction:
+                                            TextInputAction.done,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter
+                                              .allow(
+                                            RegExp(r'[0-9:]'),
+                                          ),
+                                          LengthLimitingTextInputFormatter(
+                                            5,
+                                          ),
+                                        ],
+                                        style: forestringTextStyle
+                                            .copyWith(
+                                          color: Colors.black87,
+                                          fontSize: 15,
+                                          fontWeight:
+                                              FontWeight.w500,
+                                        ),
+                                        decoration: InputDecoration(
+                                          isDense: true,
+                                          hintText: '13:30',
+                                          errorText:
+                                              directErrorText,
+                                          border:
+                                              InputBorder.none,
+                                          contentPadding:
+                                              const EdgeInsets
+                                                  .symmetric(
+                                            horizontal: 4,
+                                            vertical: 10,
+                                          ),
+                                        ),
+                                        onChanged: (_) {
+                                          if (directErrorText !=
+                                              null) {
+                                            setSheetState(
+                                              () =>
+                                                  directErrorText =
+                                                      null,
+                                            );
+                                          }
+                                        },
+                                        onSubmitted: (_) =>
+                                            submitDirectTime(),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    FilledButton(
+                                      onPressed: submitDirectTime,
+                                      style:
+                                          FilledButton.styleFrom(
+                                        backgroundColor:
+                                            primaryColor,
+                                        foregroundColor:
+                                            Colors.white,
+                                        padding:
+                                            const EdgeInsets
+                                                .symmetric(
+                                          horizontal: 14,
+                                          vertical: 12,
+                                        ),
+                                        shape:
+                                            RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(
+                                            11,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '선택',
+                                        style:
+                                            forestringTextStyle
+                                                .copyWith(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight:
+                                              FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Align(
+                                key: const ValueKey(
+                                  'direct-time-button',
+                                ),
+                                alignment:
+                                    Alignment.centerRight,
+                                child: TextButton.icon(
+                                  onPressed: () {
+                                    setSheetState(
+                                      () => showDirectInput = true,
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.keyboard_outlined,
+                                    size: 17,
+                                  ),
+                                  label: Text(
+                                    '직접 입력',
+                                    style:
+                                        forestringTextStyle.copyWith(
+                                      fontSize: 12,
+                                      fontWeight:
+                                          FontWeight.w500,
+                                    ),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: primaryColor,
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       );
     },
   );
 
-  slotScrollController.dispose();
+  directController.dispose();
   return picked;
+}
+
+class _TimeSlotSection extends StatelessWidget {
+  const _TimeSlotSection({
+    required this.title,
+    required this.slots,
+    required this.initialTime,
+    required this.onSelected,
+  });
+
+  final String title;
+  final List<_LessonTimeSlot> slots;
+  final TimeOfDay initialTime;
+  final ValueChanged<TimeOfDay> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 2, bottom: 7),
+          child: Text(
+            title,
+            style: forestringTextStyle.copyWith(
+              color: Colors.black54,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          gridDelegate:
+              const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            crossAxisSpacing: 6,
+            mainAxisSpacing: 6,
+            mainAxisExtent: 40,
+          ),
+          itemCount: slots.length,
+          itemBuilder: (context, index) {
+            final slot = slots[index];
+            final selected =
+                _sameTime(slot.time, initialTime);
+
+            return Material(
+              color: selected
+                  ? primaryColor
+                  : slot.available
+                      ? Colors.white
+                      : Colors.black.withValues(alpha: 0.035),
+              borderRadius: BorderRadius.circular(11),
+              child: InkWell(
+                onTap: slot.available
+                    ? () => onSelected(slot.time)
+                    : null,
+                borderRadius: BorderRadius.circular(11),
+                child: Container(
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(
+                      color: selected
+                          ? primaryColor
+                          : slot.available
+                              ? primaryColor.withValues(alpha: 0.16)
+                              : Colors.black.withValues(alpha: 0.05),
+                    ),
+                  ),
+                  child: Text(
+                    _formatTime(slot.time),
+                    style: forestringTextStyle.copyWith(
+                      color: selected
+                          ? Colors.white
+                          : slot.available
+                              ? Colors.black87
+                              : Colors.black26,
+                      fontSize: 12,
+                      fontWeight: selected
+                          ? FontWeight.w500
+                          : FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
 }
 
 class _TimeSheetCloseButton extends StatelessWidget {
@@ -505,74 +716,6 @@ List<_LessonTimeSlot> _buildSlots({
   }
 
   result.sort((a, b) => _minutes(a.time).compareTo(_minutes(b.time)));
-  return result;
-}
-
-Future<TimeOfDay?> _showDirectTimeInput({
-  required BuildContext context,
-  required TimeOfDay initialTime,
-}) async {
-  final controller = TextEditingController(text: _formatTime(initialTime));
-  String? errorText;
-
-  final result = await showDialog<TimeOfDay>(
-    context: context,
-    builder: (dialogContext) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          void submit() {
-            final parsed = _parseTimeInput(controller.text);
-            if (parsed == null) {
-              setState(() => errorText = '00:00 ~ 23:59 형식으로 입력해주세요.');
-              return;
-            }
-            Navigator.of(dialogContext).pop(parsed);
-          }
-
-          return AlertDialog(
-            title: Text(
-              '시간 직접 입력',
-              style: forestringTextStyle.copyWith(
-                color: primaryColor,
-                fontSize: 19,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            content: TextField(
-              controller: controller,
-              autofocus: true,
-              keyboardType: TextInputType.datetime,
-              textInputAction: TextInputAction.done,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9:]')),
-                LengthLimitingTextInputFormatter(5),
-              ],
-              decoration: InputDecoration(
-                labelText: '시간',
-                hintText: '13:30',
-                errorText: errorText,
-                border: const OutlineInputBorder(),
-              ),
-              onSubmitted: (_) => submit(),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('취소'),
-              ),
-              FilledButton(
-                onPressed: submit,
-                style: FilledButton.styleFrom(backgroundColor: primaryColor),
-                child: const Text('선택'),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-
-  controller.dispose();
   return result;
 }
 
