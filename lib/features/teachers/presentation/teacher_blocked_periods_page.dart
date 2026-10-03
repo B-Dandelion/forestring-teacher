@@ -9,9 +9,11 @@ class TeacherBlockedPeriodsPage extends StatefulWidget {
   const TeacherBlockedPeriodsPage({
     super.key,
     required this.teacher,
+    this.repository,
   });
 
   final ManagedTeacher teacher;
+  final TeacherRepository? repository;
 
   @override
   State<TeacherBlockedPeriodsPage> createState() =>
@@ -20,7 +22,7 @@ class TeacherBlockedPeriodsPage extends StatefulWidget {
 
 class _TeacherBlockedPeriodsPageState
     extends State<TeacherBlockedPeriodsPage> {
-  final _repository = TeacherRepository();
+  late final TeacherRepository _repository;
 
   List<ManagedTeacherBlockedPeriod> _periods = const [];
   bool _loading = true;
@@ -29,6 +31,7 @@ class _TeacherBlockedPeriodsPageState
   @override
   void initState() {
     super.initState();
+    _repository = widget.repository ?? TeacherRepository();
     _load();
   }
 
