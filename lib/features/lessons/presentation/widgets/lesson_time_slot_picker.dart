@@ -174,15 +174,15 @@ Future<TimeOfDay?> _showSlotSheet({
   String emptyMessage = '이 날짜에 등록된 근무시간이 없습니다.',
 }) async {
   final rowCount = (slots.length + 3) ~/ 4;
-  final viewportHeight = math.min(rowCount * 54.0, 270.0);
+  final viewportHeight = math.min(rowCount * 46.0, 220.0);
   final selectedIndex = slots.indexWhere(
     (slot) => _sameTime(slot.time, initialTime),
   );
   final selectedRow = selectedIndex < 0 ? 0 : selectedIndex ~/ 4;
-  final maxScrollOffset = math.max(0.0, rowCount * 54.0 - viewportHeight);
+  final maxScrollOffset = math.max(0.0, rowCount * 46.0 - viewportHeight);
   final initialScrollOffset = math.min(
     maxScrollOffset,
-    math.max(0.0, (selectedRow - 2) * 54.0),
+    math.max(0.0, (selectedRow - 2) * 46.0),
   );
   final slotScrollController = ScrollController(
     initialScrollOffset: initialScrollOffset,
@@ -192,162 +192,228 @@ Future<TimeOfDay?> _showSlotSheet({
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.42),
+    barrierColor: Colors.black.withValues(alpha: 0.46),
     builder: (sheetContext) {
       return SafeArea(
         top: false,
-        child: Container(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(sheetContext).size.height * 0.62,
-          ),
-          padding: const EdgeInsets.fromLTRB(18, 10, 18, 16),
-          decoration: const BoxDecoration(
-            color: neutralIvory,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(sheetContext).size.height * 0.54,
+            ),
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 16),
+            decoration: BoxDecoration(
+              color: const Color(0xffFCFDF9),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: primaryColor.withValues(alpha: 0.07),
               ),
-              const SizedBox(height: 16),
-              Text(
-                '시간 선택',
-                style: forestringTextStyle.copyWith(
-                  color: primaryColor,
-                  fontSize: 21,
-                  fontWeight: FontWeight.w500,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.16),
+                  blurRadius: 26,
+                  offset: const Offset(0, 10),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${selectedDate.month}월 ${selectedDate.day}일 · $durationMinutes분 수업',
-                style: forestringTextStyle.copyWith(
-                  color: Colors.black54,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 14),
-              if (slots.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Text(
-                    emptyMessage,
-                    textAlign: TextAlign.center,
-                    style: forestringTextStyle.copyWith(
-                      color: Colors.black54,
-                      fontSize: 14,
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(999),
                     ),
                   ),
-                )
-              else
-                SizedBox(
-                  height: viewportHeight,
-                  child: Scrollbar(
-                    controller: slotScrollController,
-                    thumbVisibility: rowCount > 5,
-                    radius: const Radius.circular(999),
-                    child: GridView.builder(
-                      controller: slotScrollController,
-                      padding: EdgeInsets.zero,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 4,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                        mainAxisExtent: 46,
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '시간 선택',
+                        style: forestringTextStyle.copyWith(
+                          color: primaryColor,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                      itemCount: slots.length,
-                      itemBuilder: (context, index) {
-                        final slot = slots[index];
-                        final selected = _sameTime(slot.time, initialTime);
-
-                        return OutlinedButton(
-                          onPressed: slot.available
-                              ? () => Navigator.of(sheetContext).pop(slot.time)
-                              : null,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor:
-                                selected ? Colors.white : primaryColor,
-                            backgroundColor:
-                                selected ? primaryColor : Colors.white,
-                            disabledForegroundColor: Colors.black38,
-                            disabledBackgroundColor:
-                                Colors.black.withValues(alpha: 0.04),
-                            side: BorderSide(
-                              color: selected
-                                  ? primaryColor
-                                  : slot.available
-                                      ? primaryColor.withValues(alpha: 0.32)
-                                      : Colors.black.withValues(alpha: 0.08),
-                            ),
-                            padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            _formatTime(slot.time),
-                            style: forestringTextStyle.copyWith(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: selected
-                                  ? Colors.white
-                                  : slot.available
-                                      ? primaryColor
-                                      : Colors.black38,
-                            ),
-                          ),
-                        );
-                      },
+                    ),
+                    _TimeSheetCloseButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: 0.055),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${selectedDate.month}월 ${selectedDate.day}일 · '
+                      '$durationMinutes분 수업',
+                      style: forestringTextStyle.copyWith(
+                        color: primaryColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
-              if (slots.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  '회색 시간은 기존 수업 또는 개인 일정과 겹칩니다.',
-                  textAlign: TextAlign.center,
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.black45,
-                    fontSize: 11,
+                const SizedBox(height: 12),
+                if (slots.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 22),
+                    child: Text(
+                      emptyMessage,
+                      textAlign: TextAlign.center,
+                      style: forestringTextStyle.copyWith(
+                        color: Colors.black54,
+                        fontSize: 13,
+                      ),
+                    ),
+                  )
+                else
+                  SizedBox(
+                    height: viewportHeight,
+                    child: Scrollbar(
+                      controller: slotScrollController,
+                      thumbVisibility: rowCount > 5,
+                      radius: const Radius.circular(999),
+                      child: GridView.builder(
+                        controller: slotScrollController,
+                        padding: EdgeInsets.zero,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 6,
+                          mainAxisSpacing: 6,
+                          mainAxisExtent: 40,
+                        ),
+                        itemCount: slots.length,
+                        itemBuilder: (context, index) {
+                          final slot = slots[index];
+                          final selected =
+                              _sameTime(slot.time, initialTime);
+
+                          return Material(
+                            color: selected
+                                ? primaryColor
+                                : slot.available
+                                    ? Colors.white
+                                    : Colors.black.withValues(alpha: 0.035),
+                            borderRadius: BorderRadius.circular(11),
+                            child: InkWell(
+                              onTap: slot.available
+                                  ? () => Navigator.of(sheetContext)
+                                      .pop(slot.time)
+                                  : null,
+                              borderRadius: BorderRadius.circular(11),
+                              child: Container(
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(11),
+                                  border: Border.all(
+                                    color: selected
+                                        ? primaryColor
+                                        : slot.available
+                                            ? primaryColor.withValues(
+                                                alpha: 0.16,
+                                              )
+                                            : Colors.black.withValues(
+                                                alpha: 0.05,
+                                              ),
+                                  ),
+                                ),
+                                child: Text(
+                                  _formatTime(slot.time),
+                                  style: forestringTextStyle.copyWith(
+                                    color: selected
+                                        ? Colors.white
+                                        : slot.available
+                                            ? Colors.black87
+                                            : Colors.black26,
+                                    fontSize: 12,
+                                    fontWeight: selected
+                                        ? FontWeight.w500
+                                        : FontWeight.w400,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                if (slots.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.07),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '회색 시간은 기존 수업 또는 개인 일정과 겹칩니다.',
+                          style: forestringTextStyle.copyWith(
+                            color: Colors.black45,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final direct = await _showDirectTimeInput(
+                        context: sheetContext,
+                        initialTime: initialTime,
+                      );
+                      if (direct != null && sheetContext.mounted) {
+                        Navigator.of(sheetContext).pop(direct);
+                      }
+                    },
+                    icon: const Icon(
+                      Icons.keyboard_outlined,
+                      size: 17,
+                    ),
+                    label: Text(
+                      '직접 입력',
+                      style: forestringTextStyle.copyWith(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: primaryColor,
+                    ),
                   ),
                 ),
               ],
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final direct = await _showDirectTimeInput(
-                    context: sheetContext,
-                    initialTime: initialTime,
-                  );
-                  if (direct != null && sheetContext.mounted) {
-                    Navigator.of(sheetContext).pop(direct);
-                  }
-                },
-                icon: const Icon(Icons.keyboard_outlined, size: 18),
-                label: const Text('직접 입력'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: primaryColor,
-                  side: BorderSide(
-                    color: primaryColor.withValues(alpha: 0.35),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       );
@@ -356,6 +422,27 @@ Future<TimeOfDay?> _showSlotSheet({
 
   slotScrollController.dispose();
   return picked;
+}
+
+class _TimeSheetCloseButton extends StatelessWidget {
+  const _TimeSheetCloseButton({
+    required this.onPressed,
+  });
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      visualDensity: VisualDensity.compact,
+      icon: const Icon(
+        Icons.close_rounded,
+        color: primaryColor,
+        size: 21,
+      ),
+    );
+  }
 }
 
 List<_LessonTimeSlot> _buildSlots({
