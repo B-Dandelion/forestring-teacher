@@ -32,7 +32,6 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
   static const _profilePhotoKeyPrefix = 'teacher_profile_photo_v1';
 
   final TeacherRepository _repository = TeacherRepository();
-  final GlobalKey _studentSectionKey = GlobalKey();
   final ImagePicker _imagePicker = ImagePicker();
 
   File? _profilePhoto;
@@ -99,7 +98,23 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
         '${DateTime.now().millisecondsSinceEpoch}.$extension',
       );
 
-      await picked.saveTo(file.path);
+      try {
+        final bytes = await picked.readAsBytes();
+
+        if (bytes.isEmpty) {
+          throw const FileSystemException('선택한 사진 데이터가 비어 있습니다.');
+        }
+
+        await file.writeAsBytes(bytes, flush: true);
+      } catch (_) {
+        final sourceFile = File(picked.path);
+
+        if (!await sourceFile.exists()) {
+          rethrow;
+        }
+
+        await sourceFile.copy(file.path);
+      }
 
       final previousFile = _profilePhoto;
       final preferences = await SharedPreferences.getInstance();
@@ -121,7 +136,10 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
       setState(() {
         _profilePhoto = file;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('Teacher profile photo save failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
       if (!mounted) {
         return;
       }
@@ -360,7 +378,6 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
               ),
               const SizedBox(height: 20),
               _sectionTitle(
-                key: _studentSectionKey,
                 title: '내 수강생',
                 trailing: activeStudents.isEmpty
                     ? null
@@ -410,9 +427,6 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
               const SizedBox(height: 10),
               _sectionTitle(
                 title: '다가오는 수업',
-                trailing: upcomingLessons.isEmpty
-                    ? null
-                    : '다음 ${upcomingLessons.length}개',
               ),
               const SizedBox(height: 10),
               if (upcomingLessons.isEmpty)
@@ -426,9 +440,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                   studentAccents,
                 ),
               const SizedBox(height: 20),
-              _sectionTitle(title: '빠른 메뉴'),
-              const SizedBox(height: 10),
-              _quickActions(lessonController),
+              _settingsButton(),
             ],
           ),
         ),
@@ -1044,75 +1056,53 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
     );
   }
 
-  Widget _quickActions(LessonController lessonController) {
-    return GridView.count(
-      crossAxisCount: 3,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      childAspectRatio: 1.18,
-      children: [
-        _quickAction(
-          icon: Icons.people_alt_outlined,
-          label: '수강생',
-          onTap: _scrollToStudents,
-        ),
-        _quickAction(
-          icon: Icons.history_rounded,
-          label: '수업 이력',
-          onTap: () => _showLessonHistory(lessonController),
-        ),
-        _quickAction(
-          icon: Icons.settings_outlined,
-          label: '설정',
-          onTap: _showSettings,
-        ),
-      ],
-    );
-  }
-
-  Widget _quickAction({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
+  Widget _settingsButton() {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(17),
       child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        onTap: _showSettings,
+        borderRadius: BorderRadius.circular(17),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 15,
+          ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(17),
             border: Border.all(
               color: primaryColor.withValues(alpha: 0.08),
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Row(
             children: [
-              const Icon(
-                Icons.circle,
-                size: 0,
-              ),
-              Icon(
-                icon,
-                color: primaryColor,
-                size: 24,
-              ),
-              const SizedBox(height: 7),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                style: forestringTextStyle.copyWith(
-                  color: Colors.black54,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
+              Container(
+                width: 38,
+                height: 38,
+                decoration: const BoxDecoration(
+                  color: Color(0xffE8F0E4),
+                  shape: BoxShape.circle,
                 ),
+                child: const Icon(
+                  Icons.settings_outlined,
+                  color: primaryColor,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '설정',
+                  style: forestringTextStyle.copyWith(
+                    color: Colors.black87,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.black38,
               ),
             ],
           ),
@@ -1347,119 +1337,6 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
     );
   }
 
-  Future<void> _showLessonHistory(
-    LessonController lessonController,
-  ) async {
-    final now = DateTime.now();
-    final history = lessonController.visibleLessons
-        .where(
-          (lesson) =>
-              !lesson.isCanceled &&
-              lesson.endsAt.isBefore(now),
-        )
-        .toList()
-      ..sort((a, b) => b.startsAt.compareTo(a.startsAt));
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xffF6F8F4),
-      builder: (sheetContext) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.76,
-          minChildSize: 0.5,
-          maxChildSize: 0.92,
-          builder: (context, scrollController) {
-            return ListView(
-              controller: scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 30),
-              children: [
-                Center(
-                  child: Container(
-                    width: 38,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.black12,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  '최근 수업 이력',
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.black87,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '현재 앱에 불러온 최근 일정 범위의 수업입니다.',
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.black45,
-                    fontSize: 11,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (history.isEmpty)
-                  _emptyCard(
-                    icon: Icons.history_rounded,
-                    message: '표시할 최근 수업 이력이 없습니다.',
-                  )
-                else
-                  for (final lesson in history.take(30))
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(13),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 92,
-                            child: Text(
-                              DateFormat('M.d HH:mm').format(
-                                lesson.startsAt,
-                              ),
-                              style: forestringTextStyle.copyWith(
-                                color: primaryColor,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              lesson.studentName ?? '학생',
-                              style: forestringTextStyle.copyWith(
-                                color: Colors.black87,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            lesson.displayTypeLabel,
-                            style: forestringTextStyle.copyWith(
-                              color: Colors.black45,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
   Future<void> _showSettings() async {
     final accentController = context.read<StudentAccentController>();
 
@@ -1485,7 +1362,14 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                       Icons.delete_outline_rounded,
                       color: primaryColor,
                     ),
-                    title: const Text('프로필 사진 삭제'),
+                    title: Text(
+                      '프로필 사진 삭제',
+                      style: forestringTextStyle.copyWith(
+                        color: Colors.black87,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     onTap: () async {
                       await _removeProfilePhoto();
                       if (sheetContext.mounted) {
@@ -1500,8 +1384,21 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                     Icons.palette_outlined,
                     color: primaryColor,
                   ),
-                  title: const Text('학생 색상 설정 초기화'),
-                  subtitle: const Text('이 기기에 저장된 학생별 색상을 모두 지웁니다.'),
+                  title: Text(
+                    '학생 색상 설정 초기화',
+                    style: forestringTextStyle.copyWith(
+                      color: Colors.black87,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '이 기기에 저장된 학생별 색상을 모두 지웁니다.',
+                    style: forestringTextStyle.copyWith(
+                      color: Colors.black45,
+                      fontSize: 11,
+                    ),
+                  ),
                   onTap: () async {
                     await accentController.resetAll();
                     if (sheetContext.mounted) {
@@ -1515,9 +1412,13 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                     Icons.logout_rounded,
                     color: Colors.redAccent,
                   ),
-                  title: const Text(
+                  title: Text(
                     '로그아웃',
-                    style: TextStyle(color: Colors.redAccent),
+                    style: forestringTextStyle.copyWith(
+                      color: Colors.redAccent,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   onTap: () async {
                     Navigator.of(sheetContext).pop();
@@ -1529,21 +1430,6 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
           ),
         );
       },
-    );
-  }
-
-  void _scrollToStudents() {
-    final target = _studentSectionKey.currentContext;
-
-    if (target == null) {
-      return;
-    }
-
-    Scrollable.ensureVisible(
-      target,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
-      alignment: 0.08,
     );
   }
 
