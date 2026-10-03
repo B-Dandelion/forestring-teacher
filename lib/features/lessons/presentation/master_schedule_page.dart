@@ -5,6 +5,7 @@ import 'package:syncfusion_flutter_calendar/calendar.dart';
 import '../../../core/qa/qa_sandbox_repositories.dart';
 import '../../../core/qa/qa_sandbox_store.dart';
 import '../../../core/theme/forestring_theme.dart';
+import '../../../core/theme/student_accent_controller.dart';
 import '../../../core/widgets/forestring_navigation.dart';
 import '../../auth/domain/current_profile.dart';
 import '../../auth/presentation/auth_controller.dart';
@@ -16,6 +17,7 @@ import '../../teachers/presentation/teacher_management_page.dart';
 import '../domain/lesson.dart';
 import 'lesson_controller.dart';
 import 'lesson_management_page.dart';
+import 'lesson_visual_style.dart';
 import 'widgets/blocked_period_calendar_appointment.dart';
 import 'widgets/blocked_period_info_dialog.dart';
 import 'widgets/lesson_action_dialog.dart';
@@ -38,6 +40,12 @@ class MasterSchedulePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<LessonController>();
+    final accentController = context.watch<StudentAccentController>();
+    final studentAccents = accentController.isEnabled
+        ? accentController.assignments(
+            controller.visibleLessons.map((lesson) => lesson.studentId),
+          )
+        : const <String, Color>{};
     final qaStore =
         isQaSandbox ? context.read<QaSandboxStore>() : null;
     final selectedBranchId = controller.selectedBranchId;
@@ -90,7 +98,12 @@ class MasterSchedulePage extends StatelessWidget {
     final meetings = <Object>[
       ...controller.visibleLessons
           .where((lesson) => !lesson.isCanceled)
-          .map((lesson) => _MasterMeeting(lesson)),
+          .map(
+            (lesson) => _MasterMeeting(
+              lesson,
+              studentAccents[lesson.studentId],
+            ),
+          ),
       ...controller.visibleBlockedPeriods.map(
         (period) => _MasterBlockedMeeting(period),
       ),
@@ -136,6 +149,20 @@ class MasterSchedulePage extends StatelessWidget {
             icon: Icons.home,
             label: '메인 페이지',
             onTap: () => Navigator.of(context).pop(),
+          ),
+          ForestringDrawerItem(
+            icon: accentController.isEnabled
+                ? Icons.palette_rounded
+                : Icons.palette_outlined,
+            label: accentController.isEnabled
+                ? '학생별 색상 끄기'
+                : '학생별 색상 켜기',
+            onTap: () async {
+              Navigator.of(context).pop();
+              await accentController.setEnabled(
+                !accentController.isEnabled,
+              );
+            },
           ),
           ForestringDrawerItem(
             icon: Icons.calendar_month_outlined,
@@ -422,6 +449,7 @@ class MasterSchedulePage extends StatelessWidget {
 
                               return LessonCalendarAppointment(
                                 lesson: meeting.lesson,
+                                accentColor: meeting.studentAccentColor,
                               );
                             },
                             specialRegions: _timeRegions(
@@ -605,13 +633,24 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
+    final accentController = context.watch<StudentAccentController>();
+    final studentAccents = accentController.isEnabled
+        ? accentController.assignments(
+            controller.visibleLessons.map((lesson) => lesson.studentId),
+          )
+        : const <String, Color>{};
     final selectedTeacherId = controller.selectedTeacherId;
     final branchName = _selectedBranchName(controller);
 
     final meetings = <Object>[
       ...controller.visibleLessons
           .where((lesson) => !lesson.isCanceled)
-          .map((lesson) => _MasterMeeting(lesson)),
+          .map(
+            (lesson) => _MasterMeeting(
+              lesson,
+              studentAccents[lesson.studentId],
+            ),
+          ),
       ...controller.visibleBlockedPeriods.map(
         (period) => _MasterBlockedMeeting(period),
       ),
@@ -782,6 +821,8 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
 
                             return _ManagerLessonAppointment(
                               lesson: meeting.lesson,
+                              studentAccentColor:
+                                  meeting.studentAccentColor,
                             );
                           },
                           specialRegions: selectedTeacherId == null
@@ -1058,9 +1099,11 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
 class _ManagerLessonAppointment extends StatelessWidget {
   const _ManagerLessonAppointment({
     required this.lesson,
+    this.studentAccentColor,
   });
 
   final Lesson lesson;
+  final Color? studentAccentColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1116,27 +1159,17 @@ class _ManagerLessonAppointment extends StatelessWidget {
   }
 
   (Color, Color) _palette() {
-    if (lesson.isRescheduled) {
+    final statusColor = lessonStatusAccentColor(lesson);
+    final studentColor = studentAccentColor;
+    if (studentColor != null) {
       return (
-        const Color(0xffF5EDCF),
-        const Color(0xffC79C35),
-      );
-    }
-    if (lesson.type == LessonType.makeup) {
-      return (
-        const Color(0xffF7E4DB),
-        const Color(0xffC8795B),
-      );
-    }
-    if (lesson.type == LessonType.flex) {
-      return (
-        const Color(0xffE2EEF1),
-        const Color(0xff5C8692),
+        Color.lerp(studentColor, Colors.white, 0.34)!,
+        statusColor,
       );
     }
     return (
-      const Color(0xffE1EFE5),
-      const Color(0xff3F7B59),
+      lessonStatusSurfaceColor(lesson),
+      statusColor,
     );
   }
 }
@@ -1179,9 +1212,13 @@ class _ManagerBlockedAppointment extends StatelessWidget {
 }
 
 class _MasterMeeting {
-  const _MasterMeeting(this.lesson);
+  const _MasterMeeting(
+    this.lesson,
+    this.studentAccentColor,
+  );
 
   final Lesson lesson;
+  final Color? studentAccentColor;
 }
 
 class _MasterBlockedMeeting {
@@ -1227,13 +1264,10 @@ class _MasterDataSource extends CalendarDataSource {
     if (entry is _MasterBlockedMeeting) {
       return personalScheduleColor;
     }
-    final lesson = (entry as _MasterMeeting).lesson;
-    if (lesson.type == LessonType.makeup) {
-      return secondaryColor;
-    }
-    if (lesson.isRescheduled) {
-      return const Color(0xff4F7E67);
-    }
-    return primaryColor;
+    final meeting = entry as _MasterMeeting;
+    final studentColor = meeting.studentAccentColor;
+    return studentColor == null
+        ? lessonStatusSurfaceColor(meeting.lesson)
+        : Color.lerp(studentColor, Colors.white, 0.30)!;
   }
 }
