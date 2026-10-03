@@ -5,6 +5,7 @@ import '../../features/lessons/data/lesson_repository.dart';
 import '../../features/lessons/domain/lesson.dart';
 import '../../features/semesters/domain/managed_semester.dart';
 import '../../features/students/data/student_management_repository.dart';
+import '../../features/students/data/student_regular_schedule_repository.dart';
 import '../../features/teachers/data/teacher_repository.dart';
 
 const qaManagerBranchId = 'qa-manager-branch';
@@ -26,6 +27,10 @@ class QaSandboxStore extends ChangeNotifier {
   late List<Lesson> lessons;
   late List<ManagedTeacherBlockedPeriod> blockedPeriods;
   late List<ManagedSemester> semesters;
+  late Map<String, List<ManagedRegularSchedule>> regularSchedules;
+  late Map<String, String> nextStudentTypes;
+  late Map<String, int> nextFlexRightCounts;
+  late Map<String, int> nextFlexDurations;
   late Map<String, String> pins;
 
   void reset() {
@@ -35,6 +40,20 @@ class QaSandboxStore extends ChangeNotifier {
     lessons = _buildLessons(students, teachers);
     blockedPeriods = _buildBlockedPeriods(teachers);
     semesters = _buildSemesters();
+    regularSchedules = _buildRegularSchedules(students);
+    nextStudentTypes = {
+      for (final student in students) student.id: student.studentType,
+    };
+    nextFlexRightCounts = {
+      for (final student in students)
+        if (student.isFlex)
+          student.id: student.flexBaseRightCount ?? 4,
+    };
+    nextFlexDurations = {
+      for (final student in students)
+        if (student.isFlex)
+          student.id: student.flexDurationMinutes ?? 30,
+    };
     pins = {
       for (final student in students) student.id: '1234',
       for (final teacher in teachers) teacher.id: '1234',
@@ -108,6 +127,53 @@ class QaSandboxStore extends ChangeNotifier {
     students[index] = next;
     _syncLessonNames();
     _rebuildTeacherCounts();
+    notifyListeners();
+  }
+
+  void assignStudentTeacher({
+    required String studentId,
+    required String teacherId,
+  }) {
+    final student = studentById(studentId);
+    final teacher = teacherById(teacherId);
+    if (student == null || teacher == null) return;
+    updateStudent(
+      _copyStudent(
+        student,
+        teacherId: teacher.id,
+        teacherName: teacher.displayName,
+        replaceTeacherName: true,
+      ),
+    );
+  }
+
+  void addRegularSchedule({
+    required String studentId,
+    required ManagedRegularSchedule schedule,
+  }) {
+    regularSchedules.putIfAbsent(studentId, () => []).add(schedule);
+    notifyListeners();
+  }
+
+  void replaceRegularSchedule({
+    required String studentId,
+    required ManagedRegularSchedule schedule,
+  }) {
+    final schedules = regularSchedules.putIfAbsent(studentId, () => []);
+    final index =
+        schedules.indexWhere((item) => item.slotId == schedule.slotId);
+    if (index < 0) {
+      schedules.add(schedule);
+    } else {
+      schedules[index] = schedule;
+    }
+    notifyListeners();
+  }
+
+  void removeRegularSchedule(String scheduleSlotId) {
+    for (final schedules in regularSchedules.values) {
+      schedules.removeWhere((item) => item.slotId == scheduleSlotId);
+    }
     notifyListeners();
   }
 
@@ -466,6 +532,33 @@ class QaSandboxStore extends ChangeNotifier {
           reason: i.isEven ? '개인 일정' : '외부 일정',
         ),
     ];
+  }
+
+  static Map<String, List<ManagedRegularSchedule>>
+      _buildRegularSchedules(List<ManagedStudent> students) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    return {
+      for (var i = 0; i < students.length; i++)
+        if (students[i].isRegular)
+          students[i].id: [
+            ManagedRegularSchedule(
+              slotId: 'qa-regular-slot-${i + 1}',
+              teacherId: students[i].teacherId ?? 'qa-teacher-1',
+              teacherName: students[i].teacherName ?? '김하늘',
+              weekday: (i % 5) + 1,
+              startMinutes: 16 * 60 + (i % 4) * 30,
+              durationMinutes: 30,
+              slotStartsOn: DateTime(today.year, today.month, 1),
+              effectiveFrom: DateTime(today.year, today.month, 1),
+              hasFutureVersion: i == 1,
+              nextVersionDate: i == 1
+                  ? DateTime(today.year, today.month + 1, 1)
+                  : null,
+            ),
+          ],
+    };
   }
 
   static List<ManagedSemester> _buildSemesters() {
