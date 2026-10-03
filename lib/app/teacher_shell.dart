@@ -91,8 +91,12 @@ class _TeacherShellState extends State<TeacherShell> {
               ),
             ],
           ),
-          bottomNavigationBar: NavigationBarTheme(
-            data: NavigationBarThemeData(
+          bottomNavigationBar: ClipRRect(
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(22),
+            ),
+            child: NavigationBarTheme(
+              data: NavigationBarThemeData(
               backgroundColor: primaryColor,
               indicatorColor: const Color(0xffDDE9E0),
               labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>(
@@ -118,28 +122,29 @@ class _TeacherShellState extends State<TeacherShell> {
                 },
               ),
             ),
-            child: NavigationBar(
-              height: 68,
-              selectedIndex: _currentIndex,
-              onDestinationSelected: _selectTab,
-              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.view_week_outlined),
-                  selectedIcon: Icon(Icons.view_week_rounded),
-                  label: '주간',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.calendar_month_outlined),
-                  selectedIcon: Icon(Icons.calendar_month_rounded),
-                  label: '일정',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.person_outline_rounded),
-                  selectedIcon: Icon(Icons.person_rounded),
-                  label: '마이페이지',
-                ),
-              ],
+              child: NavigationBar(
+                height: 68,
+                selectedIndex: _currentIndex,
+                onDestinationSelected: _selectTab,
+                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.view_week_outlined),
+                    selectedIcon: Icon(Icons.view_week_rounded),
+                    label: '주간',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.calendar_month_outlined),
+                    selectedIcon: Icon(Icons.calendar_month_rounded),
+                    label: '일정',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.person_outline_rounded),
+                    selectedIcon: Icon(Icons.person_rounded),
+                    label: '마이페이지',
+                  ),
+                ],
+              ),
             ),
           ),
         ),
