@@ -287,6 +287,50 @@ class QaStudentManagementRepository extends StudentManagementRepository {
   }
 
   @override
+  Future<FlexPlanSettingsChangeResult> changeFlexPlanSettings({
+    required String studentId,
+    required int newBaseRightCount,
+    required int newDurationMinutes,
+  }) async {
+    final student = _requireStudent(studentId);
+    if (!student.isFlex) {
+      throw const StudentManagementFailure(
+        'QA 정규 학생은 자율 수업 설정을 변경할 수 없습니다.',
+      );
+    }
+
+    final oldCount = student.flexBaseRightCount ?? 0;
+    final oldDuration = student.flexDurationMinutes ?? 30;
+
+    store.updateStudent(
+      _copyStudent(
+        student,
+        flexBaseRightCount: newBaseRightCount,
+        flexDurationMinutes: newDurationMinutes,
+      ),
+    );
+
+    return FlexPlanSettingsChangeResult(
+      changed: oldCount != newBaseRightCount ||
+          oldDuration != newDurationMinutes,
+      oldBaseRightCount: oldCount,
+      newBaseRightCount: newBaseRightCount,
+      oldDurationMinutes: oldDuration,
+      newDurationMinutes: newDurationMinutes,
+      insertedCount:
+          newBaseRightCount > oldCount ? newBaseRightCount - oldCount : 0,
+      removedCount:
+          oldCount > newBaseRightCount ? oldCount - newBaseRightCount : 0,
+      updatedRightCount:
+          oldDuration == newDurationMinutes ? 0 : newBaseRightCount,
+      preservedScheduledLessonCount: 0,
+      newCancellationLimit:
+          (newBaseRightCount ~/ 4) * 2,
+      newCarryoverCap: newBaseRightCount ~/ 4,
+    );
+  }
+
+  @override
   Future<StudentWithdrawalResult> scheduleWithdrawal({
     required String studentId,
     required DateTime withdrawalDate,
@@ -360,6 +404,7 @@ class QaStudentManagementRepository extends StudentManagementRepository {
     DateTime? withdrawalDate,
     bool replaceWithdrawalDate = false,
     int? flexBaseRightCount,
+    int? flexDurationMinutes,
   }) {
     return ManagedStudent(
       id: source.id,
@@ -376,7 +421,8 @@ class QaStudentManagementRepository extends StudentManagementRepository {
           : source.withdrawalDate,
       flexBaseRightCount:
           flexBaseRightCount ?? source.flexBaseRightCount,
-      flexDurationMinutes: source.flexDurationMinutes,
+      flexDurationMinutes:
+          flexDurationMinutes ?? source.flexDurationMinutes,
     );
   }
 }
