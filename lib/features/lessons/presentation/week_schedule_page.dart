@@ -3,11 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 import '../../../core/theme/forestring_theme.dart';
-import '../../../core/theme/student_accent.dart';
 import '../../../core/theme/student_accent_controller.dart';
 import '../../auth/domain/current_profile.dart';
 import '../domain/lesson.dart';
 import 'lesson_controller.dart';
+import 'lesson_visual_style.dart';
 import 'widgets/blocked_period_calendar_appointment.dart';
 import 'widgets/blocked_period_info_dialog.dart';
 import 'widgets/lesson_calendar_appointment.dart';
@@ -41,19 +41,19 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
   Widget build(BuildContext context) {
     final controller = context.watch<LessonController>();
     final teacherId = controller.selectedTeacherId ?? widget.profile.id;
-    final studentAccents = context
-        .watch<StudentAccentController>()
-        .assignments(
-          controller.visibleLessons.map((lesson) => lesson.studentId),
-        );
+    final accentController = context.watch<StudentAccentController>();
+    final studentAccents = accentController.isEnabled
+        ? accentController.assignments(
+            controller.visibleLessons.map((lesson) => lesson.studentId),
+          )
+        : const <String, Color>{};
     final meetings = <Object>[
       ...controller.visibleLessons
           .where((lesson) => !lesson.isCanceled)
           .map(
             (lesson) => _LessonMeeting(
               lesson,
-              studentAccents[lesson.studentId] ??
-                  studentAccentColor(lesson.studentId),
+              studentAccents[lesson.studentId],
             ),
           ),
       ...controller.visibleBlockedPeriods.map(
@@ -266,7 +266,7 @@ class _LessonMeeting {
   );
 
   final Lesson lesson;
-  final Color accentColor;
+  final Color? accentColor;
 }
 
 class _BlockedMeeting {
@@ -312,6 +312,7 @@ class _LessonDataSource extends CalendarDataSource {
     if (entry is _BlockedMeeting) {
       return personalScheduleColor;
     }
-    return (entry as _LessonMeeting).accentColor;
+    final meeting = entry as _LessonMeeting;
+    return meeting.accentColor ?? lessonStatusSurfaceColor(meeting.lesson);
   }
 }
