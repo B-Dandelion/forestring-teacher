@@ -1,6 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/theme/student_accent.dart';
@@ -24,9 +29,13 @@ class TeacherMyPage extends StatefulWidget {
 }
 
 class _TeacherMyPageState extends State<TeacherMyPage> {
+  static const _profilePhotoKeyPrefix = 'teacher_profile_photo_v1';
+
   final TeacherRepository _repository = TeacherRepository();
   final GlobalKey _studentSectionKey = GlobalKey();
+  final ImagePicker _imagePicker = ImagePicker();
 
+  File? _profilePhoto;
   List<AssignedStudentSummary> _students = const [];
   bool _loadingStudents = true;
   String? _studentError;
@@ -34,12 +43,147 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
   @override
   void initState() {
     super.initState();
+    _loadProfilePhoto();
 
     if (widget.profile.isReviewAccount) {
       _loadingStudents = false;
     } else {
       _loadStudents();
     }
+  }
+
+  String get _profilePhotoStorageKey =>
+      '$_profilePhotoKeyPrefix:${widget.profile.id}';
+
+  Future<void> _loadProfilePhoto() async {
+    final preferences = await SharedPreferences.getInstance();
+    final path = preferences.getString(_profilePhotoStorageKey);
+
+    if (path == null || path.isEmpty) {
+      return;
+    }
+
+    final file = File(path);
+
+    if (!await file.exists()) {
+      await preferences.remove(_profilePhotoStorageKey);
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _profilePhoto = file;
+    });
+  }
+
+  Future<void> _pickProfilePhoto() async {
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+      imageQuality: 88,
+    );
+
+    if (picked == null) {
+      return;
+    }
+
+    final directory = await getApplicationDocumentsDirectory();
+    final file = File(
+      '${directory.path}/teacher_profile_${widget.profile.id}.jpg',
+    );
+
+    final bytes = await picked.readAsBytes();
+    await file.writeAsBytes(bytes, flush: true);
+
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      _profilePhotoStorageKey,
+      file.path,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _profilePhoto = file;
+    });
+  }
+
+  Future<void> _removeProfilePhoto() async {
+    final file = _profilePhoto;
+
+    if (file != null && await file.exists()) {
+      await file.delete();
+    }
+
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove(_profilePhotoStorageKey);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _profilePhoto = null;
+    });
+  }
+
+  Future<void> _showProfilePhotoMenu() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Container(
+            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(
+                    Icons.photo_library_outlined,
+                    color: primaryColor,
+                  ),
+                  title: const Text('앨범에서 사진 선택'),
+                  subtitle: const Text('이 기기의 선생님 화면에만 표시됩니다.'),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _pickProfilePhoto();
+                  },
+                ),
+                if (_profilePhoto != null) ...[
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.redAccent,
+                    ),
+                    title: const Text(
+                      '프로필 사진 삭제',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      _removeProfilePhoto();
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _loadStudents() async {
@@ -292,23 +436,72 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
       ),
       child: Row(
         children: [
-          Container(
-            width: 54,
-            height: 54,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.13),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.28),
-              ),
-            ),
-            child: Text(
-              initial,
-              style: forestringTextStyle.copyWith(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w500,
+          Semantics(
+            button: true,
+            label: '프로필 사진 변경',
+            child: InkWell(
+              onTap: _showProfilePhotoMenu,
+              borderRadius: BorderRadius.circular(999),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 58,
+                    height: 58,
+                    clipBehavior: Clip.antiAlias,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.13),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.28),
+                      ),
+                    ),
+                    child: _profilePhoto == null
+                        ? Text(
+                            initial,
+                            style: forestringTextStyle.copyWith(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          )
+                        : Image.file(
+                            _profilePhoto!,
+                            width: 58,
+                            height: 58,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Text(
+                              initial,
+                              style: forestringTextStyle.copyWith(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                  ),
+                  Positioned(
+                    right: -2,
+                    bottom: -2,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: primaryColor.withValues(alpha: 0.16),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.edit_rounded,
+                        color: primaryColor,
+                        size: 13,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -327,7 +520,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  '오늘도 좋은 수업 되세요.',
+                  '사진을 눌러 이 기기에서만 프로필을 꾸밀 수 있어요.',
                   style: forestringTextStyle.copyWith(
                     color: Colors.white70,
                     fontSize: 12,
