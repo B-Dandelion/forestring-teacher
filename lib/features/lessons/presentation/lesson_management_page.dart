@@ -27,6 +27,7 @@ class LessonManagementPage extends StatefulWidget {
     this.repository,
     this.semesterRepository,
     this.branchRepository,
+    this.isQaSandbox = false,
   });
 
   final CurrentProfile profile;
@@ -36,6 +37,7 @@ class LessonManagementPage extends StatefulWidget {
   final LessonRepository? repository;
   final SemesterRepository? semesterRepository;
   final BranchRepository? branchRepository;
+  final bool isQaSandbox;
 
   @override
   State<LessonManagementPage> createState() => _LessonManagementPageState();
@@ -131,6 +133,14 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.isQaSandbox &&
+        (widget.repository == null ||
+            widget.semesterRepository == null ||
+            widget.branchRepository == null)) {
+      throw StateError(
+        'QA lesson management requires sandbox repositories.',
+      );
+    }
     _repository = widget.repository ?? LessonRepository();
     _semesterRepository =
         widget.semesterRepository ?? SemesterRepository();
