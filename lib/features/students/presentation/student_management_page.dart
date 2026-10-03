@@ -27,6 +27,7 @@ class StudentManagementPage extends StatelessWidget {
     this.regularScheduleRepository,
     this.teacherManagementRepository,
     this.isQaSandbox = false,
+    this.embeddedInShell = false,
   });
 
   final CurrentProfile profile;
@@ -38,6 +39,7 @@ class StudentManagementPage extends StatelessWidget {
   final StudentRegularScheduleRepository? regularScheduleRepository;
   final StudentTeacherManagementRepository? teacherManagementRepository;
   final bool isQaSandbox;
+  final bool embeddedInShell;
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +65,7 @@ class StudentManagementPage extends StatelessWidget {
       nextSemesterRepository: nextSemesterRepository,
       regularScheduleRepository: regularScheduleRepository,
       teacherManagementRepository: teacherManagementRepository,
+      embeddedInShell: embeddedInShell,
     );
   }
 }
