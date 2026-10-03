@@ -9,9 +9,11 @@ class TeacherDeparturePage extends StatefulWidget {
   const TeacherDeparturePage({
     super.key,
     required this.teacher,
+    this.repository,
   });
 
   final ManagedTeacher teacher;
+  final TeacherRepository? repository;
 
   @override
   State<TeacherDeparturePage> createState() =>
@@ -19,7 +21,7 @@ class TeacherDeparturePage extends StatefulWidget {
 }
 
 class _TeacherDeparturePageState extends State<TeacherDeparturePage> {
-  final _repository = TeacherRepository();
+  late final TeacherRepository _repository;
 
   StaffDepartureState? _departure;
   DateTime? _selectedDate;
@@ -40,6 +42,7 @@ class _TeacherDeparturePageState extends State<TeacherDeparturePage> {
   @override
   void initState() {
     super.initState();
+    _repository = widget.repository ?? TeacherRepository();
     _selectedDate = widget.teacher.withdrawalDate;
     if (widget.teacher.isActive && widget.teacher.withdrawalDate != null) {
       _loadDeparture();
