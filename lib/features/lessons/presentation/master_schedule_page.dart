@@ -622,7 +622,7 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 2, 10, 8),
+            padding: const EdgeInsets.fromLTRB(10, 2, 6, 8),
             child: Row(
               children: [
                 const Icon(
@@ -667,7 +667,7 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
           ),
           if (controller.errorMessage != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
@@ -688,7 +688,7 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
             height: 42,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               children: [
                 _teacherChip(
                   label: '전체',
@@ -712,16 +712,16 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
           ),
           const SizedBox(height: 10),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: _weekNavigator(),
           ),
           const SizedBox(height: 10),
           Expanded(
             child: Container(
-              margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+              margin: const EdgeInsets.fromLTRB(0, 0, 0, 4),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.94),
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: primaryColor.withValues(alpha: 0.07),
                 ),
@@ -797,13 +797,13 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
                               color: Colors.black87,
                               fontFamily: 'ELAND',
                               fontWeight: FontWeight.w500,
-                              fontSize: 13,
+                              fontSize: 12,
                             ),
                             dayTextStyle: TextStyle(
                               color: Colors.black54,
                               fontFamily: 'ELAND',
                               fontWeight: FontWeight.w300,
-                              fontSize: 10,
+                              fontSize: 9,
                             ),
                           ),
                           timeSlotViewSettings:
@@ -813,14 +813,14 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
                               fontFamily: 'OpenSans',
                               fontWeight: FontWeight.w400,
                               color: Colors.black45,
-                              fontSize: 10,
+                              fontSize: 9,
                             ),
                             timeInterval: Duration(minutes: 30),
                             timeIntervalHeight: 38,
                             timeFormat: 'H:mm',
                             startHour: 7,
                             endHour: 23,
-                            timeRulerSize: 42,
+                            timeRulerSize: 36,
                           ),
                           onViewChanged: _onViewChanged,
                           onTap: (details) {
@@ -879,10 +879,10 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
       ),
       labelStyle: forestringTextStyle.copyWith(
         color: selected ? Colors.white : Colors.black87,
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: selected ? FontWeight.w500 : FontWeight.w300,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       visualDensity: const VisualDensity(vertical: -1),
     );
   }
@@ -1072,7 +1072,7 @@ class _ManagerLessonAppointment extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(6, 4, 4, 3),
+      padding: const EdgeInsets.fromLTRB(4, 2, 3, 2),
       decoration: BoxDecoration(
         color: palette.$1,
         borderRadius: BorderRadius.circular(7),
@@ -1093,20 +1093,20 @@ class _ManagerLessonAppointment extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: forestringTextStyle.copyWith(
               color: Colors.black87,
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w500,
-              height: 1.05,
+              height: 1,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 1),
           Text(
-            '$label · ${lesson.durationMinutes}분',
+            label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: forestringTextStyle.copyWith(
               color: Colors.black54,
-              fontSize: 8.5,
-              fontWeight: FontWeight.w300,
+              fontSize: 7.5,
+              fontWeight: FontWeight.w400,
               height: 1,
             ),
           ),
@@ -1152,7 +1152,7 @@ class _ManagerBlockedAppointment extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.fromLTRB(6, 3, 4, 3),
+      padding: const EdgeInsets.fromLTRB(4, 2, 3, 2),
       decoration: BoxDecoration(
         color: const Color(0xffE8E9E7),
         borderRadius: BorderRadius.circular(7),
@@ -1169,7 +1169,7 @@ class _ManagerBlockedAppointment extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: forestringTextStyle.copyWith(
           color: Colors.black54,
-          fontSize: 9,
+          fontSize: 8,
           fontWeight: FontWeight.w500,
           height: 1.05,
         ),
