@@ -1790,13 +1790,12 @@ class _StudentManagementDetailPageState
   }
 
   Future<void> _changeName() async {
-    final changed = await showDialog<bool>(
-      context: context,
-      useRootNavigator: true,
-      barrierDismissible: false,
-      builder: (_) => _StudentNameEditDialog(
-        student: _student,
-        repository: _repository,
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => _StudentNameEditPage(
+          student: _student,
+          repository: _repository,
+        ),
       ),
     );
     if (!mounted || changed != true) return;
@@ -1806,13 +1805,12 @@ class _StudentManagementDetailPageState
   }
 
   Future<void> _changePin() async {
-    final changed = await showDialog<bool>(
-      context: context,
-      useRootNavigator: true,
-      barrierDismissible: false,
-      builder: (_) => _PinResetDialog(
-        student: _student,
-        repository: _repository,
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => _PinResetPage(
+          student: _student,
+          repository: _repository,
+        ),
       ),
     );
     if (!mounted || changed != true) return;
@@ -1820,13 +1818,13 @@ class _StudentManagementDetailPageState
   }
 
   Future<void> _changeFlexRightCount() async {
-    final result = await showDialog<FlexRightCountChangeResult>(
-      context: context,
-      useRootNavigator: true,
-      barrierDismissible: false,
-      builder: (_) => _FlexRightCountDialog(
-        student: _student,
-        repository: _repository,
+    final result = await Navigator.of(context)
+        .push<FlexRightCountChangeResult>(
+      MaterialPageRoute(
+        builder: (_) => _FlexRightCountPage(
+          student: _student,
+          repository: _repository,
+        ),
       ),
     );
     if (!mounted || result == null) return;
