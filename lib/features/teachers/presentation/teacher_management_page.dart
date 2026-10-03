@@ -1136,13 +1136,12 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
   }
 
   Future<void> _showPinResetDialog(ManagedTeacher teacher) async {
-    final changed = await showDialog<bool>(
-      context: context,
-      useRootNavigator: true,
-      barrierDismissible: false,
-      builder: (_) => _TeacherPinResetDialog(
-        teacher: teacher,
-        repository: _repository,
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => _TeacherPinResetPage(
+          teacher: teacher,
+          repository: _repository,
+        ),
       ),
     );
 
@@ -1404,8 +1403,8 @@ class _TeacherNameEditDialogState extends State<_TeacherNameEditDialog> {
   }
 }
 
-class _TeacherPinResetDialog extends StatefulWidget {
-  const _TeacherPinResetDialog({
+class _TeacherPinResetPage extends StatefulWidget {
+  const _TeacherPinResetPage({
     required this.teacher,
     required this.repository,
   });
@@ -1414,11 +1413,11 @@ class _TeacherPinResetDialog extends StatefulWidget {
   final TeacherRepository repository;
 
   @override
-  State<_TeacherPinResetDialog> createState() =>
-      _TeacherPinResetDialogState();
+  State<_TeacherPinResetPage> createState() =>
+      _TeacherPinResetPageState();
 }
 
-class _TeacherPinResetDialogState extends State<_TeacherPinResetDialog> {
+class _TeacherPinResetPageState extends State<_TeacherPinResetPage> {
   final _pinController = TextEditingController();
   final _confirmController = TextEditingController();
 
@@ -1434,13 +1433,11 @@ class _TeacherPinResetDialogState extends State<_TeacherPinResetDialog> {
 
   Future<void> _save() async {
     final pin = _pinController.text.trim();
-    final confirmPin = _confirmController.text.trim();
-
     if (!RegExp(r'^\d{4}$').hasMatch(pin)) {
       setState(() => _validationMessage = 'PIN은 4자리 숫자로 입력해주세요.');
       return;
     }
-    if (pin != confirmPin) {
+    if (pin != _confirmController.text.trim()) {
       setState(() => _validationMessage = 'PIN 확인 값이 일치하지 않습니다.');
       return;
     }
@@ -1468,81 +1465,249 @@ class _TeacherPinResetDialogState extends State<_TeacherPinResetDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('PIN 재설정'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              '${widget.teacher.displayName} 선생님의 로그인 PIN을 변경합니다.',
-              style: forestringTextStyle.copyWith(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _pinController,
-              enabled: !_saving,
-              autofocus: true,
-              obscureText: true,
-              keyboardType: TextInputType.number,
-              maxLength: 4,
-              textInputAction: TextInputAction.next,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(4),
-              ],
-              decoration: const InputDecoration(
-                labelText: '새 PIN (4자리)',
-                counterText: '',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _confirmController,
-              enabled: !_saving,
-              obscureText: true,
-              keyboardType: TextInputType.number,
-              maxLength: 4,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) {
-                if (!_saving) _save();
-              },
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(4),
-              ],
-              decoration: const InputDecoration(
-                labelText: '새 PIN 확인',
-                counterText: '',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            if (_validationMessage != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                _validationMessage!,
-                style: forestringTextStyle.copyWith(
-                  color: Colors.redAccent,
-                  fontSize: 13,
+    return _TeacherEditScaffold(
+      title: '로그인 PIN 재설정',
+      saving: _saving,
+      actionLabel: 'PIN 저장',
+      onSave: _save,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _TeacherEditHeader(
+            teacher: widget.teacher,
+            description: '선생님 앱 로그인에 사용할 새로운 4자리 PIN을 설정합니다.',
+          ),
+          const SizedBox(height: 12),
+          _TeacherEditCard(
+            child: Column(
+              children: [
+                TextField(
+                  controller: _pinController,
+                  enabled: !_saving,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  decoration: _teacherEditDecoration('새 PIN').copyWith(
+                    counterText: '',
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _confirmController,
+                  enabled: !_saving,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  decoration:
+                      _teacherEditDecoration('새 PIN 확인').copyWith(
+                    counterText: '',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_validationMessage != null) ...[
+            const SizedBox(height: 10),
+            _TeacherEditMessage(
+              message: _validationMessage!,
+              isError: true,
+            ),
           ],
-        ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.of(context).pop(false),
-          child: const Text('취소'),
-        ),
-        FilledButton(
-          onPressed: _saving ? null : _save,
-          style: FilledButton.styleFrom(backgroundColor: primaryColor),
-          child: Text(_saving ? '변경 중...' : '변경'),
-        ),
-      ],
     );
   }
+}
+
+class _TeacherEditScaffold extends StatelessWidget {
+  const _TeacherEditScaffold({
+    required this.title,
+    required this.child,
+    required this.saving,
+    required this.actionLabel,
+    required this.onSave,
+  });
+
+  final String title;
+  final Widget child;
+  final bool saving;
+  final String actionLabel;
+  final VoidCallback? onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: neutralIvory,
+      appBar: AppBar(
+        backgroundColor: neutralIvory,
+        foregroundColor: primaryColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          title,
+          style: forestringTextStyle.copyWith(
+            color: primaryColor,
+            fontSize: 19,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 110),
+          children: [child],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+          child: FilledButton(
+            onPressed: saving ? null : onSave,
+            style: FilledButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: Text(
+              saving ? '저장 중...' : actionLabel,
+              style: forestringTextStyle.copyWith(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TeacherEditHeader extends StatelessWidget {
+  const _TeacherEditHeader({
+    required this.teacher,
+    required this.description,
+  });
+
+  final ManagedTeacher teacher;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    return _TeacherEditCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            teacher.displayName,
+            style: forestringTextStyle.copyWith(
+              color: primaryColor,
+              fontSize: 22,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            '${teacher.branchName} · ${teacher.statusLabel}',
+            style: forestringTextStyle.copyWith(
+              color: Colors.black54,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            description,
+            style: forestringTextStyle.copyWith(
+              color: Colors.black54,
+              fontSize: 13,
+              height: 1.45,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TeacherEditCard extends StatelessWidget {
+  const _TeacherEditCard({
+    required this.child,
+  });
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.06),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _TeacherEditMessage extends StatelessWidget {
+  const _TeacherEditMessage({
+    required this.message,
+    this.isError = false,
+  });
+
+  final String message;
+  final bool isError;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isError ? Colors.redAccent : primaryColor;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        message,
+        style: forestringTextStyle.copyWith(
+          color: isError ? Colors.redAccent : Colors.black87,
+          fontSize: 12,
+          height: 1.4,
+        ),
+      ),
+    );
+  }
+}
+
+InputDecoration _teacherEditDecoration(String label) {
+  return InputDecoration(
+    labelText: label,
+    filled: true,
+    fillColor: primaryColor.withValues(alpha: 0.035),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(13),
+      borderSide: BorderSide.none,
+    ),
+  );
 }
