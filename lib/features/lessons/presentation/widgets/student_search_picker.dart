@@ -12,6 +12,7 @@ class StudentSearchPickerField extends StatelessWidget {
     this.label = '학생',
     this.includeAllOption = false,
     this.enabled = true,
+    this.compact = false,
   });
 
   final List<VisibleStudent> students;
@@ -20,6 +21,7 @@ class StudentSearchPickerField extends StatelessWidget {
   final String label;
   final bool includeAllOption;
   final bool enabled;
+  final bool compact;
 
   VisibleStudent? get _selectedStudent {
     final id = selectedStudentId;
@@ -54,6 +56,57 @@ class StudentSearchPickerField extends StatelessWidget {
     final selected = _selectedStudent;
     final valueText = selected?.displayName ??
         (includeAllOption ? '전체 학생' : '학생을 검색해 선택');
+
+    if (compact) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: enabled ? () => _open(context) : null,
+          child: Container(
+            height: 36,
+            constraints: const BoxConstraints(maxWidth: 190),
+            padding: const EdgeInsets.symmetric(horizontal: 11),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.94),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: primaryColor.withValues(alpha: 0.10),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.search_rounded,
+                  size: 15,
+                  color: enabled ? primaryColor : Colors.black26,
+                ),
+                const SizedBox(width: 5),
+                Flexible(
+                  child: Text(
+                    valueText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: forestringTextStyle.copyWith(
+                      color: enabled ? Colors.black87 : Colors.black38,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.expand_more_rounded,
+                  size: 17,
+                  color: enabled ? primaryColor : Colors.black26,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return InkWell(
       borderRadius: BorderRadius.circular(9),
