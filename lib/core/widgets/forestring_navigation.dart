@@ -21,11 +21,13 @@ class ForestringAppBar extends StatelessWidget
     this.title = '포레스트링',
     this.actions,
     this.roundBottomCorners = false,
+    this.automaticallyImplyLeading = true,
   });
 
   final String title;
   final List<Widget>? actions;
   final bool roundBottomCorners;
+  final bool automaticallyImplyLeading;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -33,6 +35,7 @@ class ForestringAppBar extends StatelessWidget
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      automaticallyImplyLeading: automaticallyImplyLeading,
       backgroundColor: primaryColor,
       foregroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
