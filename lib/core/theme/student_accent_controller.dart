@@ -4,23 +4,28 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'student_accent.dart';
 
 class StudentAccentController extends ChangeNotifier {
-  StudentAccentController(this.teacherId);
+  StudentAccentController(this.profileId);
 
   static const _storagePrefix = 'teacher_student_accent_v2';
+  static const _enabledStoragePrefix = 'student_accent_enabled_v1';
 
-  final String teacherId;
+  final String profileId;
   final Map<String, Color> _overrides = {};
   final Map<String, Color> _generated = {};
 
   bool _loaded = false;
+  bool _enabled = false;
 
   bool get isLoaded => _loaded;
+  bool get isEnabled => _enabled;
 
-  String get _teacherPrefix => '$_storagePrefix:$teacherId:';
+  String get _profilePrefix => '$_storagePrefix:$profileId:';
+  String get _enabledStorageKey => '$_enabledStoragePrefix:$profileId';
 
   Future<void> load() async {
     final preferences = await SharedPreferences.getInstance();
-    final prefix = _teacherPrefix;
+    final prefix = _profilePrefix;
+    _enabled = preferences.getBool(_enabledStorageKey) ?? false;
 
     _overrides.clear();
 
@@ -44,6 +49,15 @@ class StudentAccentController extends ChangeNotifier {
 
     _generated.clear();
     _loaded = true;
+    notifyListeners();
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    if (_enabled == enabled) return;
+
+    _enabled = enabled;
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(_enabledStorageKey, enabled);
     notifyListeners();
   }
 
@@ -93,7 +107,7 @@ class StudentAccentController extends ChangeNotifier {
 
     final preferences = await SharedPreferences.getInstance();
     await preferences.setInt(
-      '$_teacherPrefix$studentId',
+      '$_profilePrefix$studentId',
       color.toARGB32(),
     );
 
@@ -105,14 +119,14 @@ class StudentAccentController extends ChangeNotifier {
     _generated.remove(studentId);
 
     final preferences = await SharedPreferences.getInstance();
-    await preferences.remove('$_teacherPrefix$studentId');
+    await preferences.remove('$_profilePrefix$studentId');
 
     notifyListeners();
   }
 
   Future<void> resetAll() async {
     final preferences = await SharedPreferences.getInstance();
-    final prefix = _teacherPrefix;
+    final prefix = _profilePrefix;
 
     for (final key in preferences.getKeys().where(
       (key) => key.startsWith(prefix),
