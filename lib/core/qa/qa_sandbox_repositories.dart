@@ -4,7 +4,11 @@ import '../../features/lessons/data/lesson_repository.dart';
 import '../../features/lessons/domain/lesson.dart';
 import '../../features/semesters/data/semester_repository.dart';
 import '../../features/semesters/domain/managed_semester.dart';
+import '../../features/students/data/student_admin_repository.dart';
 import '../../features/students/data/student_management_repository.dart';
+import '../../features/students/data/student_next_semester_type_repository.dart';
+import '../../features/students/data/student_regular_schedule_repository.dart';
+import '../../features/students/data/student_teacher_management_repository.dart';
 import '../../features/teachers/data/teacher_repository.dart';
 import 'qa_sandbox_store.dart';
 
@@ -706,4 +710,597 @@ class QaTeacherRepository extends TeacherRepository {
     }
     return 'QA 지점';
   }
+}
+
+
+class QaStudentTeacherManagementRepository
+    extends StudentTeacherManagementRepository {
+  QaStudentTeacherManagementRepository(this.store);
+
+  final QaSandboxStore store;
+
+  @override
+  Future<List<ManagedTeacherOption>> fetchBranchTeachers(
+    String branchId,
+  ) async {
+    return store.teachers
+        .where(
+          (teacher) =>
+              teacher.isActive && teacher.branchId == branchId,
+        )
+        .map(
+          (teacher) => ManagedTeacherOption(
+            id: teacher.id,
+            displayName: teacher.displayName,
+            branchId: branchId,
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<Map<String, dynamic>> changeStudentTeacher({
+    required String studentId,
+    required String teacherId,
+    required DateTime effectiveOn,
+    required String? currentTeacherId,
+    required bool isFlex,
+  }) async {
+    final student = store.studentById(studentId);
+    final teacher = store.teacherById(teacherId);
+    if (student == null) {
+      throw const StudentTeacherManagementFailure(
+        'QA 학생을 찾을 수 없습니다.',
+      );
+    }
+    if (teacher == null || !teacher.isActive) {
+      throw const StudentTeacherManagementFailure(
+        'QA 선생님을 찾을 수 없습니다.',
+      );
+    }
+
+    store.assignStudentTeacher(
+      studentId: studentId,
+      teacherId: teacherId,
+    );
+
+    return {
+      'changed': currentTeacherId != teacherId,
+      'studentId': studentId,
+      'teacherId': teacherId,
+      'effectiveOn': _qaDateText(effectiveOn),
+    };
+  }
+}
+
+class QaStudentRegularScheduleRepository
+    extends StudentRegularScheduleRepository {
+  QaStudentRegularScheduleRepository(this.store);
+
+  final QaSandboxStore store;
+
+  @override
+  Future<List<ManagedRegularSchedule>> fetchSchedules(
+    String studentId,
+  ) async {
+    return List<ManagedRegularSchedule>.from(
+      store.regularSchedules[studentId] ?? const [],
+    );
+  }
+
+  @override
+  Future<RegularScheduleTeacher> fetchTeacherAtDate({
+    required String studentId,
+    required DateTime date,
+  }) async {
+    final student = store.studentById(studentId);
+    final teacherId = student?.teacherId;
+    final teacher =
+        teacherId == null ? null : store.teacherById(teacherId);
+    if (teacher == null) {
+      throw const StudentRegularScheduleFailure(
+        '선택한 적용일의 QA 담당 선생님을 찾지 못했습니다.',
+      );
+    }
+    return RegularScheduleTeacher(
+      id: teacher.id,
+      displayName: teacher.displayName,
+    );
+  }
+
+  @override
+  Future<List<TeacherWorkWindow>> fetchTeacherWorkHours(
+    String teacherId,
+  ) async {
+    final teacher = store.teacherById(teacherId);
+    if (teacher == null) {
+      throw const StudentRegularScheduleFailure(
+        'QA 선생님의 근무시간을 찾지 못했습니다.',
+      );
+    }
+    return teacher.workHours
+        .map(
+          (hour) => TeacherWorkWindow(
+            weekday: hour.weekday,
+            startMinutes: _qaTimeMinutes(hour.startTime),
+            endMinutes: _qaTimeMinutes(hour.endTime),
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<List<RegularScheduleSemesterOption>> fetchUpcomingSemesters(
+    String? branchId, {
+    bool includeCurrent = false,
+  }) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final result = store.semesters
+        .map(
+          (semester) => RegularScheduleSemesterOption(
+            id: semester.id,
+            code: semester.code,
+            startsOn: semester.startsOn,
+            endsOn: semester.endsOn,
+          ),
+        )
+        .where(
+          (semester) => semester.isSelectableOn(
+            today,
+            includeCurrent: includeCurrent,
+          ),
+        )
+        .toList()
+      ..sort((a, b) => a.startsOn.compareTo(b.startsOn));
+    return result;
+  }
+
+  @override
+  Future<Map<String, dynamic>> addSchedule({
+    required String studentId,
+    required String teacherId,
+    required int weekday,
+    required int startMinutes,
+    required int durationMinutes,
+    required DateTime effectiveOn,
+  }) async {
+    final teacher = store.teacherById(teacherId);
+    if (store.studentById(studentId) == null || teacher == null) {
+      throw const StudentRegularScheduleFailure(
+        'QA 정규 일정 대상 정보를 찾지 못했습니다.',
+      );
+    }
+
+    final schedule = ManagedRegularSchedule(
+      slotId:
+          'qa-regular-${DateTime.now().microsecondsSinceEpoch}',
+      teacherId: teacherId,
+      teacherName: teacher.displayName,
+      weekday: weekday,
+      startMinutes: startMinutes,
+      durationMinutes: durationMinutes,
+      slotStartsOn: _qaDateOnly(effectiveOn),
+      effectiveFrom: _qaDateOnly(effectiveOn),
+      hasFutureVersion: false,
+    );
+    store.addRegularSchedule(
+      studentId: studentId,
+      schedule: schedule,
+    );
+
+    return {
+      'changed': true,
+      'scheduleSlotId': schedule.slotId,
+      'canceledLessonCount': 0,
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> endSchedule({
+    required String scheduleSlotId,
+    required DateTime effectiveOn,
+  }) async {
+    store.removeRegularSchedule(scheduleSlotId);
+    return {
+      'changed': true,
+      'scheduleSlotId': scheduleSlotId,
+      'effectiveOn': _qaDateText(effectiveOn),
+      'canceledLessonCount': 0,
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> changeSchedule({
+    required String scheduleSlotId,
+    required String teacherId,
+    required int weekday,
+    required int startMinutes,
+    required int durationMinutes,
+    required DateTime effectiveOn,
+  }) async {
+    final teacher = store.teacherById(teacherId);
+    if (teacher == null) {
+      throw const StudentRegularScheduleFailure(
+        'QA 선생님을 찾지 못했습니다.',
+      );
+    }
+
+    String? studentId;
+    ManagedRegularSchedule? current;
+    for (final entry in store.regularSchedules.entries) {
+      for (final schedule in entry.value) {
+        if (schedule.slotId == scheduleSlotId) {
+          studentId = entry.key;
+          current = schedule;
+          break;
+        }
+      }
+      if (current != null) break;
+    }
+
+    if (studentId == null || current == null) {
+      throw const StudentRegularScheduleFailure(
+        'QA 정규 일정을 찾지 못했습니다.',
+      );
+    }
+
+    store.replaceRegularSchedule(
+      studentId: studentId,
+      schedule: ManagedRegularSchedule(
+        slotId: current.slotId,
+        teacherId: teacherId,
+        teacherName: teacher.displayName,
+        weekday: weekday,
+        startMinutes: startMinutes,
+        durationMinutes: durationMinutes,
+        slotStartsOn: current.slotStartsOn,
+        slotEndsOn: current.slotEndsOn,
+        effectiveFrom: _qaDateOnly(effectiveOn),
+        effectiveUntil: current.effectiveUntil,
+        hasFutureVersion: false,
+      ),
+    );
+
+    return {
+      'changed': true,
+      'scheduleSlotId': scheduleSlotId,
+      'effectiveOn': _qaDateText(effectiveOn),
+      'canceledLessonCount': 0,
+    };
+  }
+}
+
+class QaStudentNextSemesterTypeRepository
+    extends StudentNextSemesterTypeRepository {
+  QaStudentNextSemesterTypeRepository(this.store);
+
+  final QaSandboxStore store;
+
+  @override
+  Future<NextSemesterStudentTypePlan> fetchPlan(
+    String studentId,
+  ) async {
+    final student = store.studentById(studentId);
+    if (student == null) {
+      throw const StudentNextSemesterTypeFailure(
+        'QA 학생을 찾을 수 없습니다.',
+      );
+    }
+
+    ManagedSemester? current;
+    final upcoming = <ManagedSemester>[];
+    for (final semester in store.semesters) {
+      if (semester.isCurrent) current = semester;
+      if (semester.isUpcoming) upcoming.add(semester);
+    }
+    upcoming.sort((a, b) => a.startsOn.compareTo(b.startsOn));
+    if (current == null || upcoming.isEmpty) {
+      throw const StudentNextSemesterTypeFailure(
+        'QA 학기 정보를 찾을 수 없습니다.',
+      );
+    }
+
+    final next = upcoming.first;
+    final plannedType =
+        store.nextStudentTypes[studentId] ?? student.studentType;
+    final teacher = student.teacherId == null
+        ? null
+        : store.teacherById(student.teacherId!);
+
+    return NextSemesterStudentTypePlan(
+      studentId: student.id,
+      currentStudentType: student.studentType,
+      currentSemesterCode: current.code,
+      currentSemesterStartsOn: current.startsOn,
+      currentSemesterEndsOn: current.endsOn,
+      nextSemesterId: next.id,
+      nextSemesterCode: next.code,
+      nextSemesterStartsOn: next.startsOn,
+      nextSemesterEndsOn: next.endsOn,
+      plannedStudentType: plannedType,
+      regularScheduleCount:
+          store.nextRegularScheduleCounts[studentId] ?? 0,
+      teacherAssignmentCoversSemester: teacher != null,
+      canChange: student.isActive,
+      defaultFlexBaseRightCount: 4,
+      defaultFlexDurationMinutes: 30,
+      nextPlanId: 'qa-next-plan-${student.id}',
+      nextPlanStatus: 'planned',
+      flexBaseRightCount: plannedType == 'flex'
+          ? (store.nextFlexRightCounts[studentId] ?? 4)
+          : null,
+      flexDurationMinutes: plannedType == 'flex'
+          ? (store.nextFlexDurations[studentId] ?? 30)
+          : null,
+      teacherId: teacher?.id,
+      teacherName: teacher?.displayName,
+      withdrawalDate: student.withdrawalDate,
+    );
+  }
+
+  @override
+  Future<List<NextSemesterTeacherWorkWindow>>
+      fetchTeacherWorkHours({
+    required String teacherId,
+    required DateTime onDate,
+  }) async {
+    final teacher = store.teacherById(teacherId);
+    if (teacher == null) {
+      throw const StudentNextSemesterTypeFailure(
+        'QA 선생님 근무시간을 찾지 못했습니다.',
+      );
+    }
+    return teacher.workHours
+        .map(
+          (hour) => NextSemesterTeacherWorkWindow(
+            weekday: hour.weekday,
+            startMinutes: _qaTimeMinutes(hour.startTime),
+            endMinutes: _qaTimeMinutes(hour.endTime),
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<NextSemesterStudentTypeChangeResult> save({
+    required String studentId,
+    required String targetType,
+    int? flexBaseRightCount,
+    int? flexDurationMinutes,
+    List<Map<String, dynamic>>? regularSchedules,
+  }) async {
+    final plan = await fetchPlan(studentId);
+    final regularCount =
+        targetType == 'regular' ? (regularSchedules?.length ?? 0) : 0;
+
+    store.saveNextSemesterPlan(
+      studentId: studentId,
+      studentType: targetType,
+      flexRightCount: flexBaseRightCount,
+      flexDurationMinutes: flexDurationMinutes,
+      regularScheduleCount: regularCount,
+    );
+
+    return NextSemesterStudentTypeChangeResult(
+      changed: plan.plannedStudentType != targetType,
+      currentStudentType: plan.currentStudentType,
+      plannedStudentType: targetType,
+      nextSemesterCode: plan.nextSemesterCode,
+      nextSemesterStartsOn: plan.nextSemesterStartsOn,
+      regularScheduleCount: regularCount,
+      flexBaseRightCount:
+          targetType == 'flex' ? flexBaseRightCount : null,
+      flexDurationMinutes:
+          targetType == 'flex' ? flexDurationMinutes : null,
+    );
+  }
+}
+
+class QaStudentAdminRepository extends StudentAdminRepository {
+  QaStudentAdminRepository(this.store);
+
+  final QaSandboxStore store;
+
+  @override
+  Future<List<StudentAdminTeacher>> fetchTeachers(
+    String branchId,
+  ) async {
+    return store.teachers
+        .where(
+          (teacher) =>
+              teacher.isActive && teacher.branchId == branchId,
+        )
+        .map(
+          (teacher) => StudentAdminTeacher(
+            id: teacher.id,
+            displayName: teacher.displayName,
+            branchId: branchId,
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<List<StudentSemesterOption>> fetchSemesters(
+    String branchId,
+  ) async {
+    return store.semesters
+        .map(
+          (semester) => StudentSemesterOption(
+            id: semester.id,
+            code: semester.code,
+            startsOn: semester.startsOn,
+            endsOn: semester.endsOn,
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<String> createStudentAccount({
+    required String name,
+    required String pin,
+    required String branchId,
+    required String studentType,
+  }) async {
+    final id =
+        'qa-student-${DateTime.now().microsecondsSinceEpoch}';
+    final branchName = store.branches
+        .where((branch) => branch.id == branchId)
+        .map((branch) => branch.name)
+        .first;
+
+    store.addStudent(
+      ManagedStudent(
+        id: id,
+        displayName: name.trim(),
+        branchId: branchId,
+        branchName: branchName,
+        studentType: studentType,
+        status: 'active',
+        profileIsActive: true,
+        flexBaseRightCount: studentType == 'flex' ? 4 : null,
+        flexDurationMinutes: studentType == 'flex' ? 30 : null,
+      ),
+    );
+    store.savePin(id, pin);
+    store.nextStudentTypes[id] = studentType;
+    store.nextRegularScheduleCounts[id] = 0;
+    return id;
+  }
+
+  @override
+  Future<Map<String, dynamic>> initializeFlexSemester({
+    required String studentId,
+    required String teacherId,
+    required String semesterId,
+    required int baseRightCount,
+    required int durationMinutes,
+  }) async {
+    final student = _qaRequireStudent(store, studentId);
+    final teacher = _qaRequireTeacher(store, teacherId);
+    store.updateStudent(
+      ManagedStudent(
+        id: student.id,
+        displayName: student.displayName,
+        branchId: student.branchId,
+        branchName: student.branchName,
+        studentType: 'flex',
+        status: student.status,
+        profileIsActive: student.profileIsActive,
+        teacherId: teacher.id,
+        teacherName: teacher.displayName,
+        withdrawalDate: student.withdrawalDate,
+        flexBaseRightCount: baseRightCount,
+        flexDurationMinutes: durationMinutes,
+      ),
+    );
+
+    return {
+      'changed': true,
+      'baseRightCount': baseRightCount,
+      'durationMinutes': durationMinutes,
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> initializeRegularSemester({
+    required String studentId,
+    required String teacherId,
+    required String semesterId,
+    required List<Map<String, dynamic>> schedules,
+  }) async {
+    final student = _qaRequireStudent(store, studentId);
+    final teacher = _qaRequireTeacher(store, teacherId);
+    final semester = store.semesters
+        .where((item) => item.id == semesterId)
+        .first;
+
+    store.updateStudent(
+      ManagedStudent(
+        id: student.id,
+        displayName: student.displayName,
+        branchId: student.branchId,
+        branchName: student.branchName,
+        studentType: 'regular',
+        status: student.status,
+        profileIsActive: student.profileIsActive,
+        teacherId: teacher.id,
+        teacherName: teacher.displayName,
+        withdrawalDate: student.withdrawalDate,
+      ),
+    );
+
+    store.regularSchedules[studentId] = [];
+    for (var index = 0; index < schedules.length; index++) {
+      final raw = schedules[index];
+      store.addRegularSchedule(
+        studentId: studentId,
+        schedule: ManagedRegularSchedule(
+          slotId:
+              'qa-regular-$studentId-${index + 1}',
+          teacherId: teacher.id,
+          teacherName: teacher.displayName,
+          weekday: (raw['weekday'] as num?)?.toInt() ?? 1,
+          startMinutes:
+              _qaTimeMinutes(raw['startTime']?.toString() ?? '10:00'),
+          durationMinutes:
+              (raw['durationMinutes'] as num?)?.toInt() ?? 30,
+          slotStartsOn: semester.startsOn,
+          effectiveFrom: semester.startsOn,
+          hasFutureVersion: false,
+        ),
+      );
+    }
+
+    return {
+      'changed': true,
+      'activation': {
+        'slotCount': schedules.length,
+        'rightCount': schedules.length * 4,
+        'lessonCount': schedules.length * 4,
+      },
+    };
+  }
+}
+
+ManagedStudent _qaRequireStudent(
+  QaSandboxStore store,
+  String studentId,
+) {
+  final student = store.studentById(studentId);
+  if (student == null) {
+    throw const StudentAdminFailure('QA 학생을 찾을 수 없습니다.');
+  }
+  return student;
+}
+
+ManagedTeacher _qaRequireTeacher(
+  QaSandboxStore store,
+  String teacherId,
+) {
+  final teacher = store.teacherById(teacherId);
+  if (teacher == null) {
+    throw const StudentAdminFailure('QA 선생님을 찾을 수 없습니다.');
+  }
+  return teacher;
+}
+
+DateTime _qaDateOnly(DateTime value) =>
+    DateTime(value.year, value.month, value.day);
+
+String _qaDateText(DateTime value) {
+  final date = _qaDateOnly(value);
+  final year = date.year.toString().padLeft(4, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '$year-$month-$day';
+}
+
+int _qaTimeMinutes(String value) {
+  final parts = value.split(':');
+  if (parts.length < 2) return 0;
+  return (int.tryParse(parts[0]) ?? 0) * 60 +
+      (int.tryParse(parts[1]) ?? 0);
 }
