@@ -148,21 +148,32 @@ class MasterSchedulePage extends StatelessWidget {
               );
             },
           ),
-          if (!isQaSandbox) ...[
-            ForestringDrawerItem(
-              icon: Icons.co_present_outlined,
-              label: '선생님 관리',
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => TeacherManagementPage(
-                      profile: profile,
-                    ),
+          ForestringDrawerItem(
+            icon: Icons.co_present_outlined,
+            label: '선생님 관리',
+            onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => TeacherManagementPage(
+                    profile: profile,
+                    repository: qaStore == null
+                        ? null
+                        : QaTeacherRepository(qaStore),
+                    branchRepository: qaStore == null
+                        ? null
+                        : QaBranchRepository(qaStore),
+                    workHoursRepository: qaStore == null
+                        ? null
+                        : QaTeacherWorkHoursScheduleRepository(
+                            qaStore,
+                          ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
+          ),
+          if (!isQaSandbox) ...[
             if (profile.isMaster)
               ForestringDrawerItem(
                 icon: Icons.admin_panel_settings_outlined,
