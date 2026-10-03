@@ -78,7 +78,6 @@ class _TeacherShellState extends State<TeacherShell> {
               ),
               TeacherMyPage(
                 profile: widget.profile,
-                onOpenWeek: () => _selectTab(0),
               ),
             ],
           ),

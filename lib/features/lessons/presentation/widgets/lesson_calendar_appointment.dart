@@ -16,6 +16,7 @@ class LessonCalendarAppointment extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = lesson.studentName ?? '학생';
+    final backgroundColor = _backgroundColor;
 
     return Container(
       alignment: Alignment.centerLeft,
@@ -24,7 +25,7 @@ class LessonCalendarAppointment extends StatelessWidget {
         vertical: 1,
       ),
       decoration: BoxDecoration(
-        color: _backgroundColor,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(2),
       ),
       child: FittedBox(
@@ -33,8 +34,8 @@ class LessonCalendarAppointment extends StatelessWidget {
         child: Text(
           name,
           maxLines: 1,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: studentAccentForeground(backgroundColor),
             fontFamily: 'ELAND',
             fontSize: 11,
             fontWeight: FontWeight.w500,

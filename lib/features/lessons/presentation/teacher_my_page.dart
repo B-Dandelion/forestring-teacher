@@ -15,11 +15,9 @@ class TeacherMyPage extends StatefulWidget {
   const TeacherMyPage({
     super.key,
     required this.profile,
-    required this.onOpenWeek,
   });
 
   final CurrentProfile profile;
-  final VoidCallback onOpenWeek;
 
   @override
   State<TeacherMyPage> createState() => _TeacherMyPageState();
@@ -452,7 +450,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xffE8F0E4),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: primaryColor.withValues(alpha: 0.06),
@@ -658,7 +656,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                       ? '학'
                       : student.displayName.trim().substring(0, 1),
                   style: forestringTextStyle.copyWith(
-                    color: Colors.white,
+                    color: studentAccentForeground(accentColor),
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -697,7 +695,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: forestringTextStyle.copyWith(
-                        color: accentColor,
+                        color: studentAccentForeground(accentColor),
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -810,7 +808,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                 Text(
                   DateFormat('HH:mm').format(lesson.startsAt),
                   style: forestringTextStyle.copyWith(
-                    color: accentColor,
+                    color: studentAccentForeground(accentColor),
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                   ),
@@ -849,22 +847,17 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
 
   Widget _quickActions(LessonController lessonController) {
     return GridView.count(
-      crossAxisCount: 4,
+      crossAxisCount: 3,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 8,
       crossAxisSpacing: 8,
-      childAspectRatio: 0.92,
+      childAspectRatio: 1.18,
       children: [
         _quickAction(
           icon: Icons.people_alt_outlined,
-          label: '수강생 관리',
+          label: '수강생',
           onTap: _scrollToStudents,
-        ),
-        _quickAction(
-          icon: Icons.view_week_outlined,
-          label: '주간 시간표',
-          onTap: widget.onOpenWeek,
         ),
         _quickAction(
           icon: Icons.history_rounded,
@@ -1055,7 +1048,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                                   color.toARGB32()
                               ? const Icon(
                                   Icons.check_rounded,
-                                  color: Colors.white,
+                                  color: Color(0xff21322A),
                                   size: 20,
                                 )
                               : null,
@@ -1089,12 +1082,16 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
     List<AssignedStudentSummary> students,
     LessonController lessonController,
   ) async {
+    final accentController = context.read<StudentAccentController>();
+
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xffF6F8F4),
       builder: (sheetContext) {
-        return DraggableScrollableSheet(
+        return ChangeNotifierProvider.value(
+          value: accentController,
+          child: DraggableScrollableSheet(
           expand: false,
           initialChildSize: 0.82,
           minChildSize: 0.55,
@@ -1145,6 +1142,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
               },
             );
           },
+        ),
         );
       },
     );

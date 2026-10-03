@@ -6,7 +6,7 @@ import 'student_accent.dart';
 class StudentAccentController extends ChangeNotifier {
   StudentAccentController(this.teacherId);
 
-  static const _storagePrefix = 'teacher_student_accent_v1';
+  static const _storagePrefix = 'teacher_student_accent_v2';
 
   final String teacherId;
   final Map<String, Color> _overrides = {};

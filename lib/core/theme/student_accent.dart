@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
 const List<Color> studentAccentPalette = [
-  Color(0xff19764C),
-  Color(0xff0F857A),
-  Color(0xff187FA8),
-  Color(0xff2F6FBD),
-  Color(0xff4D5FC2),
-  Color(0xff6851B8),
-  Color(0xff8E4DB0),
-  Color(0xffB4478A),
-  Color(0xffC94F6D),
-  Color(0xffD65A4B),
-  Color(0xffD8782D),
-  Color(0xffA8443F),
+  Color(0xff77C99A),
+  Color(0xff64C6BB),
+  Color(0xff6DBBE8),
+  Color(0xff839DE8),
+  Color(0xffA58BE2),
+  Color(0xffC585D8),
+  Color(0xffE487B5),
+  Color(0xffEA8F9D),
+  Color(0xffF0957E),
+  Color(0xffECA56D),
+  Color(0xff77BFCB),
+  Color(0xffDD827B),
 ];
 
 int studentAccentSeedIndex(String studentId) {
@@ -27,4 +27,12 @@ int studentAccentSeedIndex(String studentId) {
 
 Color studentAccentColor(String studentId) {
   return studentAccentPalette[studentAccentSeedIndex(studentId)];
+}
+
+Color studentAccentForeground(Color accentColor) {
+  return Color.lerp(
+    accentColor,
+    const Color(0xff21322A),
+    0.48,
+  )!;
 }

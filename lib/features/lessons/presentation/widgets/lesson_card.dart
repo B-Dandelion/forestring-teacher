@@ -29,6 +29,9 @@ class LessonCard extends StatelessWidget {
     final resolvedAccentColor = lesson.isCanceled
         ? Colors.black38
         : accentColor ?? studentAccentColor(lesson.studentId);
+    final accentTextColor = lesson.isCanceled
+        ? Colors.black45
+        : studentAccentForeground(resolvedAccentColor);
 
     return Material(
       color: Colors.transparent,
@@ -77,9 +80,7 @@ class LessonCard extends StatelessWidget {
                               Text(
                                 start,
                                 style: forestringTextStyle.copyWith(
-                                  color: lesson.isCanceled
-                                      ? Colors.black45
-                                      : accentColor,
+                                  color: accentTextColor,
                                   fontSize: 19,
                                   fontWeight: FontWeight.w500,
                                   decoration: lesson.isCanceled
