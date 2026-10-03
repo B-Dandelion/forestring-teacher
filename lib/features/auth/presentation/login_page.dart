@@ -66,16 +66,16 @@ class _LoginPageState extends State<LoginPage> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final availableHeight =
-                      constraints.maxHeight - keyboardInset - 24;
+                      constraints.maxHeight - keyboardInset - 16;
 
                   return AnimatedPadding(
                     duration: const Duration(milliseconds: 230),
                     curve: Curves.easeOutCubic,
                     padding: EdgeInsets.fromLTRB(
                       22,
-                      compact ? 12 : 34,
+                      compact ? 10 : 18,
                       22,
-                      compact ? keyboardInset + 10 : 24,
+                      compact ? keyboardInset + 10 : 22,
                     ),
                     child: SingleChildScrollView(
                       keyboardDismissBehavior:
@@ -86,7 +86,8 @@ class _LoginPageState extends State<LoginPage> {
                           minHeight:
                               availableHeight > 0 ? availableHeight : 0,
                         ),
-                        child: Center(
+                        child: Align(
+                          alignment: Alignment.topCenter,
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(
                               maxWidth: 430,
@@ -98,7 +99,7 @@ class _LoginPageState extends State<LoginPage> {
                               children: [
                                 _LoginBrand(compact: compact),
                                 SizedBox(
-                                  height: compact ? 24 : 48,
+                                  height: compact ? 20 : 34,
                                 ),
                                 _GlassLoginPanel(
                                   auth: auth,
@@ -116,7 +117,7 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                                 if (widget.onManagerQaStart != null) ...[
                                   SizedBox(
-                                    height: compact ? 10 : 16,
+                                    height: compact ? 10 : 14,
                                   ),
                                   _QaEntryButton(
                                     onPressed:
@@ -166,11 +167,11 @@ class _LoginBrand extends StatelessWidget {
       child: Column(
         children: [
           SizedBox(
-            height: compact ? 92 : 126,
+            height: compact ? 90 : 144,
             width: double.infinity,
             child: ClipRect(
               child: Transform.scale(
-                scale: compact ? 1.45 : 1.7,
+                scale: compact ? 1.60 : 2.05,
                 alignment: Alignment.center,
                 child: Image.asset(
                   'assets/img/포레스트링_선생님_로고.png',
@@ -179,9 +180,7 @@ class _LoginBrand extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(
-            height: compact ? 24 : 38,
-          ),
+          SizedBox(height: compact ? 16 : 26),
           Text(
             '포레스트링 선생님',
             textAlign: TextAlign.center,
@@ -193,14 +192,12 @@ class _LoginBrand extends StatelessWidget {
               letterSpacing: -0.2,
             ),
           ),
-          SizedBox(
-            height: compact ? 7 : 12,
-          ),
+          SizedBox(height: compact ? 7 : 10),
           Text(
             '수업과 일정을 한곳에서 편리하게 관리하세요',
             textAlign: TextAlign.center,
             style: forestringTextStyle.copyWith(
-              color: Colors.white.withValues(alpha: 0.64),
+              color: Colors.white.withValues(alpha: 0.62),
               fontSize: compact ? 12 : 13,
               fontWeight: FontWeight.w300,
               height: 1.45,
@@ -242,7 +239,7 @@ class _GlassLoginPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
+            color: Colors.black.withValues(alpha: 0.18),
             blurRadius: 34,
             offset: const Offset(0, 18),
           ),
@@ -252,8 +249,8 @@ class _GlassLoginPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         child: BackdropFilter(
           filter: ImageFilter.blur(
-            sigmaX: 24,
-            sigmaY: 24,
+            sigmaX: 26,
+            sigmaY: 26,
           ),
           child: Stack(
             children: [
@@ -265,32 +262,32 @@ class _GlassLoginPanel extends StatelessWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        Colors.white.withValues(alpha: 0.19),
-                        Colors.white.withValues(alpha: 0.12),
-                        Colors.white.withValues(alpha: 0.085),
+                        Colors.white.withValues(alpha: 0.16),
+                        Colors.white.withValues(alpha: 0.10),
+                        Colors.white.withValues(alpha: 0.07),
                       ],
-                      stops: const [0, 0.52, 1],
+                      stops: const [0, 0.56, 1],
                     ),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25),
+                      color: Colors.white.withValues(alpha: 0.22),
                       width: 1,
                     ),
                   ),
                 ),
               ),
               Positioned(
-                top: 1,
+                top: 0.8,
                 left: 34,
                 right: 34,
                 child: IgnorePointer(
                   child: Container(
-                    height: 1.4,
+                    height: 1.2,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
                       gradient: LinearGradient(
                         colors: [
                           Colors.white.withValues(alpha: 0),
-                          Colors.white.withValues(alpha: 0.70),
+                          Colors.white.withValues(alpha: 0.42),
                           Colors.white.withValues(alpha: 0),
                         ],
                       ),
@@ -299,20 +296,19 @@ class _GlassLoginPanel extends StatelessWidget {
                 ),
               ),
               Positioned(
-                top: 20,
-                left: 1,
-                bottom: 72,
+                top: 0,
+                left: 0,
+                right: 0,
                 child: IgnorePointer(
                   child: Container(
-                    width: 1.2,
+                    height: 86,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.white.withValues(alpha: 0.42),
-                          Colors.white.withValues(alpha: 0.08),
+                          Colors.white.withValues(alpha: 0.07),
+                          Colors.white.withValues(alpha: 0.025),
                           Colors.white.withValues(alpha: 0),
                         ],
                       ),
@@ -321,24 +317,22 @@ class _GlassLoginPanel extends StatelessWidget {
                 ),
               ),
               Positioned(
-                top: -46,
-                left: -26,
+                top: 18,
+                left: 22,
                 child: IgnorePointer(
-                  child: Transform.rotate(
-                    angle: -0.20,
-                    child: Container(
-                      width: 230,
-                      height: 118,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(80),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white.withValues(alpha: 0.17),
-                            Colors.white.withValues(alpha: 0.055),
-                            Colors.white.withValues(alpha: 0),
-                          ],
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(
+                        sigmaX: 6,
+                        sigmaY: 6,
+                      ),
+                      child: Container(
+                        width: 140,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          color: Colors.white.withValues(alpha: 0.06),
                         ),
                       ),
                     ),
@@ -348,10 +342,10 @@ class _GlassLoginPanel extends StatelessWidget {
               Positioned(
                 left: 18,
                 right: 18,
-                bottom: 7,
+                bottom: 10,
                 child: IgnorePointer(
                   child: Container(
-                    height: 32,
+                    height: 26,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
                       gradient: LinearGradient(
@@ -359,7 +353,7 @@ class _GlassLoginPanel extends StatelessWidget {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.black.withValues(alpha: 0),
-                          Colors.black.withValues(alpha: 0.045),
+                          Colors.black.withValues(alpha: 0.035),
                         ],
                       ),
                     ),
@@ -369,79 +363,83 @@ class _GlassLoginPanel extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   20,
-                  22,
+                  18,
                   20,
                   20,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _FieldLabel(
-                      label: '이름',
-                      child: _GlassTextField(
-                        controller: nameController,
-                        focusNode: nameFocusNode,
-                        hintText: '이름을 입력하세요',
-                        prefixIcon: Icons.person_outline_rounded,
-                        textInputAction: TextInputAction.next,
-                        onSubmitted: (_) => pinFocusNode.requestFocus(),
-                        suffixIcon:
-                            ValueListenableBuilder<TextEditingValue>(
-                          valueListenable: nameController,
-                          builder: (context, value, _) {
-                            if (value.text.isEmpty) {
-                              return const SizedBox.shrink();
-                            }
-
-                            return IconButton(
-                              tooltip: '이름 지우기',
-                              onPressed: nameController.clear,
-                              icon: const Icon(
-                                Icons.close_rounded,
-                                size: 20,
-                              ),
-                            );
-                          },
-                        ),
+                    Text(
+                      '로그인',
+                      style: forestringTextStyle.copyWith(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.1,
                       ),
                     ),
-                    const SizedBox(height: 17),
-                    _FieldLabel(
-                      label: '비밀번호',
-                      child: _GlassTextField(
-                        controller: pinController,
-                        focusNode: pinFocusNode,
-                        hintText: '4자리 비밀번호',
-                        prefixIcon: Icons.lock_outline_rounded,
-                        keyboardType: TextInputType.number,
-                        textInputAction: TextInputAction.done,
-                        obscureText: obscurePin,
-                        maxLength: 4,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(4),
-                        ],
-                        onSubmitted: (_) {
-                          if (!auth.isLoading) {
-                            onLogin();
+                    const SizedBox(height: 14),
+                    _GlassTextField(
+                      controller: nameController,
+                      focusNode: nameFocusNode,
+                      hintText: '이름을 입력하세요',
+                      prefixIcon: Icons.person_outline_rounded,
+                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) => pinFocusNode.requestFocus(),
+                      suffixIcon:
+                          ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: nameController,
+                        builder: (context, value, _) {
+                          if (value.text.isEmpty) {
+                            return const SizedBox.shrink();
                           }
+
+                          return IconButton(
+                            tooltip: '이름 지우기',
+                            onPressed: nameController.clear,
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              size: 20,
+                            ),
+                          );
                         },
-                        suffixIcon: IconButton(
-                          tooltip: obscurePin
-                              ? '비밀번호 보기'
-                              : '비밀번호 숨기기',
-                          onPressed: onTogglePinVisibility,
-                          icon: Icon(
-                            obscurePin
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            size: 20,
-                          ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    _GlassTextField(
+                      controller: pinController,
+                      focusNode: pinFocusNode,
+                      hintText: '4자리 비밀번호',
+                      prefixIcon: Icons.lock_outline_rounded,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.done,
+                      obscureText: obscurePin,
+                      maxLength: 4,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(4),
+                      ],
+                      onSubmitted: (_) {
+                        if (!auth.isLoading) {
+                          onLogin();
+                        }
+                      },
+                      suffixIcon: IconButton(
+                        tooltip: obscurePin
+                            ? '비밀번호 보기'
+                            : '비밀번호 숨기기',
+                        onPressed: onTogglePinVisibility,
+                        icon: Icon(
+                          obscurePin
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 20,
                         ),
                       ),
                     ),
                     if (auth.errorMessage != null) ...[
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 13,
@@ -449,15 +447,16 @@ class _GlassLoginPanel extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: const Color(0xff5B1D1A)
-                              .withValues(alpha: 0.38),
+                              .withValues(alpha: 0.34),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: const Color(0xffF3A79F)
-                                .withValues(alpha: 0.28),
+                                .withValues(alpha: 0.22),
                           ),
                         ),
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
                           children: [
                             const Padding(
                               padding: EdgeInsets.only(top: 1),
@@ -483,40 +482,10 @@ class _GlassLoginPanel extends StatelessWidget {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 21),
-                    SizedBox(
-                      height: 55,
-                      child: FilledButton(
-                        onPressed: auth.isLoading ? null : onLogin,
-                        style: FilledButton.styleFrom(
-                          backgroundColor:
-                              Colors.white.withValues(alpha: 0.95),
-                          disabledBackgroundColor:
-                              Colors.white.withValues(alpha: 0.58),
-                          foregroundColor: primaryColor,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(17),
-                          ),
-                        ),
-                        child: auth.isLoading
-                            ? const SizedBox(
-                                width: 21,
-                                height: 21,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: primaryColor,
-                                ),
-                              )
-                            : Text(
-                                '로그인',
-                                style: forestringTextStyle.copyWith(
-                                  color: primaryColor,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                      ),
+                    const SizedBox(height: 16),
+                    _GlassActionButton(
+                      isLoading: auth.isLoading,
+                      onPressed: onLogin,
                     ),
                   ],
                 ),
@@ -580,7 +549,7 @@ class _GlassTextField extends StatelessWidget {
         counterText: '',
         hintText: hintText,
         hintStyle: forestringTextStyle.copyWith(
-          color: Colors.white.withValues(alpha: 0.48),
+          color: Colors.white.withValues(alpha: 0.45),
           fontSize: 15,
           fontWeight: FontWeight.w300,
           letterSpacing: 0,
@@ -592,9 +561,9 @@ class _GlassTextField extends StatelessWidget {
         ),
         suffixIcon: suffixIcon,
         suffixIconColor:
-            Colors.white.withValues(alpha: 0.68),
+            Colors.white.withValues(alpha: 0.66),
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.095),
+        fillColor: Colors.white.withValues(alpha: 0.085),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
@@ -603,14 +572,14 @@ class _GlassTextField extends StatelessWidget {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(17),
           borderSide: BorderSide(
-            color: Colors.white.withValues(alpha: 0.16),
+            color: Colors.white.withValues(alpha: 0.14),
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(17),
           borderSide: BorderSide(
-            color: Colors.white.withValues(alpha: 0.52),
-            width: 1.35,
+            color: Colors.white.withValues(alpha: 0.34),
+            width: 1.2,
           ),
         ),
       ),
@@ -618,36 +587,92 @@ class _GlassTextField extends StatelessWidget {
   }
 }
 
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel({
-    required this.label,
-    required this.child,
+class _GlassActionButton extends StatelessWidget {
+  const _GlassActionButton({
+    required this.isLoading,
+    required this.onPressed,
   });
 
-  final String label;
-  final Widget child;
+  final bool isLoading;
+  final Future<void> Function() onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(
-            left: 2,
-            bottom: 8,
+    return SizedBox(
+      height: 56,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: 10,
+            sigmaY: 10,
           ),
-          child: Text(
-            label,
-            style: forestringTextStyle.copyWith(
-              color: Colors.white.withValues(alpha: 0.88),
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: isLoading ? null : () => onPressed(),
+              child: Ink(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.24),
+                      Colors.white.withValues(alpha: 0.16),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.25),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: 1,
+                      left: 18,
+                      right: 18,
+                      child: Container(
+                        height: 1.1,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          color: Colors.white.withValues(alpha: 0.30),
+                        ),
+                      ),
+                    ),
+                    Center(
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 21,
+                              height: 21,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              '로그인',
+                              style: forestringTextStyle.copyWith(
+                                color: Colors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
-        child,
-      ],
+      ),
     );
   }
 }
@@ -665,7 +690,7 @@ class _QaEntryButton extends StatelessWidget {
       child: TextButton.icon(
         onPressed: onPressed,
         style: TextButton.styleFrom(
-          foregroundColor: Colors.white.withValues(alpha: 0.64),
+          foregroundColor: Colors.white.withValues(alpha: 0.62),
           padding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 11,
@@ -681,7 +706,7 @@ class _QaEntryButton extends StatelessWidget {
         label: Text(
           'QA 지점장으로 시작',
           style: forestringTextStyle.copyWith(
-            color: Colors.white.withValues(alpha: 0.64),
+            color: Colors.white.withValues(alpha: 0.62),
             fontSize: 13,
             fontWeight: FontWeight.w400,
           ),
