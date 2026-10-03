@@ -194,6 +194,7 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
             ),
       floatingActionButton: widget.profile.isMaster || widget.profile.isManager
           ? FloatingActionButton.extended(
+              heroTag: 'manager-teacher-registration-fab',
               backgroundColor: primaryColor,
               foregroundColor: Colors.white,
               onPressed: _openRegistration,
