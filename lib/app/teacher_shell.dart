@@ -19,7 +19,7 @@ class TeacherShell extends StatefulWidget {
 }
 
 class _TeacherShellState extends State<TeacherShell> {
-  static const int _scheduleIndex = 0;
+  static const int _scheduleIndex = 1;
 
   int _currentIndex = _scheduleIndex;
 
@@ -50,10 +50,10 @@ class _TeacherShellState extends State<TeacherShell> {
         body: IndexedStack(
           index: _currentIndex,
           children: [
-            TeacherHomePage(
+            WeekSchedulePage(
               profile: widget.profile,
             ),
-            WeekSchedulePage(
+            TeacherHomePage(
               profile: widget.profile,
             ),
             TeacherMyPage(
@@ -95,14 +95,14 @@ class _TeacherShellState extends State<TeacherShell> {
             labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
             destinations: const [
               NavigationDestination(
+                icon: Icon(Icons.view_week_outlined),
+                selectedIcon: Icon(Icons.view_week_rounded),
+                label: '주간',
+              ),
+              NavigationDestination(
                 icon: Icon(Icons.calendar_month_outlined),
                 selectedIcon: Icon(Icons.calendar_month_rounded),
                 label: '일정',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.calendar_view_week_outlined),
-                selectedIcon: Icon(Icons.calendar_view_week_rounded),
-                label: '주간',
               ),
               NavigationDestination(
                 icon: Icon(Icons.person_outline_rounded),
