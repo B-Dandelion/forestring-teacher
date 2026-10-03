@@ -1883,7 +1883,10 @@ class _StudentManagementDetailPageState
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('퇴원 확정'),
           ),
         ],
@@ -1921,7 +1924,10 @@ class _StudentManagementDetailPageState
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: primaryColor),
+            style: FilledButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('예약 취소'),
           ),
         ],
@@ -2276,6 +2282,7 @@ class _FlexRightCountPageState extends State<_FlexRightCountPage> {
                   Navigator.of(confirmContext).pop(true),
               style: FilledButton.styleFrom(
                 backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
               ),
               child: const Text('감액'),
             ),
