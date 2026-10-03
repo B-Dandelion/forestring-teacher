@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/forestring_theme.dart';
+import '../../../../core/theme/student_accent.dart';
 import '../../domain/lesson.dart';
 
 class LessonCalendarAppointment extends StatelessWidget {
@@ -43,13 +43,5 @@ class LessonCalendarAppointment extends StatelessWidget {
     );
   }
 
-  Color get _backgroundColor {
-    if (lesson.type == LessonType.makeup) {
-      return secondaryColor;
-    }
-    if (lesson.isRescheduled) {
-      return const Color(0xff4F7E67);
-    }
-    return primaryColor;
-  }
+  Color get _backgroundColor => studentAccentColor(lesson.studentId);
 }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 import '../../../core/theme/forestring_theme.dart';
+import '../../../core/theme/student_accent.dart';
 import '../../../core/widgets/forestring_navigation.dart';
 import '../../auth/domain/current_profile.dart';
 import '../domain/lesson.dart';
@@ -271,12 +272,6 @@ class _LessonDataSource extends CalendarDataSource {
       return personalScheduleColor;
     }
     final lesson = (entry as _LessonMeeting).lesson;
-    if (lesson.type == LessonType.makeup) {
-      return secondaryColor;
-    }
-    if (lesson.isRescheduled) {
-      return const Color(0xff4F7E67);
-    }
-    return primaryColor;
+    return studentAccentColor(lesson.studentId);
   }
 }
