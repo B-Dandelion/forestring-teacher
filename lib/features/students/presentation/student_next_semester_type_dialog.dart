@@ -6,7 +6,7 @@ import '../../../core/theme/forestring_theme.dart';
 import '../data/student_management_repository.dart';
 import '../data/student_next_semester_type_repository.dart';
 
-Future<bool?> showStudentNextSemesterTypePage({
+Future<bool?> showStudentNextSemesterTypeDialog({
   required BuildContext context,
   required ManagedStudent student,
   StudentNextSemesterTypeRepository? repository,
