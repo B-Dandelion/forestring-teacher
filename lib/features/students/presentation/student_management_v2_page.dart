@@ -1961,7 +1961,7 @@ class _StudentManagementDetailPageState
 
   Future<void> _changeFlexRightCount() async {
     final result = await Navigator.of(context)
-        .push<FlexRightCountChangeResult>(
+        .push<FlexPlanSettingsChangeResult>(
       MaterialPageRoute(
         builder: (_) => _FlexRightCountPage(
           student: _student,
@@ -1973,8 +1973,8 @@ class _StudentManagementDetailPageState
     await _refreshStudent();
     if (!mounted) return;
     _showMessage(
-      '수업권이 ${result.newBaseRightCount}개로 변경되었습니다. '
-      '취소 가능 ${result.newCancellationLimit}회 · 이월 상한 ${result.newCarryoverCap}개',
+      '수업권 ${result.newBaseRightCount}개 · '
+      '${result.newDurationMinutes}분으로 변경되었습니다.',
     );
   }
 
@@ -2334,6 +2334,7 @@ class _FlexRightCountPage extends StatefulWidget {
 
 class _FlexRightCountPageState extends State<_FlexRightCountPage> {
   late final TextEditingController _countController;
+  late int _durationMinutes;
   bool _saving = false;
   String? _validationMessage;
 
@@ -2346,6 +2347,7 @@ class _FlexRightCountPageState extends State<_FlexRightCountPage> {
     _countController = TextEditingController(
       text: widget.student.flexBaseRightCount?.toString() ?? '',
     )..addListener(_changed);
+    _durationMinutes = widget.student.flexDurationMinutes ?? 30;
   }
 
   @override
@@ -2363,39 +2365,41 @@ class _FlexRightCountPageState extends State<_FlexRightCountPage> {
   }
 
   Future<void> _save() async {
-    final current = widget.student.flexBaseRightCount;
-    final next = _enteredCount;
+    final currentCount = widget.student.flexBaseRightCount;
+    final currentDuration = widget.student.flexDurationMinutes;
+    final nextCount = _enteredCount;
 
-    if (current == null) {
+    if (currentCount == null || currentDuration == null) {
       setState(
         () => _validationMessage =
-            '현재 학기의 자율 수업권 설정을 찾지 못했습니다.',
+            '현재 학기의 자율 수업 설정을 찾지 못했습니다.',
       );
       return;
     }
-    if (next == null || next <= 0) {
+    if (nextCount == null || nextCount <= 0) {
       setState(
         () => _validationMessage =
             '수업권 개수를 1개 이상 입력해주세요.',
       );
       return;
     }
-    if (next == current) {
+    if (nextCount == currentCount &&
+        _durationMinutes == currentDuration) {
       setState(
         () => _validationMessage =
-            '현재 수업권 개수와 동일합니다.',
+            '현재 수업권 개수와 수업 길이가 동일합니다.',
       );
       return;
     }
 
-    if (next < current) {
+    if (nextCount < currentCount) {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (confirmContext) => AlertDialog(
           title: const Text('수업권 감액 확인'),
           content: Text(
             '${widget.student.displayName} 학생의 수업권을 '
-            '$current개에서 $next개로 줄일까요?\n\n'
+            '$currentCount개에서 $nextCount개로 줄일까요?\n\n'
             '사용 가능한 수업권부터 회수되며, '
             '이미 사용한 취소 횟수는 유지됩니다.',
           ),
@@ -2427,9 +2431,10 @@ class _FlexRightCountPageState extends State<_FlexRightCountPage> {
 
     try {
       final result =
-          await widget.repository.changeFlexBaseRightCount(
+          await widget.repository.changeFlexPlanSettings(
         studentId: widget.student.id,
-        newBaseRightCount: next,
+        newBaseRightCount: nextCount,
+        newDurationMinutes: _durationMinutes,
       );
       if (!mounted) return;
       Navigator.of(context).pop(result);
@@ -2451,23 +2456,35 @@ class _FlexRightCountPageState extends State<_FlexRightCountPage> {
         entered == null ? null : entered ~/ 4;
 
     return _StudentEditScaffold(
-      title: '자율 수업권 관리',
+      title: '자율 수업 설정',
       saving: _saving,
-      actionLabel: '수업권 변경',
-      onSave: widget.student.flexBaseRightCount == null ? null : _save,
+      actionLabel: '설정 변경',
+      onSave: widget.student.flexBaseRightCount == null ||
+              widget.student.flexDurationMinutes == null
+          ? null
+          : _save,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _StudentEditHeader(
             student: widget.student,
             description:
-                '현재 학기의 기본 수업권 개수를 변경합니다.',
+                '현재 학기의 수업권 개수와 앞으로 사용할 수업권의 수업 길이를 변경합니다.',
           ),
           const SizedBox(height: 12),
           _StudentEditCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(
+                  '수업권 설정',
+                  style: forestringTextStyle.copyWith(
+                    color: primaryColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: _countController,
                   enabled: !_saving &&
@@ -2480,6 +2497,29 @@ class _FlexRightCountPageState extends State<_FlexRightCountPage> {
                       _studentEditDecoration('수업권 개수').copyWith(
                     suffixText: '개',
                   ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int>(
+                  initialValue: _durationMinutes,
+                  decoration:
+                      _studentEditDecoration('수업 길이'),
+                  items: const [15, 30, 45, 60]
+                      .map(
+                        (minutes) => DropdownMenuItem(
+                          value: minutes,
+                          child: Text('$minutes분'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: _saving
+                      ? null
+                      : (value) {
+                          if (value == null) return;
+                          setState(() {
+                            _durationMinutes = value;
+                            _validationMessage = null;
+                          });
+                        },
                 ),
                 if (entered != null && entered > 0) ...[
                   const SizedBox(height: 12),
@@ -2494,6 +2534,12 @@ class _FlexRightCountPageState extends State<_FlexRightCountPage> {
                 ],
               ],
             ),
+          ),
+          const SizedBox(height: 10),
+          const _StudentEditMessage(
+            message:
+                '이미 예약된 수업의 길이는 바뀌지 않습니다. '
+                '변경 이후 새로 예약하는 수업과, 기존 예약을 취소해 다시 사용할 수 있게 된 수업권에는 새 수업 길이가 적용됩니다.',
           ),
           if (_validationMessage != null) ...[
             const SizedBox(height: 10),
