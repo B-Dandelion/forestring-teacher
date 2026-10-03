@@ -20,10 +20,12 @@ class ForestringAppBar extends StatelessWidget
     super.key,
     this.title = '포레스트링',
     this.actions,
+    this.roundBottomCorners = false,
   });
 
   final String title;
   final List<Widget>? actions;
+  final bool roundBottomCorners;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -36,6 +38,13 @@ class ForestringAppBar extends StatelessWidget
       surfaceTintColor: Colors.transparent,
       centerTitle: true,
       elevation: 0,
+      shape: roundBottomCorners
+          ? const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(
+                bottom: Radius.circular(22),
+              ),
+            )
+          : null,
       title: Text(
         title,
         style: const TextStyle(
