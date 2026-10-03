@@ -507,9 +507,6 @@ class QaSandboxStore extends ChangeNotifier {
           profileIsActive: true,
           teacherId: teachers[i % teachers.length].$1,
           teacherName: teachers[i % teachers.length].$2,
-          enrolledOn: DateTime.now().subtract(
-            Duration(days: 120 + i * 83),
-          ),
           withdrawalDate: i == 9
               ? DateTime.now().add(const Duration(days: 18))
               : null,
@@ -822,7 +819,6 @@ class QaSandboxStore extends ChangeNotifier {
       teacherId: teacherId ?? source.teacherId,
       teacherName:
           replaceTeacherName ? teacherName : source.teacherName,
-      enrolledOn: source.enrolledOn,
       withdrawalDate: replaceWithdrawalDate
           ? withdrawalDate
           : source.withdrawalDate,
