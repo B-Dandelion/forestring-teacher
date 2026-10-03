@@ -117,7 +117,7 @@ class _LoginPageState extends State<LoginPage> {
                                   child: Align(
                                     alignment: compact
                                         ? Alignment.center
-                                        : const Alignment(0, 0.20),
+                                        : const Alignment(0, 0.42),
                                     child: _LoginBrand(
                                       compact: compact,
                                     ),
@@ -191,7 +191,7 @@ class _LoginBrand extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: compact ? 16 : 26),
+          SizedBox(height: compact ? 16 : 24),
           Text(
             '포레스트링 선생님',
             textAlign: TextAlign.center,
@@ -201,17 +201,6 @@ class _LoginBrand extends StatelessWidget {
               fontWeight: FontWeight.w500,
               height: 1.12,
               letterSpacing: -0.2,
-            ),
-          ),
-          SizedBox(height: compact ? 7 : 10),
-          Text(
-            '수업과 일정을 한곳에서 편리하게 관리하세요',
-            textAlign: TextAlign.center,
-            style: forestringTextStyle.copyWith(
-              color: Colors.white.withValues(alpha: 0.62),
-              fontSize: compact ? 12 : 13,
-              fontWeight: FontWeight.w300,
-              height: 1.45,
             ),
           ),
         ],
