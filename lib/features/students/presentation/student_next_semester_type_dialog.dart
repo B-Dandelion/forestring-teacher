@@ -956,19 +956,6 @@ class _StudentNextSemesterTypePageState
         .toList();
   }
 
-  String _weekdayLabel(int weekday) {
-    return switch (weekday) {
-      1 => '월요일',
-      2 => '화요일',
-      3 => '수요일',
-      4 => '목요일',
-      5 => '금요일',
-      6 => '토요일',
-      7 => '일요일',
-      _ => '요일 확인 필요',
-    };
-  }
-
   Widget _sectionTitle(String title) {
     return Text(
       title,
