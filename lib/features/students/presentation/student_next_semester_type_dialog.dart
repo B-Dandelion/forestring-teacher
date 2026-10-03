@@ -9,12 +9,16 @@ import '../data/student_next_semester_type_repository.dart';
 Future<bool?> showStudentNextSemesterTypeDialog({
   required BuildContext context,
   required ManagedStudent student,
+  StudentNextSemesterTypeRepository? repository,
 }) {
   return showDialog<bool>(
     context: context,
     useRootNavigator: true,
     barrierDismissible: false,
-    builder: (_) => StudentNextSemesterTypeDialog(student: student),
+    builder: (_) => StudentNextSemesterTypeDialog(
+      student: student,
+      repository: repository,
+    ),
   );
 }
 
@@ -22,9 +26,11 @@ class StudentNextSemesterTypeDialog extends StatefulWidget {
   const StudentNextSemesterTypeDialog({
     super.key,
     required this.student,
+    this.repository,
   });
 
   final ManagedStudent student;
+  final StudentNextSemesterTypeRepository? repository;
 
   @override
   State<StudentNextSemesterTypeDialog> createState() =>
@@ -33,7 +39,7 @@ class StudentNextSemesterTypeDialog extends StatefulWidget {
 
 class _StudentNextSemesterTypeDialogState
     extends State<StudentNextSemesterTypeDialog> {
-  final _repository = StudentNextSemesterTypeRepository();
+  late final StudentNextSemesterTypeRepository _repository;
   final _rightCountController = TextEditingController();
 
   NextSemesterStudentTypePlan? _plan;
@@ -49,6 +55,8 @@ class _StudentNextSemesterTypeDialogState
   @override
   void initState() {
     super.initState();
+    _repository =
+        widget.repository ?? StudentNextSemesterTypeRepository();
     _load();
   }
 
