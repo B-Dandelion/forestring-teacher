@@ -1168,7 +1168,7 @@ class _StudentManagementDetailPageState
                   _detailRow(
                     icon: Icons.receipt_long_rounded,
                     title: '수업 내역',
-                    subtitle: '이번 학기 · 이전 학기 · 전체',
+                    subtitle: '예정 · 지난 수업 · 전체',
                     color: const Color(0xff166B56),
                     onTap: _openLessonHistory,
                   ),
@@ -1773,10 +1773,12 @@ class _StudentManagementDetailPageState
           ),
           if (value != null) ...[
             const SizedBox(width: 8),
-            Flexible(
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 170),
               child: Text(
                 value,
                 textAlign: TextAlign.right,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: forestringTextStyle.copyWith(
                   color: Colors.black54,
@@ -1786,14 +1788,15 @@ class _StudentManagementDetailPageState
               ),
             ),
           ],
-          if (onTap != null) ...[
-            const SizedBox(width: 5),
+          const SizedBox(width: 5),
+          if (onTap != null)
             Icon(
               Icons.chevron_right_rounded,
               color: color.withValues(alpha: 0.70),
               size: 20,
-            ),
-          ],
+            )
+          else
+            const SizedBox(width: 20),
         ],
       ),
     );
