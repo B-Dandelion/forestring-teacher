@@ -764,10 +764,6 @@ class _StudentNextSemesterTypePageState
             ],
           ),
         ),
-        if (_workHours.isNotEmpty) ...[
-          const SizedBox(height: 9),
-          _infoCard('다음 학기 시작일 기준 근무시간\n${_workHoursLabel()}'),
-        ],
         const SizedBox(height: 12),
         ...List.generate(
           _regularSchedules.length,
@@ -958,16 +954,6 @@ class _StudentNextSemesterTypePageState
           ),
         )
         .toList();
-  }
-
-  String _workHoursLabel() {
-    return _workHours
-        .map(
-          (window) =>
-              '${_weekdayLabel(window.weekday)} '
-              '${regularFormatMinutes(window.startMinutes)}~${regularFormatMinutes(window.endMinutes)}',
-        )
-        .join(' · ');
   }
 
   String _weekdayLabel(int weekday) {
