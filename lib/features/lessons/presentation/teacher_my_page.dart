@@ -350,25 +350,6 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
 
     final activeStudents =
         students.where((student) => student.isActive).toList();
-    final regularStudentCount =
-        activeStudents.where((student) => !student.isFlex).length;
-
-    final todayLessons = lessonController.lessonsOn(now);
-
-    final startOfWeek = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: now.weekday - DateTime.monday));
-    final endOfWeek = startOfWeek.add(const Duration(days: 7));
-
-    final thisWeekLessons = lessonController.visibleLessons.where(
-      (lesson) =>
-          !lesson.isCanceled &&
-          !lesson.startsAt.isBefore(startOfWeek) &&
-          lesson.startsAt.isBefore(endOfWeek),
-    );
-
     final monthStart = DateTime(now.year, now.month);
     final nextMonthStart = DateTime(now.year, now.month + 1);
 
@@ -416,13 +397,6 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
             children: [
               _profileCard(),
-              const SizedBox(height: 14),
-              _summaryGrid(
-                todayCount: todayLessons.length,
-                weekCount: thisWeekLessons.length,
-                activeStudentCount: activeStudents.length,
-                regularStudentCount: regularStudentCount,
-              ),
               const SizedBox(height: 14),
               _monthReportCard(
                 total: monthLessons.length,
@@ -589,102 +563,6 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                   style: forestringTextStyle.copyWith(
                     color: Colors.white70,
                     fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _summaryGrid({
-    required int todayCount,
-    required int weekCount,
-    required int activeStudentCount,
-    required int regularStudentCount,
-  }) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 1.85,
-      children: [
-        _metricCard(
-          icon: Icons.today_rounded,
-          value: '$todayCount',
-          label: '오늘 수업',
-        ),
-        _metricCard(
-          icon: Icons.date_range_rounded,
-          value: '$weekCount',
-          label: '이번 주 수업',
-        ),
-        _metricCard(
-          icon: Icons.people_alt_rounded,
-          value: '$activeStudentCount',
-          label: '활성 수강생',
-        ),
-        _metricCard(
-          icon: Icons.event_repeat_rounded,
-          value: '$regularStudentCount',
-          label: '정규 학생',
-        ),
-      ],
-    );
-  }
-
-  Widget _metricCard({
-    required IconData icon,
-    required String value,
-    required String label,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(17),
-        border: Border.all(
-          color: primaryColor.withValues(alpha: 0.08),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: const BoxDecoration(
-              color: Color(0xffE8F0E4),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: primaryColor,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: forestringTextStyle.copyWith(
-                    color: primaryColor,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  label,
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.black54,
-                    fontSize: 11,
                   ),
                 ),
               ],
