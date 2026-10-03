@@ -170,6 +170,7 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
           profile: widget.profile,
           initialStudent: student,
           repository: widget.repository,
+          branchRepository: widget.branchRepository,
           lessonRepository: widget.lessonRepository,
           nextSemesterRepository: widget.nextSemesterRepository,
           regularScheduleRepository: widget.regularScheduleRepository,
@@ -481,6 +482,7 @@ class StudentManagementDetailPage extends StatefulWidget {
     required this.profile,
     required this.initialStudent,
     this.repository,
+    this.branchRepository,
     this.lessonRepository,
     this.nextSemesterRepository,
     this.regularScheduleRepository,
@@ -490,6 +492,7 @@ class StudentManagementDetailPage extends StatefulWidget {
   final CurrentProfile profile;
   final ManagedStudent initialStudent;
   final StudentManagementRepository? repository;
+  final BranchRepository? branchRepository;
   final LessonRepository? lessonRepository;
   final StudentNextSemesterTypeRepository? nextSemesterRepository;
   final StudentRegularScheduleRepository? regularScheduleRepository;
@@ -1130,6 +1133,7 @@ class _StudentManagementDetailPageState
           student: _student,
           profile: widget.profile,
           repository: widget.lessonRepository,
+          branchRepository: widget.branchRepository,
         ),
       ),
     );
