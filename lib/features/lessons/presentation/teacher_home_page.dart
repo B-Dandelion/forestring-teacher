@@ -392,10 +392,10 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           color: secondaryColor,
           shape: BoxShape.circle,
         ),
-        markerSize: 5,
+        markerSize: 8,
         markersMaxCount: 1,
         markersAlignment: Alignment.bottomCenter,
-        markerMargin: const EdgeInsets.only(top: 1),
+        markerMargin: const EdgeInsets.only(top: 2),
       ),
       calendarBuilders: CalendarBuilders<Object>(
         headerTitleBuilder: (context, day) {
