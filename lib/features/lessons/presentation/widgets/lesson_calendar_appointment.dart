@@ -19,27 +19,28 @@ class LessonCalendarAppointment extends StatelessWidget {
     final backgroundColor = _backgroundColor;
 
     return Container(
-      alignment: Alignment.centerLeft,
+      alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(
-        horizontal: 2,
-        vertical: 1,
+        horizontal: 3,
+        vertical: 2,
       ),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(2),
       ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.centerLeft,
+      child: Center(
         child: Text(
           name,
-          maxLines: 1,
-          style: TextStyle(
+          maxLines: 2,
+          softWrap: true,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
             color: Colors.black,
             fontFamily: 'ELAND',
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: FontWeight.w500,
-            height: 1,
+            height: 1.05,
           ),
         ),
       ),
