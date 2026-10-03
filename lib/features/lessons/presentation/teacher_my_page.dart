@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -30,12 +31,14 @@ class TeacherMyPage extends StatefulWidget {
 
 class _TeacherMyPageState extends State<TeacherMyPage> {
   static const _profilePhotoKeyPrefix = 'teacher_profile_photo_v1';
+  static const _studentOrderKeyPrefix = 'teacher_student_order_v1';
 
   final TeacherRepository _repository = TeacherRepository();
   final ImagePicker _imagePicker = ImagePicker();
 
   File? _profilePhoto;
   List<AssignedStudentSummary> _students = const [];
+  List<String> _studentOrder = const [];
   bool _loadingStudents = true;
   String? _studentError;
 
@@ -43,6 +46,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
   void initState() {
     super.initState();
     _loadProfilePhoto();
+    _loadStudentOrder();
 
     if (widget.profile.isReviewAccount) {
       _loadingStudents = false;
@@ -51,6 +55,62 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
     }
   }
 
+  String get _studentOrderStorageKey =>
+      '$_studentOrderKeyPrefix:${widget.profile.id}';
+
+  Future<void> _loadStudentOrder() async {
+    final preferences = await SharedPreferences.getInstance();
+    final savedOrder = preferences.getStringList(_studentOrderStorageKey);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _studentOrder = savedOrder ?? const [];
+    });
+  }
+
+  List<AssignedStudentSummary> _applyStudentOrder(
+    List<AssignedStudentSummary> students,
+  ) {
+    if (students.isEmpty || _studentOrder.isEmpty) {
+      return List<AssignedStudentSummary>.from(students);
+    }
+
+    final byId = {
+      for (final student in students) student.id: student,
+    };
+    final ordered = <AssignedStudentSummary>[];
+
+    for (final studentId in _studentOrder) {
+      final student = byId.remove(studentId);
+      if (student != null) {
+        ordered.add(student);
+      }
+    }
+
+    ordered.addAll(byId.values);
+    return ordered;
+  }
+
+  Future<void> _saveStudentOrder(List<String> studentIds) async {
+    final normalized = studentIds.toSet().toList();
+
+    if (mounted) {
+      setState(() {
+        _studentOrder = normalized;
+      });
+    } else {
+      _studentOrder = normalized;
+    }
+
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setStringList(
+      _studentOrderStorageKey,
+      normalized,
+    );
+  }
   String get _profilePhotoStorageKey =>
       '$_profilePhotoKeyPrefix:${widget.profile.id}';
 
@@ -283,9 +343,10 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
     final accentController = context.watch<StudentAccentController>();
     final now = DateTime.now();
 
-    final students = widget.profile.isReviewAccount
+    final rawStudents = widget.profile.isReviewAccount
         ? _reviewStudents(lessonController)
         : _students;
+    final students = _applyStudentOrder(rawStudents);
 
     final activeStudents =
         students.where((student) => student.isActive).toList();
@@ -1336,6 +1397,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
     LessonController lessonController,
   ) async {
     final accentController = context.read<StudentAccentController>();
+    var orderedStudents = _applyStudentOrder(students);
 
     await showModalBottomSheet<void>(
       context: context,
@@ -1344,59 +1406,137 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
       builder: (sheetContext) {
         return ChangeNotifierProvider.value(
           value: accentController,
-          child: DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.82,
-          minChildSize: 0.55,
-          maxChildSize: 0.94,
-          builder: (context, scrollController) {
-            return Consumer<StudentAccentController>(
-              builder: (context, accentController, _) {
-                final accents = accentController.assignments(
-                  students.map((student) => student.id),
-                );
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              final accents = accentController.assignments(
+                orderedStudents.map((student) => student.id),
+              );
 
-                return ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 30),
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 38,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.black12,
-                          borderRadius: BorderRadius.circular(999),
+              return DraggableScrollableSheet(
+                expand: false,
+                initialChildSize: 0.82,
+                minChildSize: 0.55,
+                maxChildSize: 0.94,
+                builder: (context, scrollController) {
+                  return Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Container(
+                          width: 38,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.black12,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      '내 수강생',
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.black87,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '내 수강생',
+                                style: forestringTextStyle.copyWith(
+                                  color: Colors.black87,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '길게 눌러 순서 변경',
+                              style: forestringTextStyle.copyWith(
+                                color: Colors.black38,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    _studentListCard(
-                      students,
-                      lessonController,
-                      accentController,
-                      accents,
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-        ),
+                      Expanded(
+                        child: ReorderableListView.builder(
+                          scrollController: scrollController,
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 30),
+                          buildDefaultDragHandles: false,
+                          itemCount: orderedStudents.length,
+                          proxyDecorator: (child, index, animation) {
+                            return AnimatedBuilder(
+                              animation: animation,
+                              builder: (context, _) {
+                                final scale = 1 + (animation.value * 0.02);
+
+                                return Transform.scale(
+                                  scale: scale,
+                                  child: Material(
+                                    color: Colors.white,
+                                    elevation: 8 * animation.value,
+                                    borderRadius: BorderRadius.circular(18),
+                                    clipBehavior: Clip.antiAlias,
+                                    child: child,
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                          onReorder: (oldIndex, newIndex) {
+                            if (newIndex > oldIndex) {
+                              newIndex -= 1;
+                            }
+
+                            setModalState(() {
+                              final moved = orderedStudents.removeAt(oldIndex);
+                              orderedStudents.insert(newIndex, moved);
+                            });
+
+                            unawaited(
+                              _saveStudentOrder(
+                                orderedStudents
+                                    .map((student) => student.id)
+                                    .toList(),
+                              ),
+                            );
+                          },
+                          itemBuilder: (context, index) {
+                            final student = orderedStudents[index];
+                            final accentColor = accents[student.id] ??
+                                accentController.colorFor(student.id);
+
+                            return ReorderableDelayedDragStartListener(
+                              key: ValueKey(student.id),
+                              index: index,
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: primaryColor.withValues(
+                                      alpha: 0.07,
+                                    ),
+                                  ),
+                                ),
+                                child: _studentRow(
+                                  student,
+                                  lessonController,
+                                  accentColor,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
         );
       },
     );
   }
-
   Future<void> _showSettings() async {
     final accentController = context.read<StudentAccentController>();
 
