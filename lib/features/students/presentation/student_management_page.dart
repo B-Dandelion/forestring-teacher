@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../auth/domain/current_profile.dart';
+import '../../branches/data/branch_repository.dart';
+import '../../lessons/data/lesson_repository.dart';
+import '../data/student_admin_repository.dart';
+import '../data/student_management_repository.dart';
+import '../data/student_next_semester_type_repository.dart';
+import '../data/student_regular_schedule_repository.dart';
+import '../data/student_teacher_management_repository.dart';
 import 'student_management_v2_page.dart';
 
 /// Compatibility entry point used by the master/manager navigation.
@@ -12,12 +19,35 @@ class StudentManagementPage extends StatelessWidget {
   const StudentManagementPage({
     super.key,
     required this.profile,
+    this.repository,
+    this.branchRepository,
+    this.lessonRepository,
+    this.adminRepository,
+    this.nextSemesterRepository,
+    this.regularScheduleRepository,
+    this.teacherManagementRepository,
   });
 
   final CurrentProfile profile;
+  final StudentManagementRepository? repository;
+  final BranchRepository? branchRepository;
+  final LessonRepository? lessonRepository;
+  final StudentAdminRepository? adminRepository;
+  final StudentNextSemesterTypeRepository? nextSemesterRepository;
+  final StudentRegularScheduleRepository? regularScheduleRepository;
+  final StudentTeacherManagementRepository? teacherManagementRepository;
 
   @override
   Widget build(BuildContext context) {
-    return StudentManagementV2Page(profile: profile);
+    return StudentManagementV2Page(
+      profile: profile,
+      repository: repository,
+      branchRepository: branchRepository,
+      lessonRepository: lessonRepository,
+      adminRepository: adminRepository,
+      nextSemesterRepository: nextSemesterRepository,
+      regularScheduleRepository: regularScheduleRepository,
+      teacherManagementRepository: teacherManagementRepository,
+    );
   }
 }
