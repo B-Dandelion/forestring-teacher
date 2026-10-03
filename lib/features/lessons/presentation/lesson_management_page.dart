@@ -435,6 +435,7 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
               ],
             ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'manager-lesson-registration-fab',
         onPressed: _loading ? null : _openMakeup,
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
