@@ -204,6 +204,21 @@ Future<TimeOfDay?> _showSlotSheet({
               );
               return;
             }
+
+            final selectable = slots.any(
+              (slot) =>
+                  slot.available &&
+                  _sameTime(slot.time, parsed),
+            );
+            if (!selectable) {
+              setSheetState(
+                () => directErrorText =
+                    '선택 가능한 시간 중에서 입력해주세요.',
+              );
+              return;
+            }
+
+            FocusManager.instance.primaryFocus?.unfocus();
             Navigator.of(sheetContext).pop(parsed);
           }
 
@@ -596,7 +611,10 @@ class _TimeSlotSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(11),
               child: InkWell(
                 onTap: slot.available
-                    ? () => onSelected(slot.time)
+                    ? () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        onSelected(slot.time);
+                      }
                     : null,
                 borderRadius: BorderRadius.circular(11),
                 child: Container(
