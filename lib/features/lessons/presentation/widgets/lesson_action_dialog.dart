@@ -16,6 +16,7 @@ Future<void> showLessonActionDialog({
     await showLessonActivityDetailSheet(
       context: context,
       lesson: lesson,
+      repository: controller.repository,
     );
     return;
   }
@@ -337,6 +338,33 @@ Future<void> showLessonActionDialog({
                         ],
                       ),
                       const SizedBox(height: 18),
+                      OutlinedButton.icon(
+                        onPressed: isSaving
+                            ? null
+                            : () => showLessonActivityDetailSheet(
+                                  context: dialogBodyContext,
+                                  lesson: lesson,
+                                  repository: controller.repository,
+                                ),
+                        icon: const Icon(
+                          Icons.history_rounded,
+                          size: 18,
+                        ),
+                        label: const Text('수업 변동 내역'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: primaryColor,
+                          backgroundColor:
+                              primaryColor.withValues(alpha: 0.035),
+                          side: BorderSide(
+                            color: primaryColor.withValues(alpha: 0.12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 9),
                       Row(
                         children: [
                           Expanded(
