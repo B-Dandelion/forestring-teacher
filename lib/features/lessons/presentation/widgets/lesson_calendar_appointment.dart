@@ -7,9 +7,11 @@ class LessonCalendarAppointment extends StatelessWidget {
   const LessonCalendarAppointment({
     super.key,
     required this.lesson,
+    this.accentColor,
   });
 
   final Lesson lesson;
+  final Color? accentColor;
 
   @override
   Widget build(BuildContext context) {
@@ -43,5 +45,6 @@ class LessonCalendarAppointment extends StatelessWidget {
     );
   }
 
-  Color get _backgroundColor => studentAccentColor(lesson.studentId);
+  Color get _backgroundColor =>
+      accentColor ?? studentAccentColor(lesson.studentId);
 }

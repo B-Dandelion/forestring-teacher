@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../core/theme/forestring_theme.dart';
+import '../../../core/theme/student_accent.dart';
 import '../../auth/domain/current_profile.dart';
 import '../domain/lesson.dart';
 import 'lesson_controller.dart';
@@ -583,6 +584,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
     BuildContext context,
     LessonController controller,
     List<Object> entries,
+    Map<String, Color> studentAccents,
   ) {
     if (controller.isLoading &&
         controller.lessons.isEmpty &&
@@ -613,6 +615,8 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               lesson: entries[i] as Lesson,
               personName:
                   (entries[i] as Lesson).studentName ?? '학생',
+              accentColor:
+                  studentAccents[(entries[i] as Lesson).studentId],
               onTap: () => showLessonInfoDialog(
                 context: context,
                 lesson: entries[i] as Lesson,
@@ -642,6 +646,10 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             : (b as TeacherBlockedPeriod).startsAt;
         return aStart.compareTo(bStart);
       });
+
+    final studentAccents = buildStudentAccentAssignments(
+      controller.visibleLessons.map((lesson) => lesson.studentId),
+    );
 
     final now = DateTime.now();
     final firstDay = DateTime(now.year, now.month - 2, 1);
@@ -720,6 +728,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                       context,
                       controller,
                       selectedEntries,
+                      studentAccents,
                     ),
                   ],
                 ),

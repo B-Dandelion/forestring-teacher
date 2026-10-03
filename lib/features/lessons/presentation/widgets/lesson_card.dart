@@ -10,11 +10,13 @@ class LessonCard extends StatelessWidget {
     super.key,
     required this.lesson,
     required this.personName,
+    this.accentColor,
     this.onTap,
   });
 
   final Lesson lesson;
   final String personName;
+  final Color? accentColor;
   final VoidCallback? onTap;
 
   @override
@@ -24,9 +26,9 @@ class LessonCard extends StatelessWidget {
     final badge = lesson.changeBadgeLabel;
     final badgeColor =
         lesson.isStudentRebooked ? secondaryColor : primaryColor;
-    final accentColor = lesson.isCanceled
+    final resolvedAccentColor = lesson.isCanceled
         ? Colors.black38
-        : studentAccentColor(lesson.studentId);
+        : accentColor ?? studentAccentColor(lesson.studentId);
 
     return Material(
       color: Colors.transparent,
@@ -53,7 +55,7 @@ class LessonCard extends StatelessWidget {
                 Container(
                   width: 4,
                   decoration: BoxDecoration(
-                    color: accentColor,
+                    color: resolvedAccentColor,
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(16),
                       bottomLeft: Radius.circular(16),

@@ -25,10 +25,19 @@ class WeekSchedulePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = context.watch<LessonController>();
     final teacherId = controller.selectedTeacherId ?? profile.id;
+    final studentAccents = buildStudentAccentAssignments(
+      controller.visibleLessons.map((lesson) => lesson.studentId),
+    );
     final meetings = <Object>[
       ...controller.visibleLessons
           .where((lesson) => !lesson.isCanceled)
-          .map((lesson) => _LessonMeeting(lesson)),
+          .map(
+            (lesson) => _LessonMeeting(
+              lesson,
+              studentAccents[lesson.studentId] ??
+                  studentAccentColor(lesson.studentId),
+            ),
+          ),
       ...controller.visibleBlockedPeriods.map(
         (period) => _BlockedMeeting(period),
       ),
@@ -103,6 +112,7 @@ class WeekSchedulePage extends StatelessWidget {
 
                           return LessonCalendarAppointment(
                             lesson: meeting.lesson,
+                            accentColor: meeting.accentColor,
                           );
                         },
                         specialRegions: _timeRegions(
@@ -223,9 +233,13 @@ class WeekSchedulePage extends StatelessWidget {
 }
 
 class _LessonMeeting {
-  const _LessonMeeting(this.lesson);
+  const _LessonMeeting(
+    this.lesson,
+    this.accentColor,
+  );
 
   final Lesson lesson;
+  final Color accentColor;
 }
 
 class _BlockedMeeting {
@@ -271,7 +285,6 @@ class _LessonDataSource extends CalendarDataSource {
     if (entry is _BlockedMeeting) {
       return personalScheduleColor;
     }
-    final lesson = (entry as _LessonMeeting).lesson;
-    return studentAccentColor(lesson.studentId);
+    return (entry as _LessonMeeting).accentColor;
   }
 }
