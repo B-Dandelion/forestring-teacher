@@ -189,29 +189,39 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
       builder: (sheetContext) {
         return SafeArea(
           top: false,
-          child: Container(
-            margin: const EdgeInsets.all(12),
-            padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
-            decoration: BoxDecoration(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Material(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
-            ),
-            child: ListTile(
-              leading: const Icon(
-                Icons.photo_library_outlined,
-                color: primaryColor,
-              ),
-              title: const Text('앨범에서 사진 선택'),
-              onTap: () async {
-                Navigator.of(sheetContext).pop();
-                await Future<void>.delayed(
-                  const Duration(milliseconds: 250),
-                );
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.photo_library_outlined,
+                    color: primaryColor,
+                  ),
+                  title: Text(
+                    '앨범에서 사진 선택',
+                    style: forestringTextStyle.copyWith(
+                      color: Colors.black87,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    await Future<void>.delayed(
+                      const Duration(milliseconds: 250),
+                    );
 
-                if (mounted) {
-                  await _pickProfilePhoto();
-                }
-              },
+                    if (mounted) {
+                      await _pickProfilePhoto();
+                    }
+                  },
+                ),
+              ),
             ),
           ),
         );
@@ -1388,16 +1398,17 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
       builder: (sheetContext) {
         return SafeArea(
           top: false,
-          child: Container(
-            margin: const EdgeInsets.all(12),
-            padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
-            decoration: BoxDecoration(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Material(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                 if (_profilePhoto != null) ...[
                   ListTile(
                     leading: const Icon(
@@ -1467,7 +1478,9 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                     await context.read<AuthController>().signOut();
                   },
                 ),
-              ],
+                  ],
+                ),
+              ),
             ),
           ),
         );
