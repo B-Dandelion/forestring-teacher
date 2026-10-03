@@ -465,13 +465,16 @@ class QaTeacherRepository extends TeacherRepository {
                 DateTime(now.year, now.month - 2, 1),
             isActive: student.isActive,
             regularSchedules: student.isRegular
-                ? const [
-                    AssignedStudentRegularSchedule(
-                      weekday: DateTime.thursday,
-                      startTime: '17:00',
-                      durationMinutes: 30,
-                    ),
-                  ]
+                ? (store.regularSchedules[student.id] ?? const [])
+                    .map(
+                      (schedule) => AssignedStudentRegularSchedule(
+                        weekday: schedule.weekday,
+                        startTime:
+                            _qaMinutesText(schedule.startMinutes),
+                        durationMinutes: schedule.durationMinutes,
+                      ),
+                    )
+                    .toList()
                 : const [],
             flexBaseRightCount: student.flexBaseRightCount,
           ),
@@ -1355,4 +1358,11 @@ int _qaTimeMinutes(String value) {
   if (parts.length < 2) return 0;
   return (int.tryParse(parts[0]) ?? 0) * 60 +
       (int.tryParse(parts[1]) ?? 0);
+}
+
+
+String _qaMinutesText(int minutes) {
+  final hour = (minutes ~/ 60).toString().padLeft(2, '0');
+  final minute = (minutes % 60).toString().padLeft(2, '0');
+  return '$hour:$minute';
 }
