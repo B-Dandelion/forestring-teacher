@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/student_accent.dart';
 import '../../domain/lesson.dart';
+import '../lesson_visual_style.dart';
 
 class LessonCalendarAppointment extends StatelessWidget {
   const LessonCalendarAppointment({
@@ -16,37 +16,55 @@ class LessonCalendarAppointment extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = lesson.studentName ?? '학생';
-    final backgroundColor = _backgroundColor;
+    final statusColor = lessonStatusAccentColor(lesson);
+    final backgroundColor = accentColor == null
+        ? lessonStatusSurfaceColor(lesson)
+        : Color.lerp(accentColor, Colors.white, 0.30)!;
 
     return Container(
-      alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 3,
-        vertical: 2,
-      ),
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.fromLTRB(4, 2, 3, 2),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(2),
-      ),
-      child: Center(
-        child: Text(
-          name,
-          maxLines: 2,
-          softWrap: true,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.black,
-            fontFamily: 'ELAND',
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            height: 1.05,
+        borderRadius: BorderRadius.circular(4),
+        border: Border(
+          left: BorderSide(
+            color: statusColor,
+            width: 3,
           ),
         ),
       ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontFamily: 'ELAND',
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              height: 1,
+            ),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            lessonStatusShortLabel(lesson),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: statusColor,
+              fontFamily: 'ELAND',
+              fontSize: 8,
+              fontWeight: FontWeight.w500,
+              height: 1,
+            ),
+          ),
+        ],
+      ),
     );
   }
-
-  Color get _backgroundColor =>
-      accentColor ?? studentAccentColor(lesson.studentId);
 }
