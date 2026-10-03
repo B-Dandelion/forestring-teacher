@@ -356,7 +356,7 @@ class _StudentTeacherChangePageState
       child: Text(
         message,
         style: forestringTextStyle.copyWith(
-          color: isError ? Colors.redAccent : Colors.black74,
+          color: isError ? Colors.redAccent : Colors.black87,
           fontSize: 12,
           height: 1.45,
         ),
