@@ -1059,11 +1059,6 @@ class _RegularScheduleAddPageState extends State<_RegularScheduleAddPage> {
     );
   }
 
-  String _formatMinutes(int minutes) {
-    final hour = (minutes ~/ 60).toString().padLeft(2, '0');
-    final minute = (minutes % 60).toString().padLeft(2, '0');
-    return '$hour:$minute';
-  }
 }
 
 class _RegularWeekdaySelector extends StatelessWidget {
@@ -2152,9 +2147,4 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
     );
   }
 
-  String _formatMinutes(int minutes) {
-    final hour = (minutes ~/ 60).toString().padLeft(2, '0');
-    final minute = (minutes % 60).toString().padLeft(2, '0');
-    return '$hour:$minute';
-  }
 }
