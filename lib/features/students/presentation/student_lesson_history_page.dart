@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../../auth/domain/current_profile.dart';
+import '../../branches/data/branch_repository.dart';
 import '../../lessons/data/lesson_repository.dart';
 import '../../lessons/domain/lesson.dart';
 import '../../lessons/presentation/lesson_controller.dart';
@@ -17,11 +18,13 @@ class StudentLessonHistoryPage extends StatefulWidget {
     required this.student,
     this.profile,
     this.repository,
+    this.branchRepository,
   });
 
   final ManagedStudent student;
   final CurrentProfile? profile;
   final LessonRepository? repository;
+  final BranchRepository? branchRepository;
 
   @override
   State<StudentLessonHistoryPage> createState() =>
@@ -45,7 +48,11 @@ class _StudentLessonHistoryPageState
     _repository = widget.repository ?? LessonRepository();
     final profile = widget.profile;
     if (profile != null) {
-      _actionController = LessonController(_repository, profile);
+      _actionController = LessonController(
+        _repository,
+        profile,
+        branchRepository: widget.branchRepository,
+      );
       _actionControllerInitialization = _actionController!.initialize();
     }
     _load();
