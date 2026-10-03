@@ -599,13 +599,19 @@ class QaSandboxStore extends ChangeNotifier {
           final lessonId =
               'qa-regular-lesson-${student.id}-${schedule.slotId}-$week';
 
+          final isQaChangedLesson =
+              student.id == 'qa-student-2' && week == 1;
+          final visibleStartsAt = isQaChangedLesson
+              ? startsAt.add(const Duration(hours: 1))
+              : startsAt;
+
           result.add(
             Lesson(
               id: lessonId,
               studentId: student.id,
               teacherId: teacher.id,
-              startsAt: startsAt,
-              endsAt: startsAt.add(
+              startsAt: visibleStartsAt,
+              endsAt: visibleStartsAt.add(
                 Duration(minutes: schedule.durationMinutes),
               ),
               durationMinutes: schedule.durationMinutes,
@@ -613,9 +619,7 @@ class QaSandboxStore extends ChangeNotifier {
               status: LessonStatus.scheduled,
               occurrenceAt: startsAt,
               rescheduledBy:
-                  student.id == 'qa-student-2' && week == 1
-                      ? qaManagerProfileId
-                      : null,
+                  isQaChangedLesson ? qaManagerProfileId : null,
               lessonRightId:
                   'qa-right-${student.id}-${schedule.slotId}-$week',
               branchId: qaManagerBranchId,
