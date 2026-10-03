@@ -7,6 +7,7 @@ import '../../features/semesters/domain/managed_semester.dart';
 import '../../features/students/data/student_management_repository.dart';
 import '../../features/students/data/student_regular_schedule_repository.dart';
 import '../../features/teachers/data/teacher_repository.dart';
+import 'qa_sandbox_guard.dart';
 
 const qaManagerBranchId = 'qa-manager-branch';
 const qaManagerProfileId = 'qa-manager-profile';
@@ -18,6 +19,12 @@ const qaManagerProfileId = 'qa-manager-profile';
 /// instance so mutations are visible across screens during the same session.
 class QaSandboxStore extends ChangeNotifier {
   QaSandboxStore() {
+    QaSandboxGuard.ensureEnabled();
+    reset();
+  }
+
+  @visibleForTesting
+  QaSandboxStore.forTesting() {
     reset();
   }
 
