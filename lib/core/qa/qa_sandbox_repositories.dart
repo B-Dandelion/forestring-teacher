@@ -371,6 +371,7 @@ class QaStudentManagementRepository extends StudentManagementRepository {
       profileIsActive: profileIsActive ?? source.profileIsActive,
       teacherId: source.teacherId,
       teacherName: source.teacherName,
+      enrolledOn: source.enrolledOn,
       withdrawalDate: replaceWithdrawalDate
           ? withdrawalDate
           : source.withdrawalDate,
@@ -1211,6 +1212,7 @@ class QaStudentAdminRepository extends StudentAdminRepository {
         studentType: studentType,
         status: 'active',
         profileIsActive: true,
+        enrolledOn: DateTime.now(),
         flexBaseRightCount: studentType == 'flex' ? 4 : null,
         flexDurationMinutes: studentType == 'flex' ? 30 : null,
       ),
@@ -1242,6 +1244,7 @@ class QaStudentAdminRepository extends StudentAdminRepository {
         profileIsActive: student.profileIsActive,
         teacherId: teacher.id,
         teacherName: teacher.displayName,
+        enrolledOn: student.enrolledOn,
         withdrawalDate: student.withdrawalDate,
         flexBaseRightCount: baseRightCount,
         flexDurationMinutes: durationMinutes,
@@ -1279,6 +1282,7 @@ class QaStudentAdminRepository extends StudentAdminRepository {
         profileIsActive: student.profileIsActive,
         teacherId: teacher.id,
         teacherName: teacher.displayName,
+        enrolledOn: student.enrolledOn,
         withdrawalDate: student.withdrawalDate,
       ),
     );
