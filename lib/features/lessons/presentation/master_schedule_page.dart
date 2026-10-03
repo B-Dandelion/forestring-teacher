@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
+import '../../../core/qa/qa_sandbox_repositories.dart';
+import '../../../core/qa/qa_sandbox_store.dart';
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/widgets/forestring_navigation.dart';
 import '../../auth/domain/current_profile.dart';
@@ -34,6 +36,8 @@ class MasterSchedulePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<LessonController>();
+    final qaStore =
+        isQaSandbox ? context.read<QaSandboxStore>() : null;
     final selectedBranchId = controller.selectedBranchId;
     final selectedTeacherId = controller.selectedTeacherId;
     final meetings = <Object>[
@@ -77,7 +81,6 @@ class MasterSchedulePage extends StatelessWidget {
             label: '메인 페이지',
             onTap: () => Navigator.of(context).pop(),
           ),
-          if (!isQaSandbox) ...[
           ForestringDrawerItem(
             icon: Icons.calendar_month_outlined,
             label: '수업 관리',
@@ -90,80 +93,91 @@ class MasterSchedulePage extends StatelessWidget {
                     profile: profile,
                     controller: controller,
                     initialBranchId: controller.selectedBranchId,
+                    repository: qaStore == null
+                        ? null
+                        : QaLessonRepository(qaStore),
+                    semesterRepository: qaStore == null
+                        ? null
+                        : QaSemesterRepository(qaStore),
+                    branchRepository: qaStore == null
+                        ? null
+                        : QaBranchRepository(qaStore),
                   ),
                 ),
               );
             },
           ),
-          ForestringDrawerItem(
-            icon: Icons.people_alt_outlined,
-            label: '수강생 관리',
-            onTap: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => StudentManagementPage(
-                    profile: profile,
-                  ),
-                ),
-              );
-            },
-          ),
-          ForestringDrawerItem(
-            icon: Icons.co_present_outlined,
-            label: '선생님 관리',
-            onTap: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => TeacherManagementPage(
-                    profile: profile,
-                  ),
-                ),
-              );
-            },
-          ),
-          if (profile.isMaster)
+          if (!isQaSandbox) ...[
             ForestringDrawerItem(
-              icon: Icons.admin_panel_settings_outlined,
-              label: '지점장 관리',
+              icon: Icons.people_alt_outlined,
+              label: '수강생 관리',
               onTap: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => const ManagerManagementPage(),
-                  ),
-                );
-              },
-            ),
-          if (profile.isMaster)
-            ForestringDrawerItem(
-              icon: Icons.storefront_outlined,
-              label: '지점 관리',
-              onTap: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => BranchManagementPage(
+                    builder: (_) => StudentManagementPage(
                       profile: profile,
                     ),
                   ),
                 );
               },
             ),
-          if (profile.isMaster)
             ForestringDrawerItem(
-              icon: Icons.event_note_outlined,
-              label: '학기 관리',
+              icon: Icons.co_present_outlined,
+              label: '선생님 관리',
               onTap: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => const SemesterManagementPage(),
+                    builder: (_) => TeacherManagementPage(
+                      profile: profile,
+                    ),
                   ),
                 );
               },
             ),
+            if (profile.isMaster)
+              ForestringDrawerItem(
+                icon: Icons.admin_panel_settings_outlined,
+                label: '지점장 관리',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ManagerManagementPage(),
+                    ),
+                  );
+                },
+              ),
+            if (profile.isMaster)
+              ForestringDrawerItem(
+                icon: Icons.storefront_outlined,
+                label: '지점 관리',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => BranchManagementPage(
+                        profile: profile,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            if (profile.isMaster)
+              ForestringDrawerItem(
+                icon: Icons.event_note_outlined,
+                label: '학기 관리',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const SemesterManagementPage(),
+                    ),
+                  );
+                },
+              ),
           ],
         ],
         onLogout: () async {
