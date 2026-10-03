@@ -563,9 +563,10 @@ class QaSandboxStore extends ChangeNotifier {
           regularSchedules[student.id] ?? const <ManagedRegularSchedule>[];
 
       for (final schedule in schedules) {
-        final teacher = teachers
-            .where((item) => item.id == schedule.teacherId)
-            .firstOrNull;
+        final teacher = _findTeacher(
+          teachers,
+          schedule.teacherId,
+        );
         if (teacher == null) continue;
 
         for (var week = -2; week <= 8; week++) {
@@ -619,9 +620,10 @@ class QaSandboxStore extends ChangeNotifier {
         studentIndex < flexStudents.length;
         studentIndex++) {
       final student = flexStudents[studentIndex];
-      final teacher = teachers
-          .where((item) => item.id == student.teacherId)
-          .firstOrNull;
+      final teacher = _findTeacher(
+        teachers,
+        student.teacherId,
+      );
       if (teacher == null) continue;
 
       for (var week = -1; week <= 4; week++) {
@@ -847,6 +849,17 @@ class QaSandboxStore extends ChangeNotifier {
       cancellationReason:
           cancellationReason ?? source.cancellationReason,
     );
+  }
+
+  static ManagedTeacher? _findTeacher(
+    List<ManagedTeacher> teachers,
+    String? teacherId,
+  ) {
+    if (teacherId == null) return null;
+    for (final teacher in teachers) {
+      if (teacher.id == teacherId) return teacher;
+    }
+    return null;
   }
 
   static DateTime _dateOnly(DateTime value) =>
