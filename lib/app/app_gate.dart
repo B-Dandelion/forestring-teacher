@@ -13,6 +13,7 @@ import '../features/lessons/data/lesson_repository.dart';
 import '../features/lessons/data/review_lesson_repository.dart';
 import '../features/lessons/presentation/lesson_controller.dart';
 import '../features/lessons/presentation/master_schedule_page.dart';
+import 'manager_shell.dart';
 import 'teacher_shell.dart';
 
 class AppGate extends StatelessWidget {
@@ -75,9 +76,15 @@ class AppGate extends StatelessWidget {
     }
 
     return switch (profile.role) {
-      AppRole.master || AppRole.manager => _LessonEntry(
+      AppRole.master => _LessonEntry(
           profile: profile,
           child: MasterSchedulePage(
+            profile: profile,
+          ),
+        ),
+      AppRole.manager => _LessonEntry(
+          profile: profile,
+          child: ManagerShell(
             profile: profile,
           ),
         ),
