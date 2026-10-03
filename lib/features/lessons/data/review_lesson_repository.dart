@@ -97,6 +97,33 @@ class ReviewLessonRepository extends LessonRepository {
   }
 
   @override
+  Future<List<LessonActivityRecord>> fetchLessonActivity({
+    required Lesson lesson,
+  }) async {
+    final eventType = switch (lesson.type) {
+      LessonType.makeup => 'MAKEUP_LESSON_CREATED',
+      LessonType.flex => 'LESSON_RIGHT_BOOKED',
+      LessonType.regular => 'LESSON_ORIGINAL_SCHEDULE',
+    };
+
+    return [
+      LessonActivityRecord(
+        eventType: eventType,
+        eventAt: lesson.startsAt.subtract(const Duration(days: 2)),
+        actorId: teacherId,
+        actorName: teacherName,
+        actorRole: 'teacher',
+        details: {
+          'lessonId': lesson.id,
+          'startsAt': lesson.startsAt.toUtc().toIso8601String(),
+          'endsAt': lesson.endsAt.toUtc().toIso8601String(),
+          'durationMinutes': lesson.durationMinutes,
+        },
+      ),
+    ];
+  }
+
+  @override
   Future<List<VisibleTeacher>> fetchVisibleTeachers() async {
     return [
       VisibleTeacher(
