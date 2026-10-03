@@ -286,6 +286,158 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
     });
   }
 
+  void _moveCalendarMonth(
+    int delta,
+    DateTime firstDay,
+    DateTime lastDay,
+  ) {
+    final target = DateTime(
+      _focusedDate.year,
+      _focusedDate.month + delta,
+      1,
+    );
+    final firstMonth = DateTime(firstDay.year, firstDay.month);
+    final lastMonth = DateTime(lastDay.year, lastDay.month);
+
+    if (target.isBefore(firstMonth) || target.isAfter(lastMonth)) {
+      return;
+    }
+
+    setState(() {
+      _focusedDate = target;
+    });
+  }
+
+  Widget _calendarHeader(
+    LessonController controller,
+    DateTime firstDay,
+    DateTime lastDay,
+  ) {
+    final currentMonth = DateTime(
+      _focusedDate.year,
+      _focusedDate.month,
+    );
+    final firstMonth = DateTime(firstDay.year, firstDay.month);
+    final lastMonth = DateTime(lastDay.year, lastDay.month);
+    final canGoPrevious = currentMonth.isAfter(firstMonth);
+    final canGoNext = currentMonth.isBefore(lastMonth);
+
+    Widget roundButton({
+      required VoidCallback? onPressed,
+      required Widget child,
+      String? tooltip,
+    }) {
+      return Tooltip(
+        message: tooltip ?? '',
+        child: SizedBox(
+          width: 36,
+          height: 36,
+          child: Material(
+            color: primaryColor.withValues(alpha: 0.08),
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: onPressed,
+              customBorder: const CircleBorder(),
+              child: Center(child: child),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 52,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: roundButton(
+              tooltip: '이전 달',
+              onPressed: canGoPrevious
+                  ? () => _moveCalendarMonth(-1, firstDay, lastDay)
+                  : null,
+              child: Icon(
+                Icons.chevron_left_rounded,
+                color: canGoPrevious ? primaryColor : Colors.black26,
+                size: 22,
+              ),
+            ),
+          ),
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _pickCalendarDate(firstDay, lastDay),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 7,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${_focusedDate.year}년 ${_focusedDate.month}월',
+                    style: forestringTextStyle.copyWith(
+                      color: primaryColor,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: primaryColor,
+                    size: 19,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                roundButton(
+                  tooltip: '새로고침',
+                  onPressed: controller.isLoading
+                      ? null
+                      : controller.reload,
+                  child: controller.isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: primaryColor,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.refresh_rounded,
+                          color: primaryColor,
+                          size: 19,
+                        ),
+                ),
+                const SizedBox(width: 6),
+                roundButton(
+                  tooltip: '다음 달',
+                  onPressed: canGoNext
+                      ? () => _moveCalendarMonth(1, firstDay, lastDay)
+                      : null,
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    color: canGoNext ? primaryColor : Colors.black26,
+                    size: 22,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _calendar(
     LessonController controller,
     DateTime firstDay,
@@ -297,7 +449,14 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             ? lastDay
             : _focusedDate;
 
-    return TableCalendar<Object>(
+    return Column(
+      children: [
+        _calendarHeader(
+          controller,
+          firstDay,
+          lastDay,
+        ),
+        TableCalendar<Object>(
       key: ValueKey<String>(
         'teacher-schedule-calendar-${firstDay.toIso8601String()}-${lastDay.toIso8601String()}',
       ),
@@ -321,44 +480,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
       },
       rowHeight: 48,
       daysOfWeekHeight: 34,
-      headerStyle: HeaderStyle(
-        titleCentered: true,
-        formatButtonVisible: false,
-        leftChevronMargin: const EdgeInsets.only(left: 4),
-        rightChevronMargin: const EdgeInsets.only(right: 4),
-        leftChevronIcon: Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: primaryColor.withValues(alpha: 0.08),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.chevron_left_rounded,
-            color: primaryColor,
-            size: 22,
-          ),
-        ),
-        rightChevronIcon: Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: primaryColor.withValues(alpha: 0.08),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.chevron_right_rounded,
-            color: primaryColor,
-            size: 22,
-          ),
-        ),
-        titleTextStyle: const TextStyle(
-          fontFamily: 'ELAND',
-          fontWeight: FontWeight.w500,
-          fontSize: 19,
-          color: primaryColor,
-        ),
-      ),
+      headerVisible: false,
       calendarStyle: CalendarStyle(
         outsideDaysVisible: false,
         cellMargin: const EdgeInsets.all(5),
@@ -398,39 +520,6 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
         markerMargin: const EdgeInsets.only(top: 2),
       ),
       calendarBuilders: CalendarBuilders<Object>(
-        headerTitleBuilder: (context, day) {
-          return Center(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => _pickCalendarDate(firstDay, lastDay),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 7,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '${day.year}년 ${day.month}월',
-                      style: forestringTextStyle.copyWith(
-                        color: primaryColor,
-                        fontSize: 19,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 3),
-                    const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: primaryColor,
-                      size: 19,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
         dowBuilder: (context, day) {
           final label = _weekdayLabels[day.weekday - 1];
           final color = day.weekday == DateTime.sunday
@@ -495,6 +584,8 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           );
         },
       ),
+        ),
+      ],
     );
   }
 
@@ -660,38 +751,10 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 30),
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 2, 8, 0),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  tooltip: '새로고침',
-                  onPressed: controller.isLoading
-                      ? null
-                      : controller.reload,
-                  icon: controller.isLoading
-                      ? const SizedBox(
-                          width: 19,
-                          height: 19,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: primaryColor,
-                          ),
-                        )
-                      : const Icon(
-                          Icons.refresh_rounded,
-                          color: primaryColor,
-                        ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 30),
-                children: [
                   _calendar(
                     controller,
                     firstDay,
@@ -745,9 +808,6 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
