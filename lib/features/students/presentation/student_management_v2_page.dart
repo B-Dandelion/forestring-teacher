@@ -7,8 +7,12 @@ import '../../../core/widgets/forestring_navigation.dart';
 import '../../auth/domain/current_profile.dart';
 import '../../branches/data/branch_repository.dart';
 import '../../branches/domain/academy_branch.dart';
+import '../../lessons/data/lesson_repository.dart';
+import '../data/student_admin_repository.dart';
 import '../data/student_management_repository.dart';
 import '../data/student_next_semester_type_repository.dart';
+import '../data/student_regular_schedule_repository.dart';
+import '../data/student_teacher_management_repository.dart';
 import 'student_create_page.dart';
 import 'student_lesson_history_page.dart';
 import 'student_next_semester_type_dialog.dart';
@@ -20,9 +24,23 @@ class StudentManagementV2Page extends StatefulWidget {
   const StudentManagementV2Page({
     super.key,
     required this.profile,
+    this.repository,
+    this.branchRepository,
+    this.lessonRepository,
+    this.adminRepository,
+    this.nextSemesterRepository,
+    this.regularScheduleRepository,
+    this.teacherManagementRepository,
   });
 
   final CurrentProfile profile;
+  final StudentManagementRepository? repository;
+  final BranchRepository? branchRepository;
+  final LessonRepository? lessonRepository;
+  final StudentAdminRepository? adminRepository;
+  final StudentNextSemesterTypeRepository? nextSemesterRepository;
+  final StudentRegularScheduleRepository? regularScheduleRepository;
+  final StudentTeacherManagementRepository? teacherManagementRepository;
 
   @override
   State<StudentManagementV2Page> createState() =>
@@ -32,8 +50,8 @@ class StudentManagementV2Page extends StatefulWidget {
 class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
   static const _allBranches = '__all__';
 
-  final _repository = StudentManagementRepository();
-  final _branchRepository = BranchRepository();
+  late final StudentManagementRepository _repository;
+  late final BranchRepository _branchRepository;
   final _searchController = TextEditingController();
 
   List<AcademyBranch> _branches = const [];
@@ -47,6 +65,10 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
   @override
   void initState() {
     super.initState();
+    _repository =
+        widget.repository ?? StudentManagementRepository();
+    _branchRepository =
+        widget.branchRepository ?? BranchRepository();
     _searchController.addListener(_onSearchChanged);
     _loadInitial();
   }
@@ -131,7 +153,11 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
   Future<void> _openRegistration() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => StudentCreatePage(profile: widget.profile),
+        builder: (_) => StudentCreatePage(
+          profile: widget.profile,
+          branchRepository: widget.branchRepository,
+          repository: widget.adminRepository,
+        ),
       ),
     );
     if (mounted) await _loadStudents();
@@ -143,6 +169,12 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
         builder: (_) => StudentManagementDetailPage(
           profile: widget.profile,
           initialStudent: student,
+          repository: widget.repository,
+          lessonRepository: widget.lessonRepository,
+          nextSemesterRepository: widget.nextSemesterRepository,
+          regularScheduleRepository: widget.regularScheduleRepository,
+          teacherManagementRepository:
+              widget.teacherManagementRepository,
         ),
       ),
     );
@@ -448,10 +480,20 @@ class StudentManagementDetailPage extends StatefulWidget {
     super.key,
     required this.profile,
     required this.initialStudent,
+    this.repository,
+    this.lessonRepository,
+    this.nextSemesterRepository,
+    this.regularScheduleRepository,
+    this.teacherManagementRepository,
   });
 
   final CurrentProfile profile;
   final ManagedStudent initialStudent;
+  final StudentManagementRepository? repository;
+  final LessonRepository? lessonRepository;
+  final StudentNextSemesterTypeRepository? nextSemesterRepository;
+  final StudentRegularScheduleRepository? regularScheduleRepository;
+  final StudentTeacherManagementRepository? teacherManagementRepository;
 
   @override
   State<StudentManagementDetailPage> createState() =>
@@ -460,8 +502,9 @@ class StudentManagementDetailPage extends StatefulWidget {
 
 class _StudentManagementDetailPageState
     extends State<StudentManagementDetailPage> {
-  final _repository = StudentManagementRepository();
-  final _nextSemesterRepository = StudentNextSemesterTypeRepository();
+  late final StudentManagementRepository _repository;
+  late final StudentNextSemesterTypeRepository
+      _nextSemesterRepository;
 
   late ManagedStudent _student;
   NextSemesterStudentTypePlan? _nextPlan;
@@ -472,6 +515,10 @@ class _StudentManagementDetailPageState
   @override
   void initState() {
     super.initState();
+    _repository =
+        widget.repository ?? StudentManagementRepository();
+    _nextSemesterRepository = widget.nextSemesterRepository ??
+        StudentNextSemesterTypeRepository();
     _student = widget.initialStudent;
     _loadNextPlan();
   }
@@ -1082,6 +1129,7 @@ class _StudentManagementDetailPageState
         builder: (_) => StudentLessonHistoryPage(
           student: _student,
           profile: widget.profile,
+          repository: widget.lessonRepository,
         ),
       ),
     );
@@ -1090,7 +1138,10 @@ class _StudentManagementDetailPageState
   Future<void> _openRegularSchedule() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => StudentRegularSchedulePage(student: _student),
+        builder: (_) => StudentRegularSchedulePage(
+          student: _student,
+          repository: widget.regularScheduleRepository,
+        ),
       ),
     );
     if (mounted) await _refreshStudent();
@@ -1100,6 +1151,7 @@ class _StudentManagementDetailPageState
     final changed = await showStudentTeacherChangeDialog(
       context: context,
       student: _student,
+      repository: widget.teacherManagementRepository,
     );
     if (!mounted || changed != true) return;
     await _refreshStudent();
@@ -1111,6 +1163,7 @@ class _StudentManagementDetailPageState
     final changed = await showStudentNextSemesterTypeDialog(
       context: context,
       student: _student,
+      repository: _nextSemesterRepository,
     );
     if (!mounted || changed != true) return;
     await _refreshStudent();
