@@ -314,6 +314,121 @@ Future<TimeOfDay?> _showSlotSheet({
   );
 }
 
+
+class _TimeSlotSection extends StatelessWidget {
+  const _TimeSlotSection({
+    required this.title,
+    required this.slots,
+    required this.initialTime,
+    required this.onSelected,
+  });
+
+  final String title;
+  final List<_LessonTimeSlot> slots;
+  final TimeOfDay initialTime;
+  final ValueChanged<TimeOfDay> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 2, bottom: 7),
+          child: Text(
+            title,
+            style: forestringTextStyle.copyWith(
+              color: Colors.black54,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          gridDelegate:
+              const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            crossAxisSpacing: 6,
+            mainAxisSpacing: 6,
+            mainAxisExtent: 40,
+          ),
+          itemCount: slots.length,
+          itemBuilder: (context, index) {
+            final slot = slots[index];
+            final selected = _sameTime(slot.time, initialTime);
+
+            return Material(
+              color: selected
+                  ? primaryColor
+                  : slot.available
+                      ? Colors.white
+                      : Colors.black.withValues(alpha: 0.035),
+              borderRadius: BorderRadius.circular(11),
+              child: InkWell(
+                onTap: slot.available
+                    ? () => onSelected(slot.time)
+                    : null,
+                borderRadius: BorderRadius.circular(11),
+                child: Container(
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(
+                      color: selected
+                          ? primaryColor
+                          : slot.available
+                              ? primaryColor.withValues(alpha: 0.16)
+                              : Colors.black.withValues(alpha: 0.05),
+                    ),
+                  ),
+                  child: Text(
+                    _formatTime(slot.time),
+                    style: forestringTextStyle.copyWith(
+                      color: selected
+                          ? Colors.white
+                          : slot.available
+                              ? Colors.black87
+                              : Colors.black26,
+                      fontSize: 12,
+                      fontWeight: selected
+                          ? FontWeight.w500
+                          : FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _TimeSheetCloseButton extends StatelessWidget {
+  const _TimeSheetCloseButton({
+    required this.onPressed,
+  });
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      visualDensity: VisualDensity.compact,
+      icon: const Icon(
+        Icons.close_rounded,
+        color: primaryColor,
+        size: 21,
+      ),
+    );
+  }
+}
+
 List<_LessonTimeSlot> _buildSlots({
   required String teacherId,
   required String studentId,
