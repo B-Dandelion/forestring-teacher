@@ -22,12 +22,14 @@ class TeacherManagementPage extends StatefulWidget {
     this.repository,
     this.branchRepository,
     this.workHoursRepository,
+    this.isQaSandbox = false,
   });
 
   final CurrentProfile profile;
   final TeacherRepository? repository;
   final BranchRepository? branchRepository;
   final TeacherWorkHoursScheduleRepository? workHoursRepository;
+  final bool isQaSandbox;
 
   @override
   State<TeacherManagementPage> createState() =>
@@ -52,6 +54,14 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.isQaSandbox &&
+        (widget.repository == null ||
+            widget.branchRepository == null ||
+            widget.workHoursRepository == null)) {
+      throw StateError(
+        'QA teacher management requires sandbox repositories.',
+      );
+    }
     _repository = widget.repository ?? TeacherRepository();
     _branchRepository =
         widget.branchRepository ?? BranchRepository();
