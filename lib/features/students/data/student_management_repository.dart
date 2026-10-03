@@ -81,6 +81,34 @@ class FlexRightCountChangeResult {
   final int newCarryoverCap;
 }
 
+class FlexPlanSettingsChangeResult {
+  const FlexPlanSettingsChangeResult({
+    required this.changed,
+    required this.oldBaseRightCount,
+    required this.newBaseRightCount,
+    required this.oldDurationMinutes,
+    required this.newDurationMinutes,
+    required this.insertedCount,
+    required this.removedCount,
+    required this.updatedRightCount,
+    required this.preservedScheduledLessonCount,
+    required this.newCancellationLimit,
+    required this.newCarryoverCap,
+  });
+
+  final bool changed;
+  final int oldBaseRightCount;
+  final int newBaseRightCount;
+  final int oldDurationMinutes;
+  final int newDurationMinutes;
+  final int insertedCount;
+  final int removedCount;
+  final int updatedRightCount;
+  final int preservedScheduledLessonCount;
+  final int newCancellationLimit;
+  final int newCarryoverCap;
+}
+
 class StudentWithdrawalResult {
   const StudentWithdrawalResult({
     required this.withdrawalDate,
@@ -423,6 +451,73 @@ class StudentManagementRepository {
     }
   }
 
+  Future<FlexPlanSettingsChangeResult> changeFlexPlanSettings({
+    required String studentId,
+    required int newBaseRightCount,
+    required int newDurationMinutes,
+  }) async {
+    if (newBaseRightCount <= 0) {
+      throw const StudentManagementFailure(
+        '수업권 개수는 1개 이상이어야 합니다.',
+      );
+    }
+    if (!const [15, 30, 45, 60].contains(newDurationMinutes)) {
+      throw const StudentManagementFailure(
+        '수업 길이는 15분, 30분, 45분, 60분 중에서 선택해주세요.',
+      );
+    }
+
+    try {
+      final result = await _client.rpc(
+        'change_flex_plan_settings',
+        params: {
+          'p_student_id': studentId,
+          'p_new_base_right_count': newBaseRightCount,
+          'p_new_duration_minutes': newDurationMinutes,
+        },
+      );
+
+      if (result is! Map) {
+        throw const StudentManagementFailure(
+          '자율 수업 설정 변경 결과를 확인하지 못했습니다.',
+        );
+      }
+
+      final row = Map<String, dynamic>.from(result);
+      return FlexPlanSettingsChangeResult(
+        changed: row['changed'] == true,
+        oldBaseRightCount:
+            (row['oldBaseRightCount'] as num?)?.toInt() ?? newBaseRightCount,
+        newBaseRightCount:
+            (row['newBaseRightCount'] as num?)?.toInt() ?? newBaseRightCount,
+        oldDurationMinutes:
+            (row['oldDurationMinutes'] as num?)?.toInt() ?? newDurationMinutes,
+        newDurationMinutes:
+            (row['newDurationMinutes'] as num?)?.toInt() ?? newDurationMinutes,
+        insertedCount: (row['insertedCount'] as num?)?.toInt() ?? 0,
+        removedCount: (row['removedCount'] as num?)?.toInt() ?? 0,
+        updatedRightCount:
+            (row['updatedRightCount'] as num?)?.toInt() ?? 0,
+        preservedScheduledLessonCount:
+            (row['preservedScheduledLessonCount'] as num?)?.toInt() ?? 0,
+        newCancellationLimit:
+            (row['newCancellationLimit'] as num?)?.toInt() ?? 0,
+        newCarryoverCap:
+            (row['newCarryoverCap'] as num?)?.toInt() ?? 0,
+      );
+    } on StudentManagementFailure {
+      rethrow;
+    } on PostgrestException catch (error) {
+      throw StudentManagementFailure(
+        _friendlyFlexRightCountMessage(error.message),
+      );
+    } catch (_) {
+      throw const StudentManagementFailure(
+        '자율 수업 설정을 변경하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+      );
+    }
+  }
+
   Future<StudentWithdrawalResult> scheduleWithdrawal({
     required String studentId,
     required DateTime withdrawalDate,
@@ -565,6 +660,9 @@ class StudentManagementRepository {
   String _friendlyFlexRightCountMessage(String message) {
     String? userMessage;
 
+    if (message.contains('FORESTRING_INVALID_FLEX_DURATION')) {
+      return '수업 길이는 15분, 30분, 45분, 60분 중에서 선택해주세요.';
+    }
     if (message.contains('FORESTRING_AUTH_REQUIRED')) {
       userMessage = '로그인이 필요합니다.';
     } else if (message.contains('FORESTRING_INVALID_FLEX_RIGHT_COUNT')) {
