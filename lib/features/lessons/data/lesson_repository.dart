@@ -11,6 +11,38 @@ class LessonFailure implements Exception {
   String toString() => message;
 }
 
+class LessonActivityRecord {
+  const LessonActivityRecord({
+    required this.eventType,
+    required this.eventAt,
+    required this.details,
+    this.actorId,
+    this.actorName,
+    this.actorRole,
+  });
+
+  final String eventType;
+  final DateTime eventAt;
+  final String? actorId;
+  final String? actorName;
+  final String? actorRole;
+  final Map<String, dynamic> details;
+
+  factory LessonActivityRecord.fromJson(Map<String, dynamic> json) {
+    final rawDetails = json['details'];
+    return LessonActivityRecord(
+      eventType: json['event_type']?.toString() ?? '',
+      eventAt: DateTime.parse(json['event_at'].toString()).toLocal(),
+      actorId: json['actor_id']?.toString(),
+      actorName: json['actor_name']?.toString(),
+      actorRole: json['actor_role']?.toString(),
+      details: rawDetails is Map
+          ? Map<String, dynamic>.from(rawDetails)
+          : const {},
+    );
+  }
+}
+
 class VisibleStudent {
   const VisibleStudent({
     required this.id,
@@ -101,6 +133,85 @@ class LessonRepository {
     } catch (_) {
       throw const LessonFailure(
         '수업 정보를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+      );
+    }
+  }
+
+  Future<List<LessonActivityRecord>> fetchLessonActivity({
+    required Lesson lesson,
+  }) async {
+    try {
+      final rightId = lesson.lessonRightId;
+
+      if (rightId != null && rightId.isNotEmpty) {
+        final rawRows = await _client.rpc(
+          'get_student_lesson_activity',
+          params: {
+            'p_student_id': lesson.studentId,
+            'p_right_id': rightId,
+          },
+        );
+
+        return (rawRows as List)
+            .map(
+              (raw) => LessonActivityRecord.fromJson(
+                Map<String, dynamic>.from(raw as Map),
+              ),
+            )
+            .toList()
+          ..sort((a, b) => a.eventAt.compareTo(b.eventAt));
+      }
+
+      final rawRows = await _client
+          .from('audit_events')
+          .select('event_type, actor_id, details, created_at')
+          .eq('subject_profile_id', lesson.studentId)
+          .inFilter('event_type', const [
+        'LESSON_CANCELED',
+        'LESSON_MANUALLY_UPDATED',
+        'LESSON_RIGHT_BOOKED',
+        'MAKEUP_LESSON_CREATED',
+      ]).order('created_at');
+
+      final rows = (rawRows as List)
+          .map((raw) => Map<String, dynamic>.from(raw as Map))
+          .where((row) {
+        final details = _mapValue(row['details']);
+        return details['lessonId']?.toString() == lesson.id;
+      }).toList();
+
+      final actorIds = rows
+          .map((row) => row['actor_id']?.toString())
+          .whereType<String>()
+          .where((id) => id.isNotEmpty)
+          .toSet();
+      final actors = await _fetchActivityActors(actorIds);
+
+      return rows.map((row) {
+        final actorId = row['actor_id']?.toString();
+        final actor = actorId == null ? null : actors[actorId];
+        return LessonActivityRecord(
+          eventType: row['event_type']?.toString() ?? '',
+          eventAt: DateTime.parse(row['created_at'].toString()).toLocal(),
+          actorId: actorId,
+          actorName: actor?.name,
+          actorRole: actor?.role,
+          details: _mapValue(row['details']),
+        );
+      }).toList()
+        ..sort((a, b) => a.eventAt.compareTo(b.eventAt));
+    } on LessonFailure {
+      rethrow;
+    } on PostgrestException catch (error) {
+      throw LessonFailure(
+        _friendlyDatabaseMessage(
+          error.message,
+          fallback: '수업 변동 내역을 불러오지 못했습니다.',
+        ),
+      );
+    } catch (_) {
+      throw const LessonFailure(
+        '수업 변동 내역을 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
       );
     }
   }
@@ -434,6 +545,32 @@ class LessonRepository {
     }
   }
 
+  Future<Map<String, _ActivityActor>> _fetchActivityActors(
+    Set<String> actorIds,
+  ) async {
+    if (actorIds.isEmpty) return const {};
+
+    final rows = await _client
+        .from('profiles')
+        .select('id, display_name, role')
+        .inFilter('id', actorIds.toList());
+
+    return {
+      for (final raw in rows as List)
+        (raw as Map)['id'].toString(): _ActivityActor(
+          name: raw['display_name']?.toString(),
+          role: raw['role']?.toString(),
+        ),
+    };
+  }
+
+  Map<String, dynamic> _mapValue(dynamic value) {
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return const {};
+  }
+
   Future<Map<String, String>> _fetchVisibleProfileNames() async {
     final rows = await _client.from('profiles').select('id, display_name');
     return {
@@ -527,4 +664,15 @@ class LessonRepository {
     if (code == null) return userMessage;
     return '$userMessage\n오류 코드: $code';
   }
+}
+
+
+class _ActivityActor {
+  const _ActivityActor({
+    required this.name,
+    required this.role,
+  });
+
+  final String? name;
+  final String? role;
 }
