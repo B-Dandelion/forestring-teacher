@@ -738,11 +738,12 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
         return aStart.compareTo(bStart);
       });
 
-    final studentAccents = context
-        .watch<StudentAccentController>()
-        .assignments(
-          controller.visibleLessons.map((lesson) => lesson.studentId),
-        );
+    final accentController = context.watch<StudentAccentController>();
+    final studentAccents = accentController.isEnabled
+        ? accentController.assignments(
+            controller.visibleLessons.map((lesson) => lesson.studentId),
+          )
+        : const <String, Color>{};
 
     final now = DateTime.now();
     final firstDay = DateTime(now.year, now.month - 2, 1);
