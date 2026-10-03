@@ -222,151 +222,17 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
 
   Future<void> _editLocalMemo(ManagedStudent student) async {
     final initial = _localMemos[student.id] ?? '';
-    final controller = TextEditingController(text: initial);
-
     final next = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.46),
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            final keyboardInset =
-                MediaQuery.viewInsetsOf(context).bottom;
-            final changed = controller.text.trim() != initial;
-
-            return AnimatedPadding(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              padding: EdgeInsets.only(bottom: keyboardInset),
-              child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.fromLTRB(18, 12, 18, 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xffFCFDF9),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(
-                        color: primaryColor.withValues(alpha: 0.07),
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment:
-                          CrossAxisAlignment.stretch,
-                      children: [
-                        Center(
-                          child: Container(
-                            width: 40,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.14),
-                              borderRadius:
-                                  BorderRadius.circular(999),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '${student.displayName} 메모',
-                                style:
-                                    forestringTextStyle.copyWith(
-                                  color: primaryColor,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () =>
-                                  Navigator.of(sheetContext).pop(),
-                              icon: const Icon(
-                                Icons.close_rounded,
-                                color: primaryColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: controller,
-                          autofocus: true,
-                          minLines: 2,
-                          maxLines: 4,
-                          maxLength: 120,
-                          onChanged: (_) => setSheetState(() {}),
-                          decoration: InputDecoration(
-                            hintText: '학생을 기억하기 위한 메모를 입력하세요.',
-                            filled: true,
-                            fillColor: primaryColor.withValues(
-                              alpha: 0.045,
-                            ),
-                            helperText:
-                                '이 메모는 이 휴대폰에만 저장됩니다.',
-                            helperStyle:
-                                forestringTextStyle.copyWith(
-                              color: Colors.black45,
-                              fontSize: 10,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.circular(14),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        FilledButton(
-                          onPressed: changed
-                              ? () => Navigator.of(sheetContext)
-                                  .pop(controller.text.trim())
-                              : null,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            foregroundColor: Colors.white,
-                            disabledBackgroundColor:
-                                primaryColor.withValues(alpha: 0.13),
-                            disabledForegroundColor:
-                                Colors.black.withValues(alpha: 0.28),
-                            minimumSize:
-                                const Size.fromHeight(48),
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: Text(
-                            initial.isEmpty ? '메모 저장' : '변경 저장',
-                            style: forestringTextStyle.copyWith(
-                              color: changed
-                                  ? Colors.white
-                                  : Colors.black.withValues(
-                                      alpha: 0.28,
-                                    ),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
+      builder: (_) => _StudentMemoSheet(
+        studentName: student.displayName,
+        initialValue: initial,
+      ),
     );
 
-    controller.dispose();
     if (!mounted || next == null) return;
 
     final preferences =
@@ -669,101 +535,100 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(17),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(17),
-          onTap: () => _openStudent(student),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(13, 12, 9, 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 43,
-                  height: 43,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: typeColor.withValues(alpha: 0.09),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.person_outline_rounded,
-                    color: typeColor,
-                    size: 22,
-                  ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            InkWell(
+              onTap: () => _openStudent(student),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  13,
+                  12,
+                  9,
+                  memo == null || memo.isEmpty ? 12 : 9,
                 ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 43,
+                      height: 43,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: typeColor.withValues(alpha: 0.09),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.person_outline_rounded,
+                        color: typeColor,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
                         children: [
-                          Flexible(
-                            child: Text(
-                              student.displayName,
-                              overflow: TextOverflow.ellipsis,
-                              style:
-                                  forestringTextStyle.copyWith(
-                                color: Colors.black87,
-                                fontSize: 17,
-                                fontWeight: FontWeight.w500,
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  student.displayName,
+                                  overflow: TextOverflow.ellipsis,
+                                  style:
+                                      forestringTextStyle.copyWith(
+                                    color: Colors.black87,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 7),
+                              _typeBadge(student),
+                              if (!student.isActive ||
+                                  student.hasScheduledWithdrawal) ...[
+                                const SizedBox(width: 5),
+                                _statusBadge(student),
+                              ],
+                            ],
                           ),
-                          const SizedBox(width: 7),
-                          _typeBadge(student),
-                          if (!student.isActive ||
-                              student.hasScheduledWithdrawal) ...[
-                            const SizedBox(width: 5),
-                            _statusBadge(student),
-                          ],
+                          const SizedBox(height: 5),
+                          _infoLine(
+                            Icons.person_outline_rounded,
+                            _teacherLine(student),
+                            color: student.teacherName == null
+                                ? Colors.black45
+                                : Colors.black54,
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 5),
-                      _infoLine(
-                        Icons.person_outline_rounded,
-                        _teacherLine(student),
-                        color: student.teacherName == null
-                            ? Colors.black45
-                            : Colors.black54,
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.only(top: 10),
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        color: primaryColor,
+                        size: 21,
                       ),
-                      if (memo != null && memo.isNotEmpty) ...[
-                        const SizedBox(height: 3),
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _editLocalMemo(student),
-                            borderRadius:
-                                BorderRadius.circular(8),
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(
-                                vertical: 2,
-                              ),
-                              child: _infoLine(
-                                Icons.sticky_note_2_outlined,
-                                memo,
-                                color: secondaryColor,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const Padding(
-                  padding: EdgeInsets.only(top: 10),
-                  child: Icon(
-                    Icons.chevron_right_rounded,
-                    color: primaryColor,
-                    size: 21,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            if (memo != null && memo.isNotEmpty)
+              InkWell(
+                onTap: () => _editLocalMemo(student),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(67, 0, 30, 11),
+                  child: _infoLine(
+                    Icons.sticky_note_2_outlined,
+                    memo,
+                    color: secondaryColor,
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -867,6 +732,172 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
         style: forestringTextStyle.copyWith(
           color: Colors.redAccent,
           fontSize: 12,
+        ),
+      ),
+    );
+  }
+}
+
+class _StudentMemoSheet extends StatefulWidget {
+  const _StudentMemoSheet({
+    required this.studentName,
+    required this.initialValue,
+  });
+
+  final String studentName;
+  final String initialValue;
+
+  @override
+  State<_StudentMemoSheet> createState() => _StudentMemoSheetState();
+}
+
+class _StudentMemoSheetState extends State<_StudentMemoSheet> {
+  late final TextEditingController _controller;
+
+  bool get _changed =>
+      _controller.text.trim() != widget.initialValue.trim();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue)
+      ..addListener(_handleChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller
+      ..removeListener(_handleChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _save() async {
+    if (!_changed) return;
+    final value = _controller.text.trim();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    if (!mounted) return;
+    Navigator.of(context).pop(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      padding: EdgeInsets.only(bottom: keyboardInset),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
+            decoration: BoxDecoration(
+              color: const Color(0xffFCFDF9),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: primaryColor.withValues(alpha: 0.07),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${widget.studentName} 메모',
+                        style: forestringTextStyle.copyWith(
+                          color: primaryColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        Navigator.of(context).pop();
+                      },
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _controller,
+                  autofocus: true,
+                  minLines: 2,
+                  maxLines: 4,
+                  maxLength: 120,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _save(),
+                  decoration: InputDecoration(
+                    hintText: '학생을 기억하기 위한 메모를 입력하세요.',
+                    filled: true,
+                    fillColor: primaryColor.withValues(alpha: 0.045),
+                    helperText: '이 메모는 이 휴대폰에만 저장됩니다.',
+                    helperStyle: forestringTextStyle.copyWith(
+                      color: Colors.black45,
+                      fontSize: 10,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                FilledButton(
+                  onPressed: _changed ? _save : null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor:
+                        primaryColor.withValues(alpha: 0.13),
+                    disabledForegroundColor:
+                        Colors.black.withValues(alpha: 0.28),
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Text(
+                    widget.initialValue.isEmpty ? '메모 저장' : '변경 저장',
+                    style: forestringTextStyle.copyWith(
+                      color: _changed
+                          ? Colors.white
+                          : Colors.black.withValues(alpha: 0.28),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
