@@ -882,9 +882,10 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
     super.initState();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    _effectiveOn = widget.schedule.slotStartsOn.isAfter(today)
+    final firstApplicable = widget.schedule.slotStartsOn.isAfter(today)
         ? widget.schedule.slotStartsOn
         : today;
+    _effectiveOn = _startOfWeek(firstApplicable);
     _weekday = widget.schedule.weekday;
     _durationMinutes = widget.schedule.durationMinutes;
     _startMinutes = widget.schedule.startMinutes;
@@ -951,33 +952,6 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
     });
   }
 
-  Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final firstDate = widget.schedule.slotStartsOn.isAfter(today)
-        ? widget.schedule.slotStartsOn
-        : today;
-    final defaultLast = DateTime(today.year + 3, 12, 31);
-    final lastDate = widget.schedule.slotEndsOn != null &&
-            widget.schedule.slotEndsOn!.isBefore(defaultLast)
-        ? widget.schedule.slotEndsOn!
-        : defaultLast;
-
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _effectiveOn,
-      firstDate: firstDate,
-      lastDate: lastDate,
-      helpText: '정규 일정 변경 적용일',
-      cancelText: '취소',
-      confirmText: '선택',
-    );
-
-    if (picked == null || !mounted) return;
-    setState(() => _effectiveOn = picked);
-    await _loadTeacherContext(keepCurrentTime: true);
-  }
-
   Future<void> _save() async {
     final teacher = _teacher;
     final startMinutes = _startMinutes;
@@ -1024,9 +998,11 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
   @override
   Widget build(BuildContext context) {
     final timeOptions = _availableStartMinutes;
-    final durationOptions = <int>{15, 30, 45, 60, 75, 90, widget.schedule.durationMinutes}
-        .toList()
-      ..sort();
+    final durationOptions =
+        <int>{15, 30, 45, 60, widget.schedule.durationMinutes}
+            .where((value) => value <= 60)
+            .toList()
+          ..sort();
 
     return Scaffold(
       backgroundColor: neutralIvory,
@@ -1053,101 +1029,199 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
               ),
             ),
             const SizedBox(height: 18),
-            InkWell(
-              onTap: _saving ? null : _pickDate,
-              borderRadius: BorderRadius.circular(8),
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: '변경 적용일',
-                  border: OutlineInputBorder(),
-                  suffixIcon: Icon(Icons.calendar_today_outlined),
+            _editSectionCard(
+              title: '현재 일정',
+              child: Text(
+                '${widget.schedule.weekdayLabel} · '
+                '${widget.schedule.timeLabel} · '
+                '${widget.schedule.durationMinutes}분',
+                style: forestringTextStyle.copyWith(
+                  color: Colors.black87,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
                 ),
-                child: Text(DateFormat('yyyy.MM.dd').format(_effectiveOn)),
               ),
             ),
-            const SizedBox(height: 10),
-            InputDecorator(
-              decoration: const InputDecoration(
-                labelText: '적용일 담당 선생님',
-                border: OutlineInputBorder(),
+            const SizedBox(height: 12),
+            _editSectionCard(
+              title: '변경할 일정',
+              child: Column(
+                children: [
+                  DropdownButtonFormField<int>(
+                    initialValue: _weekday,
+                    decoration: const InputDecoration(
+                      labelText: '요일',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 1, child: Text('월요일')),
+                      DropdownMenuItem(value: 2, child: Text('화요일')),
+                      DropdownMenuItem(value: 3, child: Text('수요일')),
+                      DropdownMenuItem(value: 4, child: Text('목요일')),
+                      DropdownMenuItem(value: 5, child: Text('금요일')),
+                      DropdownMenuItem(value: 6, child: Text('토요일')),
+                      DropdownMenuItem(value: 7, child: Text('일요일')),
+                    ],
+                    onChanged: _saving || _loadingContext
+                        ? null
+                        : (value) {
+                            if (value == null) return;
+                            setState(() => _weekday = value);
+                            _ensureValidStart();
+                          },
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<int>(
+                    initialValue:
+                        durationOptions.contains(_durationMinutes)
+                            ? _durationMinutes
+                            : null,
+                    decoration: const InputDecoration(
+                      labelText: '수업 길이',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: durationOptions
+                        .map(
+                          (minutes) => DropdownMenuItem(
+                            value: minutes,
+                            child: Text('$minutes분'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: _saving || _loadingContext
+                        ? null
+                        : (value) {
+                            if (value == null) return;
+                            setState(() => _durationMinutes = value);
+                            _ensureValidStart(keepCurrent: true);
+                          },
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<int>(
+                    initialValue: _startMinutes != null &&
+                            timeOptions.contains(_startMinutes)
+                        ? _startMinutes
+                        : null,
+                    decoration: const InputDecoration(
+                      labelText: '시작 시간',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: timeOptions
+                        .map(
+                          (minutes) => DropdownMenuItem(
+                            value: minutes,
+                            child: Text(_formatMinutes(minutes)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: _saving ||
+                            _loadingContext ||
+                            timeOptions.isEmpty
+                        ? null
+                        : (value) =>
+                            setState(() => _startMinutes = value),
+                  ),
+                ],
               ),
+            ),
+            const SizedBox(height: 12),
+            _editSectionCard(
+              title: '적용할 주차',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    height: 58,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _weekOptions.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(width: 7),
+                      itemBuilder: (context, index) {
+                        final week = _weekOptions[index];
+                        final selected =
+                            _sameDay(week, _effectiveOn);
+                        return ChoiceChip(
+                          selected: selected,
+                          showCheckmark: false,
+                          label: Column(
+                            mainAxisAlignment:
+                                MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                DateFormat('M/d').format(week),
+                                style:
+                                    forestringTextStyle.copyWith(
+                                  color: selected
+                                      ? Colors.white
+                                      : Colors.black87,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                '${index + 1}주차',
+                                style:
+                                    forestringTextStyle.copyWith(
+                                  color: selected
+                                      ? Colors.white70
+                                      : Colors.black45,
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ],
+                          ),
+                          selectedColor: primaryColor,
+                          backgroundColor: Colors.white,
+                          side: BorderSide(
+                            color: selected
+                                ? primaryColor
+                                : primaryColor.withValues(
+                                    alpha: 0.12,
+                                  ),
+                          ),
+                          onSelected: _saving
+                              ? null
+                              : (_) async {
+                                  if (selected) return;
+                                  setState(
+                                    () => _effectiveOn = week,
+                                  );
+                                  await _loadTeacherContext(
+                                    keepCurrentTime: true,
+                                  );
+                                },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${DateFormat('M월 d일').format(_effectiveOn)}이 '
+                    '포함된 주부터 새 일정이 적용됩니다.',
+                    style: forestringTextStyle.copyWith(
+                      color: Colors.black54,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _editSectionCard(
+              title: '적용 주차 담당 선생님',
               child: _loadingContext
-                  ? const SizedBox(
-                      height: 20,
-                      child: LinearProgressIndicator(),
-                    )
-                  : Text(_teacher?.displayName ?? '확인 불가'),
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<int>(
-              initialValue: _weekday,
-              decoration: const InputDecoration(
-                labelText: '요일',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(value: 1, child: Text('월요일')),
-                DropdownMenuItem(value: 2, child: Text('화요일')),
-                DropdownMenuItem(value: 3, child: Text('수요일')),
-                DropdownMenuItem(value: 4, child: Text('목요일')),
-                DropdownMenuItem(value: 5, child: Text('금요일')),
-                DropdownMenuItem(value: 6, child: Text('토요일')),
-                DropdownMenuItem(value: 7, child: Text('일요일')),
-              ],
-              onChanged: _saving || _loadingContext
-                  ? null
-                  : (value) {
-                      if (value == null) return;
-                      setState(() => _weekday = value);
-                      _ensureValidStart();
-                    },
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<int>(
-              initialValue: durationOptions.contains(_durationMinutes)
-                  ? _durationMinutes
-                  : null,
-              decoration: const InputDecoration(
-                labelText: '수업 길이',
-                border: OutlineInputBorder(),
-              ),
-              items: durationOptions
-                  .map(
-                    (minutes) => DropdownMenuItem(
-                      value: minutes,
-                      child: Text('$minutes분'),
+                  ? const LinearProgressIndicator()
+                  : Text(
+                      _teacher?.displayName ?? '확인 불가',
+                      style: forestringTextStyle.copyWith(
+                        color: Colors.black87,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  )
-                  .toList(),
-              onChanged: _saving || _loadingContext
-                  ? null
-                  : (value) {
-                      if (value == null) return;
-                      setState(() => _durationMinutes = value);
-                      _ensureValidStart(keepCurrent: true);
-                    },
             ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<int>(
-              initialValue: _startMinutes != null && timeOptions.contains(_startMinutes)
-                  ? _startMinutes
-                  : null,
-              decoration: const InputDecoration(
-                labelText: '시작 시간',
-                border: OutlineInputBorder(),
-              ),
-              items: timeOptions
-                  .map(
-                    (minutes) => DropdownMenuItem(
-                      value: minutes,
-                      child: Text(_formatMinutes(minutes)),
-                    ),
-                  )
-                  .toList(),
-              onChanged: _saving || _loadingContext || timeOptions.isEmpty
-                  ? null
-                  : (value) => setState(() => _startMinutes = value),
-            ),
+            const SizedBox(height: 12),
             if (!_loadingContext && timeOptions.isEmpty) ...[
               const SizedBox(height: 8),
               _editMessageBox(
@@ -1192,6 +1266,74 @@ class _RegularScheduleEditPageState extends State<_RegularScheduleEditPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  List<DateTime> get _weekOptions {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final firstDate = widget.schedule.slotStartsOn.isAfter(today)
+        ? widget.schedule.slotStartsOn
+        : today;
+    final firstWeek = _startOfWeek(firstDate);
+
+    final defaultLast = firstWeek.add(const Duration(days: 7 * 11));
+    final slotEnd = widget.schedule.slotEndsOn;
+    final lastDate =
+        slotEnd != null && slotEnd.isBefore(defaultLast)
+            ? slotEnd
+            : defaultLast;
+    final lastWeek = _startOfWeek(lastDate);
+
+    final result = <DateTime>[];
+    var cursor = firstWeek;
+    while (!cursor.isAfter(lastWeek) && result.length < 12) {
+      result.add(cursor);
+      cursor = cursor.add(const Duration(days: 7));
+    }
+    return result;
+  }
+
+  DateTime _startOfWeek(DateTime value) {
+    final date = DateTime(value.year, value.month, value.day);
+    return date.subtract(
+      Duration(days: date.weekday - DateTime.monday),
+    );
+  }
+
+  bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year &&
+      a.month == b.month &&
+      a.day == b.day;
+
+  Widget _editSectionCard({
+    required String title,
+    required Widget child,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.07),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            style: forestringTextStyle.copyWith(
+              color: primaryColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 9),
+          child,
+        ],
       ),
     );
   }
