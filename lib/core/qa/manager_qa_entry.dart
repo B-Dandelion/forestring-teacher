@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../features/auth/domain/current_profile.dart';
+import '../theme/student_accent_controller.dart';
 import '../../features/lessons/presentation/lesson_controller.dart';
 import '../../app/manager_shell.dart';
 import 'qa_sandbox_repositories.dart';
@@ -39,6 +40,9 @@ class ManagerQaEntry extends StatelessWidget {
               branchRepository: QaBranchRepository(store),
             )..initialize();
           },
+        ),
+        ChangeNotifierProvider(
+          create: (_) => StudentAccentController(profile.id)..load(),
         ),
       ],
       child: const _ManagerQaShell(),
