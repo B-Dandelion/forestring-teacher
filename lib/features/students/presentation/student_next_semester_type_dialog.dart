@@ -633,31 +633,71 @@ class _StudentNextSemesterTypePageState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _sectionTitle('자율 예약 설정'),
-        const SizedBox(height: 10),
-        TextFormField(
-          controller: _rightCountController,
-          enabled: !_saving && plan.canChange,
-          decoration: _decoration('학기 수업권 개수'),
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: const Color(0xff4B7892).withValues(alpha: 0.10),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.confirmation_number_rounded,
+                color: Color(0xff4B7892),
+                size: 19,
+              ),
+            ),
+            const SizedBox(width: 9),
+            Text(
+              '자율 예약 설정',
+              style: forestringTextStyle.copyWith(
+                color: const Color(0xff4B7892),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 10),
-        DropdownButtonFormField<int>(
-          initialValue: _flexDurationMinutes,
-          decoration: _decoration('수업 길이'),
-          items: _durationItems(),
-          onChanged: _saving || !plan.canChange
-              ? null
-              : (value) {
-                  if (value != null) {
-                    setState(() => _flexDurationMinutes = value);
-                  }
-                },
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                controller: _rightCountController,
+                enabled: !_saving && plan.canChange,
+                decoration:
+                    _decoration('학기 수업권').copyWith(suffixText: '개'),
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 128,
+              child: DropdownButtonFormField<int>(
+                initialValue: _flexDurationMinutes,
+                decoration: _decoration('수업 길이'),
+                items: _durationItems(),
+                onChanged: _saving || !plan.canChange
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          setState(
+                            () => _flexDurationMinutes = value,
+                          );
+                        }
+                      },
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 10),
         _infoCard(
-          '자율 예약 학생은 정규 시간표 없이 수업권으로 담당 선생님의 예약 가능 시간에 수업을 예약합니다.',
+          '다음 학기에는 정규 시간표 없이 수업권으로 예약합니다. '
+          '수업권 개수와 수업 길이는 다음 학기 시작일부터 적용됩니다.',
         ),
       ],
     );
@@ -696,12 +736,32 @@ class _StudentNextSemesterTypePageState
       children: [
         _sectionTitle('정규 수업 설정'),
         const SizedBox(height: 7),
-        Text(
-          '담당 선생님: ${plan.teacherName ?? '확인 필요'}',
-          style: forestringTextStyle.copyWith(
-            color: secondaryColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 11,
+            vertical: 10,
+          ),
+          decoration: BoxDecoration(
+            color: primaryColor.withValues(alpha: 0.045),
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.person_rounded,
+                color: primaryColor,
+                size: 18,
+              ),
+              const SizedBox(width: 7),
+              Text(
+                plan.teacherName ?? '담당 선생님 확인 필요',
+                style: forestringTextStyle.copyWith(
+                  color: Colors.black87,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
         if (_workHours.isNotEmpty) ...[
@@ -714,6 +774,16 @@ class _StudentNextSemesterTypePageState
           (index) => _regularScheduleCard(index, plan),
         ),
         OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: primaryColor,
+            side: BorderSide(
+              color: primaryColor.withValues(alpha: 0.20),
+            ),
+            minimumSize: const Size.fromHeight(46),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(13),
+            ),
+          ),
           onPressed: _saving || !plan.canChange
               ? null
               : () {
