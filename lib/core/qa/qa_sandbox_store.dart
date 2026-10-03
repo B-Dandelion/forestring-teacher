@@ -95,12 +95,25 @@ class QaSandboxStore extends ChangeNotifier {
     return null;
   }
 
+  void addStudent(ManagedStudent student) {
+    students.add(student);
+    pins[student.id] = '1234';
+    _rebuildTeacherCounts();
+    notifyListeners();
+  }
+
   void updateStudent(ManagedStudent next) {
     final index = students.indexWhere((student) => student.id == next.id);
     if (index < 0) return;
     students[index] = next;
     _syncLessonNames();
     _rebuildTeacherCounts();
+    notifyListeners();
+  }
+
+  void addTeacher(ManagedTeacher teacher) {
+    teachers.add(teacher);
+    pins[teacher.id] = '1234';
     notifyListeners();
   }
 
