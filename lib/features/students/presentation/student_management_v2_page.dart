@@ -31,6 +31,7 @@ class StudentManagementV2Page extends StatefulWidget {
     this.nextSemesterRepository,
     this.regularScheduleRepository,
     this.teacherManagementRepository,
+    this.embeddedInShell = false,
   });
 
   final CurrentProfile profile;
@@ -41,6 +42,7 @@ class StudentManagementV2Page extends StatefulWidget {
   final StudentNextSemesterTypeRepository? nextSemesterRepository;
   final StudentRegularScheduleRepository? regularScheduleRepository;
   final StudentTeacherManagementRepository? teacherManagementRepository;
+  final bool embeddedInShell;
 
   @override
   State<StudentManagementV2Page> createState() =>
@@ -188,17 +190,19 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
 
     return Scaffold(
       backgroundColor: neutralIvory,
-      appBar: ForestringAppBar(
-        title: '수강생 관리',
-        actions: [
-          IconButton(
-            tooltip: '새로고침',
-            onPressed: _loading ? null : _loadStudents,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
+      appBar: widget.embeddedInShell
+          ? null
+          : ForestringAppBar(
+              title: '수강생 관리',
+              actions: [
+                IconButton(
+                  tooltip: '새로고침',
+                  onPressed: _loading ? null : _loadStudents,
+                  icon: const Icon(Icons.refresh_rounded),
+                ),
+                const SizedBox(width: 4),
+              ],
+            ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
