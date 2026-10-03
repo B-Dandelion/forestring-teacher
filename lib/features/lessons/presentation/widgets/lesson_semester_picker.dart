@@ -10,12 +10,14 @@ class LessonSemesterPicker extends StatelessWidget {
     required this.selectedSemesterId,
     required this.enabled,
     required this.onChanged,
+    this.compact = false,
   });
 
   final List<ManagedSemester> semesters;
   final String? selectedSemesterId;
   final bool enabled;
   final ValueChanged<String> onChanged;
+  final bool compact;
 
   ManagedSemester? get _selected {
     final id = selectedSemesterId;
@@ -29,6 +31,54 @@ class LessonSemesterPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = _selected;
+
+    if (compact) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: enabled && semesters.isNotEmpty
+              ? () => _showPicker(context)
+              : null,
+          borderRadius: BorderRadius.circular(999),
+          child: Container(
+            height: 36,
+            padding: const EdgeInsets.symmetric(horizontal: 11),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.94),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: primaryColor.withValues(alpha: 0.10),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.calendar_month_rounded,
+                  size: 15,
+                  color: primaryColor,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  selected == null ? '학기 선택' : _semesterLabel(selected.code),
+                  style: forestringTextStyle.copyWith(
+                    color: enabled ? Colors.black87 : Colors.black38,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.expand_more_rounded,
+                  size: 17,
+                  color: enabled ? primaryColor : Colors.black26,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return InkWell(
       onTap: enabled && semesters.isNotEmpty
