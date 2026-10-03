@@ -660,68 +660,95 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: controller.reload,
-          triggerMode: RefreshIndicatorTriggerMode.anywhere,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 30),
-            children: [
-              _calendar(
-                controller,
-                firstDay,
-                lastDay,
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
-                decoration: BoxDecoration(
-                  color: const Color(0xffE8F0E4),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: primaryColor.withValues(alpha: 0.06),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    _scheduleSectionHeader(
-                      selectedLessons.length,
-                      selectedBlockedPeriods.length,
-                    ),
-                    const SizedBox(height: 12),
-                    if (controller.errorMessage != null) ...[
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 11,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.redAccent.withValues(alpha: 0.07),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          controller.errorMessage!,
-                          textAlign: TextAlign.center,
-                          style: forestringTextStyle.copyWith(
-                            color: Colors.redAccent,
-                            fontSize: 12,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 2, 8, 0),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  tooltip: '새로고침',
+                  onPressed: controller.isLoading
+                      ? null
+                      : controller.reload,
+                  icon: controller.isLoading
+                      ? const SizedBox(
+                          width: 19,
+                          height: 19,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: primaryColor,
                           ),
+                        )
+                      : const Icon(
+                          Icons.refresh_rounded,
+                          color: primaryColor,
                         ),
-                      ),
-                    ],
-                    _scheduleContent(
-                      context,
-                      controller,
-                      selectedEntries,
-                      studentAccents,
-                    ),
-                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+            Expanded(
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 30),
+                children: [
+                  _calendar(
+                    controller,
+                    firstDay,
+                    lastDay,
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xffE8F0E4),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: primaryColor.withValues(alpha: 0.06),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        _scheduleSectionHeader(
+                          selectedLessons.length,
+                          selectedBlockedPeriods.length,
+                        ),
+                        const SizedBox(height: 12),
+                        if (controller.errorMessage != null) ...[
+                          Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 11,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent.withValues(alpha: 0.07),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              controller.errorMessage!,
+                              textAlign: TextAlign.center,
+                              style: forestringTextStyle.copyWith(
+                                color: Colors.redAccent,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                        _scheduleContent(
+                          context,
+                          controller,
+                          selectedEntries,
+                          studentAccents,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
