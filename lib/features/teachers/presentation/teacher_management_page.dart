@@ -7,6 +7,7 @@ import '../../auth/domain/current_profile.dart';
 import '../../branches/data/branch_repository.dart';
 import '../../branches/domain/academy_branch.dart';
 import '../data/teacher_repository.dart';
+import '../data/teacher_work_hours_schedule_repository.dart';
 import 'teacher_assigned_students_page.dart';
 import 'teacher_blocked_periods_page.dart';
 import 'teacher_create_page.dart';
@@ -18,9 +19,15 @@ class TeacherManagementPage extends StatefulWidget {
   const TeacherManagementPage({
     super.key,
     required this.profile,
+    this.repository,
+    this.branchRepository,
+    this.workHoursRepository,
   });
 
   final CurrentProfile profile;
+  final TeacherRepository? repository;
+  final BranchRepository? branchRepository;
+  final TeacherWorkHoursScheduleRepository? workHoursRepository;
 
   @override
   State<TeacherManagementPage> createState() =>
@@ -30,8 +37,8 @@ class TeacherManagementPage extends StatefulWidget {
 class _TeacherManagementPageState extends State<TeacherManagementPage> {
   static const _allBranches = '__all__';
 
-  final _repository = TeacherRepository();
-  final _branchRepository = BranchRepository();
+  late final TeacherRepository _repository;
+  late final BranchRepository _branchRepository;
   final _searchController = TextEditingController();
 
   List<AcademyBranch> _branches = const [];
@@ -45,6 +52,9 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
   @override
   void initState() {
     super.initState();
+    _repository = widget.repository ?? TeacherRepository();
+    _branchRepository =
+        widget.branchRepository ?? BranchRepository();
     _searchController.addListener(_onSearchChanged);
     _loadInitial();
   }
@@ -138,7 +148,11 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
   Future<void> _openRegistration() async {
     final created = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => TeacherCreatePage(profile: widget.profile),
+        builder: (_) => TeacherCreatePage(
+          profile: widget.profile,
+          repository: widget.repository,
+          branchRepository: widget.branchRepository,
+        ),
       ),
     );
 
@@ -695,7 +709,10 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
   Future<void> _showWorkHoursEdit(ManagedTeacher teacher) async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => TeacherWorkHoursEditPage(teacher: teacher),
+        builder: (_) => TeacherWorkHoursEditPage(
+          teacher: teacher,
+          repository: widget.workHoursRepository,
+        ),
       ),
     );
 
@@ -724,7 +741,10 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
   Future<void> _showAssignedStudents(ManagedTeacher teacher) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) => TeacherAssignedStudentsPage(teacher: teacher),
+        builder: (_) => TeacherAssignedStudentsPage(
+          teacher: teacher,
+          repository: widget.repository,
+        ),
       ),
     );
   }
@@ -732,7 +752,10 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
   Future<void> _showBlockedPeriods(ManagedTeacher teacher) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) => TeacherBlockedPeriodsPage(teacher: teacher),
+        builder: (_) => TeacherBlockedPeriodsPage(
+          teacher: teacher,
+          repository: widget.repository,
+        ),
       ),
     );
   }
@@ -740,7 +763,10 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
   Future<void> _showLessonStats(ManagedTeacher teacher) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) => TeacherLessonStatsPage(teacher: teacher),
+        builder: (_) => TeacherLessonStatsPage(
+          teacher: teacher,
+          repository: widget.repository,
+        ),
       ),
     );
   }
@@ -748,7 +774,10 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
   Future<void> _showDeparture(ManagedTeacher teacher) async {
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => TeacherDeparturePage(teacher: teacher),
+        builder: (_) => TeacherDeparturePage(
+          teacher: teacher,
+          repository: widget.repository,
+        ),
       ),
     );
 
