@@ -5,6 +5,7 @@ import 'package:table_calendar/table_calendar.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/theme/student_accent_controller.dart';
+import '../../../core/widgets/forestring_navigation.dart';
 import '../../auth/domain/current_profile.dart';
 import '../domain/lesson.dart';
 import 'lesson_controller.dart';
@@ -659,21 +660,9 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        centerTitle: true,
-        elevation: 0,
-        title: const Text(
-          '일정',
-          style: TextStyle(
-            color: Colors.white,
-            fontFamily: 'ELAND',
-            fontWeight: FontWeight.w500,
-            fontSize: 20,
-          ),
-        ),
+      appBar: const ForestringAppBar(
+        title: '일정',
+        roundBottomCorners: true,
       ),
       body: SafeArea(
         child: RefreshIndicator(
