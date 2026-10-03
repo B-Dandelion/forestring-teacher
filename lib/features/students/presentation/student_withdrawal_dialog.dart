@@ -239,7 +239,8 @@ class _StudentWithdrawalPageState
                       ? '오늘 퇴원'
                       : '퇴원 예약',
               style: forestringTextStyle.copyWith(
-                fontSize: 14,
+                color: Colors.white,
+                fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
             ),
