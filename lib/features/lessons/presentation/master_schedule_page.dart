@@ -1108,11 +1108,8 @@ class _ManagerLessonAppointment extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = _palette();
-    final label = switch (lesson.type) {
-      LessonType.makeup => '보강',
-      LessonType.flex => lesson.isRescheduled ? '변경' : '자율',
-      LessonType.regular => lesson.isRescheduled ? '변경' : '정규',
-    };
+    final label = lessonStatusShortLabel(lesson);
+    final statusColor = lessonStatusAccentColor(lesson);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(4, 2, 3, 2),
@@ -1147,7 +1144,7 @@ class _ManagerLessonAppointment extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: forestringTextStyle.copyWith(
-              color: Colors.black54,
+              color: statusColor,
               fontSize: 7.5,
               fontWeight: FontWeight.w400,
               height: 1,
