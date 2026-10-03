@@ -151,6 +151,7 @@ class MasterSchedulePage extends StatelessWidget {
                     branchRepository: qaStore == null
                         ? null
                         : QaBranchRepository(qaStore),
+                    isQaSandbox: isQaSandbox,
                   ),
                 ),
               );
@@ -192,6 +193,7 @@ class MasterSchedulePage extends StatelessWidget {
                         : QaStudentTeacherManagementRepository(
                             qaStore,
                           ),
+                    isQaSandbox: isQaSandbox,
                   ),
                 ),
               );
@@ -217,6 +219,7 @@ class MasterSchedulePage extends StatelessWidget {
                         : QaTeacherWorkHoursScheduleRepository(
                             qaStore,
                           ),
+                    isQaSandbox: isQaSandbox,
                   ),
                 ),
               );
