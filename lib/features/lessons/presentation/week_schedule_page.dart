@@ -79,6 +79,8 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
 
     return Scaffold(
       appBar: ForestringAppBar(
+        title: '주간',
+        roundBottomCorners: true,
         actions: [
           IconButton(
             tooltip: '새로고침',
