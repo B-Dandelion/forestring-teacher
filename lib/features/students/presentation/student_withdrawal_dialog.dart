@@ -9,19 +9,19 @@ Future<StudentWithdrawalResult?> showStudentWithdrawalDialog({
   required ManagedStudent student,
   required StudentManagementRepository repository,
 }) {
-  return showDialog<StudentWithdrawalResult>(
-    context: context,
-    useRootNavigator: true,
-    barrierDismissible: false,
-    builder: (_) => _StudentWithdrawalDialog(
-      student: student,
-      repository: repository,
+  return Navigator.of(context).push<StudentWithdrawalResult>(
+    MaterialPageRoute(
+      builder: (_) => StudentWithdrawalPage(
+        student: student,
+        repository: repository,
+      ),
     ),
   );
 }
 
-class _StudentWithdrawalDialog extends StatefulWidget {
-  const _StudentWithdrawalDialog({
+class StudentWithdrawalPage extends StatefulWidget {
+  const StudentWithdrawalPage({
+    super.key,
     required this.student,
     required this.repository,
   });
@@ -30,11 +30,12 @@ class _StudentWithdrawalDialog extends StatefulWidget {
   final StudentManagementRepository repository;
 
   @override
-  State<_StudentWithdrawalDialog> createState() =>
-      _StudentWithdrawalDialogState();
+  State<StudentWithdrawalPage> createState() =>
+      _StudentWithdrawalPageState();
 }
 
-class _StudentWithdrawalDialogState extends State<_StudentWithdrawalDialog> {
+class _StudentWithdrawalPageState
+    extends State<StudentWithdrawalPage> {
   late DateTime _withdrawalDate;
   bool _saving = false;
   String? _errorMessage;
@@ -63,7 +64,8 @@ class _StudentWithdrawalDialogState extends State<_StudentWithdrawalDialog> {
     final today = DateTime(now.year, now.month, now.day);
     final selected = await showDatePicker(
       context: context,
-      initialDate: _withdrawalDate.isBefore(today) ? today : _withdrawalDate,
+      initialDate:
+          _withdrawalDate.isBefore(today) ? today : _withdrawalDate,
       firstDate: today,
       lastDate: DateTime(today.year + 3, 12, 31),
       helpText: '퇴원일 선택',
@@ -99,90 +101,184 @@ class _StudentWithdrawalDialogState extends State<_StudentWithdrawalDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final dateText = DateFormat('yyyy.MM.dd').format(_withdrawalDate);
+    final dateText =
+        DateFormat('yyyy.MM.dd').format(_withdrawalDate);
 
-    return AlertDialog(
-      title: Text(
-        widget.student.withdrawalDate == null ? '수강생 퇴원 처리' : '퇴원 예정일 변경',
+    return Scaffold(
+      backgroundColor: neutralIvory,
+      appBar: AppBar(
+        backgroundColor: neutralIvory,
+        foregroundColor: primaryColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          widget.student.withdrawalDate == null
+              ? '퇴원 관리'
+              : '퇴원 예정일 변경',
+          style: forestringTextStyle.copyWith(
+            color: primaryColor,
+            fontSize: 19,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
-      content: SizedBox(
-        width: 420,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                '${widget.student.displayName} · ${widget.student.branchName}',
-                style: forestringTextStyle.copyWith(
-                  color: primaryColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 16),
-              InkWell(
-                onTap: _saving ? null : _pickDate,
-                borderRadius: BorderRadius.circular(8),
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: '퇴원일',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.calendar_today_outlined),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 110),
+          children: [
+            _card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.student.displayName,
+                    style: forestringTextStyle.copyWith(
+                      color: primaryColor,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  child: Text(dateText),
-                ),
+                  const SizedBox(height: 5),
+                  Text(
+                    widget.student.branchName,
+                    style: forestringTextStyle.copyWith(
+                      color: Colors.black54,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 14),
-              _messageBox(
-                _isToday
-                    ? '오늘을 선택하면 즉시 퇴원 처리됩니다. 오늘 00:00 이후의 수업은 제거되고, 남아 있는 사용 가능한 수강권은 회수되며 학생 계정은 비활성화됩니다. 과거 수업 기록은 유지됩니다.'
-                    : '$dateText부터 수업을 진행하지 않는 것으로 예약합니다. 저장하는 즉시 해당 날짜 이후의 예정 수업이 시간표에서 제거되어 다른 수업을 예약할 수 있습니다. 퇴원일 전까지는 학생 계정이 유지되며 예약을 취소할 수 있습니다. 예약 취소 시 원래 시간에 자리가 남아 있는 수업은 복구되고, 복구할 수 없는 수업은 기존 수업권으로 반환됩니다.',
+            ),
+            const SizedBox(height: 12),
+            _card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    '퇴원 예정일',
+                    style: forestringTextStyle.copyWith(
+                      color: primaryColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  InkWell(
+                    onTap: _saving ? null : _pickDate,
+                    borderRadius: BorderRadius.circular(13),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 13,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withValues(alpha: 0.035),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today_outlined,
+                            color: primaryColor,
+                            size: 19,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              dateText,
+                              style: forestringTextStyle.copyWith(
+                                color: Colors.black87,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: primaryColor,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 12),
-                _messageBox(_errorMessage!, isError: true),
-              ],
+            ),
+            const SizedBox(height: 12),
+            _messageBox(
+              _isToday
+                  ? '오늘을 선택하면 즉시 퇴원 처리됩니다. 오늘 이후 수업은 정리되고, 사용 가능한 수업권은 회수되며 학생 계정은 비활성화됩니다. 과거 수업 기록은 유지됩니다.'
+                  : '$dateText부터 수업을 진행하지 않는 것으로 예약합니다. 저장 즉시 해당 날짜 이후 예정 수업이 정리됩니다. 퇴원일 전까지는 학생 계정이 유지되며 예약을 취소할 수 있습니다.',
+            ),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 12),
+              _messageBox(_errorMessage!, isError: true),
             ],
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+          child: FilledButton(
+            onPressed: _saving ? null : _submit,
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: Text(
+              _saving
+                  ? '처리 중...'
+                  : _isToday
+                      ? '오늘 퇴원'
+                      : '퇴원 예약',
+              style: forestringTextStyle.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('취소'),
-        ),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          style: FilledButton.styleFrom(
-            backgroundColor: Colors.redAccent,
-          ),
-          child: Text(
-            _saving
-                ? '처리 중...'
-                : _isToday
-                    ? '오늘 퇴원'
-                    : '퇴원 예약',
-          ),
-        ),
-      ],
     );
   }
 
-  Widget _messageBox(String message, {bool isError = false}) {
+  Widget _card({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.06),
+        ),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _messageBox(
+    String message, {
+    bool isError = false,
+  }) {
     final color = isError ? Colors.redAccent : primaryColor;
     return Container(
-      padding: const EdgeInsets.all(11),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
         message,
         style: forestringTextStyle.copyWith(
-          color: isError ? Colors.redAccent : Colors.black87,
-          fontSize: 13,
+          color: isError ? Colors.redAccent : Colors.black74,
+          fontSize: 12,
           height: 1.45,
         ),
       ),
