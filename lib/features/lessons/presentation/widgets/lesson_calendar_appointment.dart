@@ -35,7 +35,7 @@ class LessonCalendarAppointment extends StatelessWidget {
           name,
           maxLines: 1,
           style: TextStyle(
-            color: studentAccentForeground(backgroundColor),
+            color: Colors.black,
             fontFamily: 'ELAND',
             fontSize: 11,
             fontWeight: FontWeight.w500,
