@@ -1000,27 +1000,23 @@ class QaStudentRegularScheduleRepository
       );
     }
 
-    store.replaceRegularSchedule(
+    final reconciledLessonCount =
+        store.changeRegularScheduleAndReconcile(
       studentId: studentId,
-      schedule: ManagedRegularSchedule(
-        slotId: current.slotId,
-        teacherId: teacherId,
-        teacherName: teacher.displayName,
-        weekday: weekday,
-        startMinutes: startMinutes,
-        durationMinutes: durationMinutes,
-        slotStartsOn: current.slotStartsOn,
-        slotEndsOn: current.slotEndsOn,
-        effectiveFrom: _qaDateOnly(effectiveOn),
-        effectiveUntil: current.effectiveUntil,
-        hasFutureVersion: false,
-      ),
+      scheduleSlotId: scheduleSlotId,
+      teacherId: teacherId,
+      teacherName: teacher.displayName,
+      weekday: weekday,
+      startMinutes: startMinutes,
+      durationMinutes: durationMinutes,
+      effectiveOn: effectiveOn,
     );
 
     return {
       'changed': true,
       'scheduleSlotId': scheduleSlotId,
       'effectiveOn': _qaDateText(effectiveOn),
+      'reconciledLessonCount': reconciledLessonCount,
       'canceledLessonCount': 0,
     };
   }
