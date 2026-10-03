@@ -1358,11 +1358,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                               },
                             );
                           },
-                          onReorder: (oldIndex, newIndex) {
-                            if (newIndex > oldIndex) {
-                              newIndex -= 1;
-                            }
-
+                          onReorderItem: (oldIndex, newIndex) {
                             setModalState(() {
                               final moved = orderedStudents.removeAt(oldIndex);
                               orderedStudents.insert(newIndex, moved);
