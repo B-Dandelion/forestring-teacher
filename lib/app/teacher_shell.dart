@@ -105,7 +105,7 @@ class _TeacherShellState extends State<TeacherShell> {
 
                   return forestringTextStyle.copyWith(
                     color: selected ? Colors.white : Colors.white70,
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight:
                         selected ? FontWeight.w500 : FontWeight.w300,
                   );
@@ -117,13 +117,13 @@ class _TeacherShellState extends State<TeacherShell> {
 
                   return IconThemeData(
                     color: selected ? primaryColor : Colors.white70,
-                    size: 24,
+                    size: 22,
                   );
                 },
               ),
             ),
               child: NavigationBar(
-                height: 68,
+                height: 58,
                 selectedIndex: _currentIndex,
                 onDestinationSelected: _selectTab,
                 labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
