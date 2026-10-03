@@ -68,7 +68,7 @@ class LessonController extends ChangeNotifier {
   List<TeacherBlockedPeriod> get visibleBlockedPeriods {
     final teacherId = _selectedTeacherId;
     if (teacherId == null || teacherId.isEmpty) {
-      return const [];
+      return canManageLessons ? _blockedPeriods : const [];
     }
 
     return _blockedPeriods
@@ -263,6 +263,14 @@ class LessonController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void selectAllTeachers() {
+    if (!canManageLessons || _selectedTeacherId == null) {
+      return;
+    }
+    _selectedTeacherId = null;
+    notifyListeners();
+  }
+
   void _ensureTeacherSelectionForBranch() {
     final candidates = branchTeachers;
 
@@ -270,6 +278,11 @@ class LessonController extends ChangeNotifier {
         candidates.any((teacher) => teacher.id == _selectedTeacherId);
 
     if (teacherStillVisible) return;
+
+    if (isManager) {
+      _selectedTeacherId = null;
+      return;
+    }
 
     if (isMaster) {
       for (final teacher in candidates) {
