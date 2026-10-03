@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../core/config/app_config.dart';
 import '../core/qa/manager_qa_entry.dart';
 import '../core/theme/forestring_theme.dart';
+import '../core/theme/student_accent_controller.dart';
 import '../core/widgets/forestring_navigation.dart';
 import '../features/auth/domain/current_profile.dart';
 import '../features/auth/presentation/auth_controller.dart';
@@ -116,11 +117,18 @@ class _LessonEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => LessonController(
-        repository ?? LessonRepository(),
-        profile,
-      )..initialize(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => LessonController(
+            repository ?? LessonRepository(),
+            profile,
+          )..initialize(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => StudentAccentController(profile.id)..load(),
+        ),
+      ],
       child: child,
     );
   }
