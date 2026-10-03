@@ -23,9 +23,13 @@ class MasterSchedulePage extends StatelessWidget {
   const MasterSchedulePage({
     super.key,
     required this.profile,
+    this.isQaSandbox = false,
+    this.onQaExit,
   });
 
   final CurrentProfile profile;
+  final bool isQaSandbox;
+  final VoidCallback? onQaExit;
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +77,7 @@ class MasterSchedulePage extends StatelessWidget {
             label: '메인 페이지',
             onTap: () => Navigator.of(context).pop(),
           ),
+          if (!isQaSandbox) ...[
           ForestringDrawerItem(
             icon: Icons.calendar_month_outlined,
             label: '수업 관리',
@@ -159,9 +164,16 @@ class MasterSchedulePage extends StatelessWidget {
                 );
               },
             ),
+          ],
         ],
         onLogout: () async {
           Navigator.of(context).pop();
+
+          if (isQaSandbox) {
+            onQaExit?.call();
+            return;
+          }
+
           await context.read<AuthController>().signOut();
         },
       ),
