@@ -369,7 +369,8 @@ class _StudentNextSemesterTypePageState
                   child: Text(
                     _saving ? '저장 중...' : '다음 학기에 적용',
                     style: forestringTextStyle.copyWith(
-                      fontSize: 14,
+                      color: Colors.white,
+                      fontSize: 15,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -397,8 +398,14 @@ class _StudentNextSemesterTypePageState
         const SizedBox(height: 14),
         FilledButton(
           onPressed: _load,
-          style: FilledButton.styleFrom(backgroundColor: primaryColor),
-          child: const Text('다시 시도'),
+          style: FilledButton.styleFrom(
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.white,
+          ),
+          child: const Text(
+            '다시 시도',
+            style: TextStyle(color: Colors.white),
+          ),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
