@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/config/app_config.dart';
+import '../core/qa/manager_qa_entry.dart';
 import '../core/theme/forestring_theme.dart';
 import '../core/widgets/forestring_navigation.dart';
 import '../features/auth/domain/current_profile.dart';
@@ -32,7 +35,20 @@ class AppGate extends StatelessWidget {
     final profile = auth.profile;
 
     if (!auth.isSignedIn || profile == null) {
-      return const LoginPage();
+      final managerQaAvailable =
+          !kReleaseMode && AppConfig.managerQaEnabled;
+
+      return LoginPage(
+        onManagerQaStart: managerQaAvailable
+            ? () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ManagerQaEntry(),
+                  ),
+                );
+              }
+            : null,
+      );
     }
 
     if (profile.isReviewAccount &&
