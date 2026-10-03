@@ -123,15 +123,6 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
     return _semesters.any((item) => item.id == value) ? value : null;
   }
 
-  String? get _safeBranchValue {
-    final selected = _selectedBranchId;
-    final exists =
-        selected != null && _branches.any((branch) => branch.id == selected);
-
-    if (_isMaster) return exists ? selected : '__all__';
-    return exists ? selected : null;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -439,7 +430,11 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
         onPressed: _loading ? null : _openMakeup,
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        icon: const Icon(Icons.add_rounded),
         label: Text(
           '추가 수업 등록',
           style: forestringTextStyle.copyWith(
@@ -449,10 +444,11 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
         ),
       ),
       body: SafeArea(
+        top: false,
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
               child: _filterPanel(lessons.length),
             ),
             if (_errorMessage != null)
@@ -476,142 +472,179 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
   Widget _filterPanel(int count) {
     final students = _filterStudents;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: primaryColor.withValues(alpha: 0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '수업 $count건',
-                  style: forestringTextStyle.copyWith(
-                    color: primaryColor,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Wrap(
+                spacing: 7,
+                runSpacing: 7,
+                children: [
+                  LessonSemesterPicker(
+                    semesters: _semesters,
+                    selectedSemesterId: _safeSemesterValue,
+                    enabled: !_loading,
+                    compact: true,
+                    onChanged: (value) => _changeSemester(value),
                   ),
-                ),
-              ),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(
-                    value: 'list',
-                    icon: Icon(Icons.view_list_outlined, size: 17),
-                  ),
-                  ButtonSegment(
-                    value: 'calendar',
-                    icon: Icon(Icons.calendar_month_outlined, size: 17),
-                  ),
+                  if (_isMaster) _branchFilterPill(),
+                  _statusFilterPill(),
                 ],
-                selected: {_viewMode},
-                showSelectedIcon: false,
-                onSelectionChanged: _changeView,
               ),
-            ],
+            ),
+            const SizedBox(width: 8),
+            _viewModeToggle(),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            StudentSearchPickerField(
+              students: students,
+              selectedStudentId: _selectedStudentId,
+              includeAllOption: true,
+              enabled: !_loading,
+              compact: true,
+              onChanged: (value) {
+                setState(() {
+                  _selectedStudentId = value;
+                  if (value == null && _viewMode == 'calendar') {
+                    _viewMode = 'list';
+                  }
+                });
+              },
+            ),
+            const Spacer(),
+            Text(
+              '$count건',
+              style: forestringTextStyle.copyWith(
+                color: primaryColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 2),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _branchFilterPill() {
+    return PopupMenuButton<String>(
+      initialValue: _selectedBranchId ?? '__all__',
+      enabled: !_loading,
+      onSelected: _changeBranch,
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: '__all__',
+          child: Text('전체 지점'),
+        ),
+        for (final branch in _branches)
+          PopupMenuItem(
+            value: branch.id,
+            child: Text(branch.name),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: LessonSemesterPicker(
-                  semesters: _semesters,
-                  selectedSemesterId: _safeSemesterValue,
-                  enabled: !_loading,
-                  onChanged: (value) => _changeSemester(value),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  initialValue: _safeBranchValue,
-                  decoration: _decoration('지점'),
-                  items: [
-                    if (_isMaster)
-                      const DropdownMenuItem<String>(
-                        value: '__all__',
-                        child: Text('전체 지점'),
-                      ),
-                    ..._branches.map(
-                      (branch) => DropdownMenuItem<String>(
-                        value: branch.id,
-                        child: Text(
-                          branch.name,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  ],
-                  onChanged: _isMaster && !_loading ? _changeBranch : null,
-                ),
-              ),
-            ],
+      ],
+      child: _LessonFilterPill(
+        label: _selectedBranchLabel(),
+        icon: Icons.location_on_rounded,
+      ),
+    );
+  }
+
+  String _selectedBranchLabel() {
+    final selected = _selectedBranchId;
+    if (selected == null) return '전체 지점';
+    for (final branch in _branches) {
+      if (branch.id == selected) return branch.name;
+    }
+    return '전체 지점';
+  }
+
+  Widget _statusFilterPill() {
+    final label = switch (_statusFilter) {
+      'base' => '기본 수업',
+      'changed' => '일정 변경',
+      'canceled' => '취소',
+      'special' => '보강·예약',
+      _ => '전체 구분',
+    };
+
+    return PopupMenuButton<String>(
+      initialValue: _statusFilter,
+      enabled: !_loading,
+      onSelected: (value) => setState(() => _statusFilter = value),
+      itemBuilder: (context) => const [
+        PopupMenuItem(value: 'all', child: Text('전체 구분')),
+        PopupMenuItem(value: 'base', child: Text('기본 수업')),
+        PopupMenuItem(value: 'changed', child: Text('일정 변경')),
+        PopupMenuItem(value: 'canceled', child: Text('취소')),
+        PopupMenuItem(value: 'special', child: Text('보강·예약')),
+      ],
+      child: _LessonFilterPill(label: label),
+    );
+  }
+
+  Widget _viewModeToggle() {
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.10),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _viewModeButton(
+            mode: 'list',
+            icon: Icons.view_list_rounded,
+            tooltip: '목록',
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: StudentSearchPickerField(
-                  students: students,
-                  selectedStudentId: _selectedStudentId,
-                  includeAllOption: true,
-                  enabled: !_loading,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedStudentId = value;
-                      if (value == null && _viewMode == 'calendar') {
-                        _viewMode = 'list';
-                      }
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  initialValue: _statusFilter,
-                  decoration: _decoration('구분'),
-                  items: const [
-                    DropdownMenuItem<String>(
-                      value: 'all',
-                      child: Text('전체'),
-                    ),
-                    DropdownMenuItem<String>(
-                      value: 'base',
-                      child: Text('기본 수업'),
-                    ),
-                    DropdownMenuItem<String>(
-                      value: 'changed',
-                      child: Text('일정 변경'),
-                    ),
-                    DropdownMenuItem<String>(
-                      value: 'canceled',
-                      child: Text('취소'),
-                    ),
-                    DropdownMenuItem<String>(
-                      value: 'special',
-                      child: Text('보강·예약'),
-                    ),
-                  ],
-                  onChanged: _loading
-                      ? null
-                      : (value) {
-                          if (value != null) {
-                            setState(() => _statusFilter = value);
-                          }
-                        },
-                ),
-              ),
-            ],
+          _viewModeButton(
+            mode: 'calendar',
+            icon: Icons.calendar_month_rounded,
+            tooltip: '캘린더',
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _viewModeButton({
+    required String mode,
+    required IconData icon,
+    required String tooltip,
+  }) {
+    final selected = _viewMode == mode;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: _loading ? null : () => _changeView({mode}),
+        child: Container(
+          width: 30,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected
+                ? primaryColor.withValues(alpha: 0.10)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Icon(
+            icon,
+            size: 17,
+            color: selected ? primaryColor : Colors.black38,
+          ),
+        ),
       ),
     );
   }
@@ -651,125 +684,229 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
     final end = DateFormat('HH:mm').format(lesson.endsAt);
     final teacherName = lesson.teacherName ?? '담당자 확인 필요';
     final branchName = _branchName(lesson.branchId);
+    final accent = _lessonAccent(lesson);
 
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(13),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(13),
-        onTap: () => _openLesson(lesson),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(13),
-            border: Border.all(
-              color: lesson.isCanceled
-                  ? Colors.black12
-                  : primaryColor.withValues(alpha: 0.18),
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(
+          color: accent.withValues(alpha: lesson.isCanceled ? 0.10 : 0.08),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x09000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 54,
-                padding: const EdgeInsets.symmetric(vertical: 7),
-                decoration: BoxDecoration(
-                  color: lesson.isCanceled
-                      ? Colors.black12
-                      : primaryColor.withValues(alpha: 0.07),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      '${lesson.startsAt.month}월',
-                      style: forestringTextStyle.copyWith(fontSize: 11),
-                    ),
-                    Text(
-                      '${lesson.startsAt.day}',
-                      style: forestringTextStyle.copyWith(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            lesson.studentName ?? '학생 확인 필요',
-                            overflow: TextOverflow.ellipsis,
-                            style: forestringTextStyle.copyWith(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              decoration: lesson.isCanceled
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                            ),
-                          ),
-                        ),
-                        _typeBadge(lesson),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$start ~ $end · $teacherName',
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.black54,
-                        fontSize: 12,
-                      ),
-                    ),
-                    if (_isMaster) ...[
-                      const SizedBox(height: 2),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(17),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _openLesson(lesson),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 9, 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.09),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
                       Text(
-                        branchName,
+                        '${lesson.startsAt.month}월',
                         style: forestringTextStyle.copyWith(
-                          color: Colors.black45,
-                          fontSize: 11,
+                          color: accent,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        '${lesson.startsAt.day}',
+                        style: forestringTextStyle.copyWith(
+                          color: accent,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w500,
+                          height: 1.05,
                         ),
                       ),
                     ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 4),
-              if (lesson.isCanceled)
-                Text(
-                  '취소',
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.redAccent,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              const Icon(Icons.chevron_right, color: Colors.black38),
-            ],
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              lesson.studentName ?? '학생 확인 필요',
+                              overflow: TextOverflow.ellipsis,
+                              style: forestringTextStyle.copyWith(
+                                color: lesson.isCanceled
+                                    ? Colors.black54
+                                    : Colors.black87,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w500,
+                                decoration: lesson.isCanceled
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          Flexible(
+                            child: Wrap(
+                              spacing: 5,
+                              runSpacing: 4,
+                              children: _lessonBadges(lesson),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.schedule_rounded,
+                            size: 14,
+                            color: accent.withValues(alpha: 0.78),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$start ~ $end',
+                            style: forestringTextStyle.copyWith(
+                              color: Colors.black54,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          Container(
+                            width: 3,
+                            height: 3,
+                            decoration: const BoxDecoration(
+                              color: Colors.black26,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          Expanded(
+                            child: Text(
+                              '$teacherName 선생님',
+                              overflow: TextOverflow.ellipsis,
+                              style: forestringTextStyle.copyWith(
+                                color: Colors.black54,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_isMaster) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.location_on_rounded,
+                              size: 13,
+                              color: Colors.black38,
+                            ),
+                            const SizedBox(width: 3),
+                            Expanded(
+                              child: Text(
+                                branchName,
+                                overflow: TextOverflow.ellipsis,
+                                style: forestringTextStyle.copyWith(
+                                  color: Colors.black38,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: accent.withValues(alpha: 0.65),
+                  size: 21,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _typeBadge(Lesson lesson) {
-    final label = switch (lesson.type) {
-      LessonType.makeup => '추가',
-      LessonType.flex => lesson.changeBadgeLabel ?? '자율',
-      LessonType.regular => lesson.changeBadgeLabel ?? '정규',
-    };
-    final color =
-        lesson.type == LessonType.makeup ? secondaryColor : primaryColor;
+  List<Widget> _lessonBadges(Lesson lesson) {
+    final badges = <Widget>[
+      _lessonBadge(
+        _lessonTypeLabel(lesson),
+        _lessonTypeColor(lesson),
+      ),
+    ];
 
+    final state = _lessonState(lesson);
+    if (state != null) {
+      badges.add(_lessonBadge(state.$1, state.$2));
+    }
+    return badges;
+  }
+
+  String _lessonTypeLabel(Lesson lesson) {
+    return switch (lesson.type) {
+      LessonType.regular => '정규',
+      LessonType.flex => '자율',
+      LessonType.makeup => '보강',
+    };
+  }
+
+  Color _lessonTypeColor(Lesson lesson) {
+    return switch (lesson.type) {
+      LessonType.regular => primaryColor,
+      LessonType.flex => const Color(0xff4B7892),
+      LessonType.makeup => const Color(0xffB36A2E),
+    };
+  }
+
+  (String, Color)? _lessonState(Lesson lesson) {
+    if (lesson.isCanceled) {
+      return ('취소', Colors.redAccent);
+    }
+    if (lesson.isStudentRebooked) {
+      return ('재예약', const Color(0xff4B7892));
+    }
+    if (lesson.isStaffChanged) {
+      return ('일정 변경', const Color(0xffA87524));
+    }
+    return null;
+  }
+
+  Color _lessonAccent(Lesson lesson) {
+    return _lessonState(lesson)?.$2 ?? _lessonTypeColor(lesson);
+  }
+
+  Widget _lessonBadge(String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+        color: color.withValues(alpha: 0.085),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -830,20 +967,52 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
     );
   }
 
-  InputDecoration _decoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      isDense: true,
-      filled: true,
-      fillColor: neutralIvory,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 11,
+
+}
+
+class _LessonFilterPill extends StatelessWidget {
+  const _LessonFilterPill({
+    required this.label,
+    this.icon,
+  });
+
+  final String label;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 11),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.10),
+        ),
       ),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(9)),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(9),
-        borderSide: BorderSide(color: primaryColor.withValues(alpha: 0.18)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 15, color: primaryColor),
+            const SizedBox(width: 5),
+          ],
+          Text(
+            label,
+            style: forestringTextStyle.copyWith(
+              color: Colors.black.withValues(alpha: 0.72),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(
+            Icons.expand_more_rounded,
+            size: 17,
+            color: primaryColor,
+          ),
+        ],
       ),
     );
   }
