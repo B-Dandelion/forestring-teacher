@@ -31,6 +31,7 @@ class QaSandboxStore extends ChangeNotifier {
   late Map<String, String> nextStudentTypes;
   late Map<String, int> nextFlexRightCounts;
   late Map<String, int> nextFlexDurations;
+  late Map<String, int> nextRegularScheduleCounts;
   late Map<String, String> pins;
 
   void reset() {
@@ -53,6 +54,12 @@ class QaSandboxStore extends ChangeNotifier {
       for (final student in students)
         if (student.isFlex)
           student.id: student.flexDurationMinutes ?? 30,
+    };
+    nextRegularScheduleCounts = {
+      for (final student in students)
+        student.id: student.isRegular
+            ? (regularSchedules[student.id]?.length ?? 0)
+            : 0,
     };
     pins = {
       for (final student in students) student.id: '1234',
@@ -204,6 +211,25 @@ class QaSandboxStore extends ChangeNotifier {
 
   void savePin(String profileId, String pin) {
     pins[profileId] = pin;
+    notifyListeners();
+  }
+
+  void saveNextSemesterPlan({
+    required String studentId,
+    required String studentType,
+    int? flexRightCount,
+    int? flexDurationMinutes,
+    int regularScheduleCount = 0,
+  }) {
+    nextStudentTypes[studentId] = studentType;
+    nextRegularScheduleCounts[studentId] = regularScheduleCount;
+    if (studentType == 'flex') {
+      nextFlexRightCounts[studentId] = flexRightCount ?? 4;
+      nextFlexDurations[studentId] = flexDurationMinutes ?? 30;
+    } else {
+      nextFlexRightCounts.remove(studentId);
+      nextFlexDurations.remove(studentId);
+    }
     notifyListeners();
   }
 
