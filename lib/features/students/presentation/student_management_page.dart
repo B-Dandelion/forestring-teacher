@@ -26,6 +26,7 @@ class StudentManagementPage extends StatelessWidget {
     this.nextSemesterRepository,
     this.regularScheduleRepository,
     this.teacherManagementRepository,
+    this.isQaSandbox = false,
   });
 
   final CurrentProfile profile;
@@ -36,9 +37,23 @@ class StudentManagementPage extends StatelessWidget {
   final StudentNextSemesterTypeRepository? nextSemesterRepository;
   final StudentRegularScheduleRepository? regularScheduleRepository;
   final StudentTeacherManagementRepository? teacherManagementRepository;
+  final bool isQaSandbox;
 
   @override
   Widget build(BuildContext context) {
+    if (isQaSandbox &&
+        (repository == null ||
+            branchRepository == null ||
+            lessonRepository == null ||
+            adminRepository == null ||
+            nextSemesterRepository == null ||
+            regularScheduleRepository == null ||
+            teacherManagementRepository == null)) {
+      throw StateError(
+        'QA student management requires sandbox repositories.',
+      );
+    }
+
     return StudentManagementV2Page(
       profile: profile,
       repository: repository,
