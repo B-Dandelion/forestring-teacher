@@ -257,6 +257,7 @@ class QaSandboxStore extends ChangeNotifier {
         startsAt: startsAt,
         endsAt: startsAt.add(Duration(minutes: durationMinutes)),
         durationMinutes: durationMinutes,
+        studentName: lesson.studentName,
         teacherName: teacherName,
         replaceNames: true,
       );
@@ -575,6 +576,12 @@ class QaSandboxStore extends ChangeNotifier {
               days: week * 7 + schedule.weekday - DateTime.monday,
             ),
           );
+          if (day.isBefore(schedule.slotStartsOn) ||
+              (schedule.slotEndsOn != null &&
+                  day.isAfter(schedule.slotEndsOn!))) {
+            continue;
+          }
+
           final startsAt = DateTime(
             day.year,
             day.month,
