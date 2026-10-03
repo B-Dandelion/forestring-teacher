@@ -20,7 +20,6 @@ class ManagedStudent {
     required this.profileIsActive,
     this.teacherId,
     this.teacherName,
-    this.enrolledOn,
     this.withdrawalDate,
     this.flexBaseRightCount,
     this.flexDurationMinutes,
@@ -35,7 +34,6 @@ class ManagedStudent {
   final bool profileIsActive;
   final String? teacherId;
   final String? teacherName;
-  final DateTime? enrolledOn;
   final DateTime? withdrawalDate;
   final int? flexBaseRightCount;
   final int? flexDurationMinutes;
@@ -198,19 +196,14 @@ class StudentManagementRepository {
       final today = DateTime.now();
       final localToday = DateTime(today.year, today.month, today.day);
       final activeAssignmentByStudent = <String, Map<String, dynamic>>{};
-      final earliestAssignmentStartByStudent = <String, DateTime>{};
 
       for (final row in assignmentRows) {
         final studentId = row['student_id'] as String;
-        final startsOn = DateTime.parse(row['starts_on'].toString());
-        final currentEarliest = earliestAssignmentStartByStudent[studentId];
-        if (currentEarliest == null || startsOn.isBefore(currentEarliest)) {
-          earliestAssignmentStartByStudent[studentId] = startsOn;
-        }
-
         if (activeAssignmentByStudent.containsKey(studentId)) {
           continue;
         }
+
+        final startsOn = DateTime.parse(row['starts_on'].toString());
         final endsOn = row['ends_on'] == null
             ? null
             : DateTime.parse(row['ends_on'].toString());
@@ -263,7 +256,6 @@ class StudentManagementRepository {
           profileIsActive: profile['is_active'] == true,
           teacherId: teacherId,
           teacherName: teacherId == null ? null : teacherNames[teacherId],
-          enrolledOn: earliestAssignmentStartByStudent[id],
           withdrawalDate: withdrawalRaw == null
               ? null
               : DateTime.parse(withdrawalRaw.toString()),
