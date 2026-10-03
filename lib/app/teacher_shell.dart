@@ -70,7 +70,7 @@ class _TeacherShellState extends State<TeacherShell> {
                 final selected = states.contains(WidgetState.selected);
 
                 return forestringTextStyle.copyWith(
-                  color: selected ? primaryColor : Colors.white70,
+                  color: selected ? Colors.white : Colors.white70,
                   fontSize: 11,
                   fontWeight:
                       selected ? FontWeight.w500 : FontWeight.w300,
@@ -107,7 +107,7 @@ class _TeacherShellState extends State<TeacherShell> {
               NavigationDestination(
                 icon: Icon(Icons.person_outline_rounded),
                 selectedIcon: Icon(Icons.person_rounded),
-                label: '마이',
+                label: '마이페이지',
               ),
             ],
           ),
