@@ -8,7 +8,10 @@ import 'auth_controller.dart';
 class LoginPage extends StatefulWidget {
   const LoginPage({
     super.key,
+    this.onManagerQaStart,
   });
+
+  final VoidCallback? onManagerQaStart;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -179,6 +182,25 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                     ),
                   ),
+                  if (widget.onManagerQaStart != null) ...[
+                    const SizedBox(height: 12),
+                    TextButton.icon(
+                      onPressed: widget.onManagerQaStart,
+                      icon: const Icon(
+                        Icons.developer_mode_rounded,
+                        color: Colors.white70,
+                        size: 18,
+                      ),
+                      label: const Text(
+                        'QA 지점장으로 시작',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontFamily: 'ELAND',
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
