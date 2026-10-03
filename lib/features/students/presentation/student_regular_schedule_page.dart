@@ -153,7 +153,10 @@ class _StudentRegularSchedulePageState
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('종료'),
           ),
         ],
@@ -267,6 +270,7 @@ class _StudentRegularSchedulePageState
                       label: const Text('추가'),
                       style: FilledButton.styleFrom(
                         backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
                       ),
                     ),
                   ],
@@ -285,6 +289,7 @@ class _StudentRegularSchedulePageState
                   label: const Text('정규 수업 추가'),
                   style: FilledButton.styleFrom(
                     backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
                 ),
