@@ -40,6 +40,51 @@ class MasterSchedulePage extends StatelessWidget {
         isQaSandbox ? context.read<QaSandboxStore>() : null;
     final selectedBranchId = controller.selectedBranchId;
     final selectedTeacherId = controller.selectedTeacherId;
+
+    Future<void> resetQaSandbox() async {
+      if (!isQaSandbox || qaStore == null) return;
+
+      Navigator.of(context).pop();
+
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('QA 데이터 초기화'),
+          content: const Text(
+            '현재 QA 세션에서 변경한 수업, 수강생, 선생님 데이터를 '
+            '모두 초기 상태로 되돌립니다.\n\n'
+            '운영 데이터에는 영향을 주지 않습니다.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(false),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: primaryColor,
+              ),
+              child: const Text('초기화'),
+            ),
+          ],
+        ),
+      );
+
+      if (!context.mounted || confirmed != true) return;
+
+      qaStore.reset();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('QA 데이터가 초기 상태로 복구되었습니다.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+
     final meetings = <Object>[
       ...controller.visibleLessons
           .where((lesson) => !lesson.isCanceled)
@@ -73,7 +118,11 @@ class MasterSchedulePage extends StatelessWidget {
       drawer: ForestringDrawer(
         displayName: profile.displayName,
         nameSuffix: profile.isManager ? '지점장님' : '선생님',
-        roleLabel: profile.isMaster ? '전체 관리자' : '환영합니다',
+        roleLabel: isQaSandbox
+            ? 'QA Sandbox · 로컬 데이터'
+            : profile.isMaster
+                ? '전체 관리자'
+                : '환영합니다',
         showHeart: profile.isMaster,
         items: [
           ForestringDrawerItem(
@@ -173,6 +222,12 @@ class MasterSchedulePage extends StatelessWidget {
               );
             },
           ),
+          if (isQaSandbox)
+            ForestringDrawerItem(
+              icon: Icons.restart_alt_rounded,
+              label: 'QA 데이터 초기화',
+              onTap: resetQaSandbox,
+            ),
           if (!isQaSandbox) ...[
             if (profile.isMaster)
               ForestringDrawerItem(
