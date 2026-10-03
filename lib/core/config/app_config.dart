@@ -7,6 +7,11 @@ class AppConfig {
     'SUPABASE_PUBLISHABLE_KEY',
   );
 
+  static const managerQaEnabled = bool.fromEnvironment(
+    'MANAGER_QA_ENABLED',
+    defaultValue: false,
+  );
+
   static void validate() {
     if (supabaseUrl.isEmpty) {
       throw StateError('SUPABASE_URL is not configured.');
