@@ -23,6 +23,7 @@ class TeacherManagementPage extends StatefulWidget {
     this.branchRepository,
     this.workHoursRepository,
     this.isQaSandbox = false,
+    this.embeddedInShell = false,
   });
 
   final CurrentProfile profile;
@@ -30,6 +31,7 @@ class TeacherManagementPage extends StatefulWidget {
   final BranchRepository? branchRepository;
   final TeacherWorkHoursScheduleRepository? workHoursRepository;
   final bool isQaSandbox;
+  final bool embeddedInShell;
 
   @override
   State<TeacherManagementPage> createState() =>
@@ -177,17 +179,19 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
 
     return Scaffold(
       backgroundColor: neutralIvory,
-      appBar: ForestringAppBar(
-        title: '선생님 관리',
-        actions: [
-          IconButton(
-            tooltip: '새로고침',
-            onPressed: _loading ? null : _loadTeachers,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
+      appBar: widget.embeddedInShell
+          ? null
+          : ForestringAppBar(
+              title: '선생님 관리',
+              actions: [
+                IconButton(
+                  tooltip: '새로고침',
+                  onPressed: _loading ? null : _loadTeachers,
+                  icon: const Icon(Icons.refresh_rounded),
+                ),
+                const SizedBox(width: 4),
+              ],
+            ),
       floatingActionButton: widget.profile.isMaster || widget.profile.isManager
           ? FloatingActionButton.extended(
               backgroundColor: primaryColor,
