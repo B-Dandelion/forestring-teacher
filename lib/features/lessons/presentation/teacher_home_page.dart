@@ -662,6 +662,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: controller.reload,
+          triggerMode: RefreshIndicatorTriggerMode.anywhere,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 30),
