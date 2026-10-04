@@ -18,6 +18,7 @@ import '../../managers/presentation/manager_management_page.dart';
 import '../../semesters/data/semester_repository.dart';
 import '../../semesters/domain/managed_semester.dart';
 import '../../semesters/presentation/semester_management_page.dart';
+import 'staff_work_report_page.dart';
 
 class MasterManagementPage extends StatefulWidget {
   const MasterManagementPage({
@@ -275,6 +276,16 @@ class _MasterManagementPageState extends State<MasterManagementPage> {
     return '${int.parse(match.group(2)!)}월';
   }
 
+  Future<void> _openWorkReport() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => StaffWorkReportPage(
+          profile: widget.profile,
+        ),
+      ),
+    );
+  }
+
   Future<void> _openManagerManagement() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -370,6 +381,24 @@ class _MasterManagementPageState extends State<MasterManagementPage> {
                 const SizedBox(height: 8),
                 _overviewErrorCard(),
               ],
+              const SizedBox(height: 22),
+              _sectionTitle(
+                '운영 리포트',
+                subtitle: '실제 수업 기록을 근무시간으로 집계합니다.',
+              ),
+              const SizedBox(height: 10),
+              _managementCard(
+                icon: Icons.analytics_outlined,
+                title: '수업 · 근무 리포트',
+                description: '지점 · 선생님별 수업 횟수와 총 수업시간',
+                value: _currentSemester == null
+                    ? '학기를 선택해 확인'
+                    : '$_currentSemesterLabel 학기 바로 보기',
+                backgroundColor: const Color(0xffEDF3F2),
+                iconColor: const Color(0xff4B7892),
+                onTap: _openWorkReport,
+                wide: true,
+              ),
               const SizedBox(height: 22),
               _sectionTitle(
                 '운영 관리',
