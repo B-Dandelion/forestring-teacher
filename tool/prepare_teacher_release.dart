@@ -24,22 +24,17 @@ void main() {
       .split('\n')
       .where(
         (line) =>
-            !line.contains('GoogleService-Info.plist') &&
             !line.contains('FLUTTER_BUILD_NAME =') &&
             !line.contains('FLUTTER_BUILD_NUMBER ='),
       )
       .toList();
-  projectFile.writeAsStringSync('${cleanedLines.join('\n').trimRight()}\n');
+
+  projectFile.writeAsStringSync(
+    '${cleanedLines.join('\n').trimRight()}\n',
+  );
 
   final firebasePlist = File('ios/Runner/GoogleService-Info.plist');
-  if (firebasePlist.existsSync()) {
-    firebasePlist.deleteSync();
-  }
-
   final firebaseJson = File('firebase.json');
-  if (firebaseJson.existsSync()) {
-    firebaseJson.deleteSync();
-  }
 
   final result = projectFile.readAsStringSync();
   final errors = <String>[];
@@ -47,18 +42,55 @@ void main() {
   if (!result.contains('PRODUCT_BUNDLE_IDENTIFIER = forestring.teacher.app;')) {
     errors.add('Production iOS bundle identifier was not found.');
   }
+
   if (result.contains('com.example.forestringTeacher2')) {
     errors.add('Example iOS bundle identifier remains.');
   }
-  if (result.contains('GoogleService-Info.plist')) {
-    errors.add('Firebase plist reference remains in the Xcode project.');
-  }
+
   if (result.contains('FLUTTER_BUILD_NAME =') ||
       result.contains('FLUTTER_BUILD_NUMBER =')) {
     errors.add('Hardcoded Flutter iOS version override remains.');
   }
-  if (firebasePlist.existsSync()) {
-    errors.add('Firebase plist file still exists.');
+
+  // v3.4 uses Firebase only as the FCM/APNs transport.
+  // The Firebase client configuration is now required for release builds.
+  if (!firebasePlist.existsSync()) {
+    errors.add(
+      'GoogleService-Info.plist is missing. '
+      'FCM iOS configuration must be present for release builds.',
+    );
+  } else {
+    final plist = firebasePlist.readAsStringSync();
+
+    if (!plist.contains('<string>forestring.teacher.app</string>')) {
+      errors.add(
+        'GoogleService-Info.plist does not target forestring.teacher.app.',
+      );
+    }
+
+    if (!plist.contains('<string>forestring1-1</string>')) {
+      errors.add(
+        'GoogleService-Info.plist does not target Firebase project '
+        'forestring1-1.',
+      );
+    }
+
+    if (!result.contains('GoogleService-Info.plist')) {
+      errors.add(
+        'GoogleService-Info.plist is not referenced by the Xcode project.',
+      );
+    }
+  }
+
+  // flutterfire configure may create firebase.json. It is safe client-side
+  // configuration metadata and must not be deleted by the release cleanup.
+  if (firebaseJson.existsSync()) {
+    stdout.writeln('FlutterFire firebase.json: present');
+  } else {
+    stdout.writeln(
+      'FlutterFire firebase.json: not present yet '
+      '(run flutterfire configure during v3.4 setup)',
+    );
   }
 
   if (errors.isNotEmpty) {
@@ -69,8 +101,9 @@ void main() {
     return;
   }
 
-  stdout.writeln('Teacher release cleanup complete.');
+  stdout.writeln('Teacher release preparation complete.');
   stdout.writeln('iOS bundle id: forestring.teacher.app');
-  stdout.writeln('Legacy Firebase iOS references: removed');
+  stdout.writeln('Firebase project: forestring1-1');
+  stdout.writeln('FCM iOS client configuration: preserved');
   stdout.writeln('Hardcoded Flutter iOS version overrides: removed');
 }
