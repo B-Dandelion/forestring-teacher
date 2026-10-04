@@ -455,6 +455,7 @@ class MasterSchedulePage extends StatelessWidget {
 
                               return LessonCalendarAppointment(
                                 lesson: meeting.lesson,
+                                displayMode: displayMode,
                                 accentColor: meeting.studentAccentColor,
                               );
                             },
@@ -642,11 +643,14 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
   Widget build(BuildContext context) {
     final controller = widget.controller;
     final accentController = context.watch<StudentAccentController>();
-    final studentAccents = accentController.isEnabled
-        ? accentController.assignments(
-            controller.visibleLessons.map((lesson) => lesson.studentId),
-          )
-        : const <String, Color>{};
+    final displayMode = accentController.displayMode;
+    final studentAccents =
+        displayMode == ScheduleDisplayMode.student
+            ? accentController.assignments(
+                controller.visibleLessons
+                    .map((lesson) => lesson.studentId),
+              )
+            : const <String, Color>{};
     final selectedTeacherId = controller.selectedTeacherId;
     final branchName = _selectedBranchName(controller);
 
@@ -892,6 +896,7 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
 
                             return LessonCalendarAppointment(
                               lesson: meeting.lesson,
+                              displayMode: displayMode,
                               accentColor: meeting.studentAccentColor,
                             );
                           },
