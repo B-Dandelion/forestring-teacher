@@ -3,29 +3,85 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'student_accent.dart';
 
+enum ScheduleDisplayMode {
+  classic,
+  status,
+  student,
+}
+
+extension ScheduleDisplayModeX on ScheduleDisplayMode {
+  String get storageValue => switch (this) {
+        ScheduleDisplayMode.classic => 'classic',
+        ScheduleDisplayMode.status => 'status',
+        ScheduleDisplayMode.student => 'student',
+      };
+
+  String get label => switch (this) {
+        ScheduleDisplayMode.classic => '기본',
+        ScheduleDisplayMode.status => '수업 상태',
+        ScheduleDisplayMode.student => '학생별 색상',
+      };
+
+  String get description => switch (this) {
+        ScheduleDisplayMode.classic =>
+          '기존 시간표처럼 초록 계열 수업 칸에 학생 이름만 표시합니다.',
+        ScheduleDisplayMode.status =>
+          '정규·자율·보강·변경 상태를 색상과 상태 표시로 구분합니다.',
+        ScheduleDisplayMode.student =>
+          '학생마다 다른 색상으로 수업 칸을 구분합니다.',
+      };
+
+  IconData get icon => switch (this) {
+        ScheduleDisplayMode.classic => Icons.calendar_view_week_outlined,
+        ScheduleDisplayMode.status => Icons.sell_outlined,
+        ScheduleDisplayMode.student => Icons.palette_outlined,
+      };
+
+  static ScheduleDisplayMode fromStorage(String? value) {
+    return switch (value) {
+      'status' => ScheduleDisplayMode.status,
+      'student' => ScheduleDisplayMode.student,
+      _ => ScheduleDisplayMode.classic,
+    };
+  }
+}
+
 class StudentAccentController extends ChangeNotifier {
   StudentAccentController(this.profileId);
 
   static const _storagePrefix = 'teacher_student_accent_v2';
-  static const _enabledStoragePrefix = 'student_accent_enabled_v1';
+  static const _displayModeStoragePrefix = 'schedule_display_mode_v1';
 
   final String profileId;
   final Map<String, Color> _overrides = {};
   final Map<String, Color> _generated = {};
 
   bool _loaded = false;
-  bool _enabled = false;
+  ScheduleDisplayMode _displayMode = ScheduleDisplayMode.classic;
 
   bool get isLoaded => _loaded;
-  bool get isEnabled => _enabled;
+  ScheduleDisplayMode get displayMode => _displayMode;
+
+  // Existing student-color UI can continue to use this compatibility getter.
+  bool get isEnabled => _displayMode == ScheduleDisplayMode.student;
+  bool get usesStudentColors => _displayMode == ScheduleDisplayMode.student;
+  bool get usesStatusStyle => _displayMode == ScheduleDisplayMode.status;
+  bool get usesClassicStyle => _displayMode == ScheduleDisplayMode.classic;
 
   String get _profilePrefix => '$_storagePrefix:$profileId:';
-  String get _enabledStorageKey => '$_enabledStoragePrefix:$profileId';
+  String get _displayModeStorageKey =>
+      '$_displayModeStoragePrefix:$profileId';
 
   Future<void> load() async {
     final preferences = await SharedPreferences.getInstance();
     final prefix = _profilePrefix;
-    _enabled = preferences.getBool(_enabledStorageKey) ?? false;
+
+    // A missing key intentionally falls back to the pre-3.3 classic view.
+    // Do not migrate the old boolean toggle: existing users must not have
+    // their weekly timetable appearance changed automatically.
+    _displayMode = ScheduleDisplayModeX.fromStorage(
+      preferences.getString(_displayModeStorageKey),
+    );
 
     _overrides.clear();
 
@@ -52,13 +108,23 @@ class StudentAccentController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setEnabled(bool enabled) async {
-    if (_enabled == enabled) return;
+  Future<void> setDisplayMode(ScheduleDisplayMode mode) async {
+    if (_displayMode == mode) return;
 
-    _enabled = enabled;
+    _displayMode = mode;
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setBool(_enabledStorageKey, enabled);
+    await preferences.setString(
+      _displayModeStorageKey,
+      mode.storageValue,
+    );
     notifyListeners();
+  }
+
+  // Kept temporarily for callers that still treat student colors as a toggle.
+  Future<void> setEnabled(bool enabled) {
+    return setDisplayMode(
+      enabled ? ScheduleDisplayMode.student : ScheduleDisplayMode.classic,
+    );
   }
 
   Map<String, Color> assignments(Iterable<String> studentIds) {
