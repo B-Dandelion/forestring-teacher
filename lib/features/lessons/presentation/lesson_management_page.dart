@@ -12,6 +12,7 @@ import '../../semesters/domain/managed_semester.dart';
 import '../data/lesson_repository.dart';
 import '../domain/lesson.dart';
 import 'lesson_controller.dart';
+import 'lesson_visual_style.dart';
 import 'makeup_lesson_create_page.dart';
 import 'widgets/lesson_action_dialog.dart';
 import 'widgets/lesson_semester_picker.dart';
@@ -883,21 +884,21 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
 
   Color _lessonTypeColor(Lesson lesson) {
     return switch (lesson.type) {
-      LessonType.regular => primaryColor,
-      LessonType.flex => const Color(0xff4B7892),
-      LessonType.makeup => const Color(0xffB36A2E),
+      LessonType.regular => regularLessonColor,
+      LessonType.flex => flexLessonColor,
+      LessonType.makeup => makeupLessonColor,
     };
   }
 
   (String, Color)? _lessonState(Lesson lesson) {
     if (lesson.isCanceled) {
-      return ('취소', Colors.redAccent);
+      return ('취소', canceledLessonColor);
     }
     if (lesson.isStudentRebooked) {
-      return ('재예약', const Color(0xff4B7892));
+      return ('재예약', studentRebookedLessonColor);
     }
     if (lesson.isStaffChanged) {
-      return ('일정 변경', const Color(0xffA87524));
+      return ('일정 변경', staffChangedLessonColor);
     }
     return null;
   }
