@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../data/teacher_repository.dart';
@@ -45,16 +44,6 @@ class TeacherWorkHourDraft {
       endTime: formatTeacherWorkTime(endTime),
     );
   }
-}
-
-class TeacherWorkTimeRange {
-  const TeacherWorkTimeRange({
-    required this.startTime,
-    required this.endTime,
-  });
-
-  final TimeOfDay startTime;
-  final TimeOfDay endTime;
 }
 
 class TeacherWorkHoursEditor extends StatelessWidget {
@@ -332,22 +321,31 @@ class TeacherWorkHoursEditor extends StatelessWidget {
   }) async {
     if (!enabled) return;
 
-    final picked = await showTeacherWorkTimeRangePicker(
+    final picked = await showTeacherWorkTimePicker(
       context: context,
-      initialStartTime: current.startTime,
-      initialEndTime: current.endTime,
-      initialEditingStart: initialEditingStart,
+      title: initialEditingStart ? '시작 시간' : '종료 시간',
+      initialTime:
+          initialEditingStart ? current.startTime : current.endTime,
     );
 
     if (picked == null) return;
 
-    _replaceValue(
-      current,
-      current.copyWith(
-        startTime: picked.startTime,
-        endTime: picked.endTime,
-      ),
-    );
+    final next = initialEditingStart
+        ? current.copyWith(startTime: picked)
+        : current.copyWith(endTime: picked);
+
+    if (_minutes(next.startTime) >= _minutes(next.endTime)) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('종료시간은 시작시간보다 뒤여야 합니다.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    _replaceValue(current, next);
   }
 
   void _enableWeekday(int weekday) {
@@ -441,351 +439,139 @@ class TeacherWorkHoursEditor extends StatelessWidget {
   }
 }
 
-Future<TeacherWorkTimeRange?> showTeacherWorkTimeRangePicker({
+Future<TimeOfDay?> showTeacherWorkTimePicker({
   required BuildContext context,
-  required TimeOfDay initialStartTime,
-  required TimeOfDay initialEndTime,
-  bool initialEditingStart = true,
+  required String title,
+  required TimeOfDay initialTime,
 }) async {
-  var startTime = _roundToQuarter(initialStartTime);
-  var endTime = _roundToQuarter(initialEndTime);
-  var editingStart = initialEditingStart;
-  final manualController = TextEditingController(
-    text: formatTeacherWorkTime(
-      initialEditingStart ? startTime : endTime,
-    ),
-  );
+  var selected = _roundToQuarter(initialTime);
 
-  final result = await showModalBottomSheet<TeacherWorkTimeRange>(
+  return showModalBottomSheet<TimeOfDay>(
     context: context,
-    isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.42),
     builder: (sheetContext) {
-      String? manualError;
-
       return StatefulBuilder(
         builder: (context, setSheetState) {
-          final selectedTime = editingStart ? startTime : endTime;
-          final startMinutes = _minutes(startTime);
-          final endMinutes = _minutes(endTime);
-          final isValid = startMinutes < endMinutes;
-          final durationMinutes = isValid ? endMinutes - startMinutes : 0;
-
-          void switchTarget(bool start) {
-            setSheetState(() {
-              editingStart = start;
-              manualError = null;
-              manualController.text = formatTeacherWorkTime(
-                start ? startTime : endTime,
-              );
-            });
-          }
-
-          void applyManual() {
-            final parsed = _parseTeacherWorkTimeInput(
-              manualController.text,
-            );
-            if (parsed == null) {
-              setSheetState(() {
-                manualError = '00:00 ~ 23:45 사이의 15분 단위 시간을 입력해주세요.';
-              });
-              return;
-            }
-
-            setSheetState(() {
-              manualError = null;
-              if (editingStart) {
-                startTime = parsed;
-              } else {
-                endTime = parsed;
-              }
-            });
-          }
-
           return SafeArea(
             top: false,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
-              decoration: const BoxDecoration(
-                color: neutralIvory,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(28),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(18, 10, 18, 16),
+                decoration: BoxDecoration(
+                  color: neutralIvory,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: primaryColor.withValues(alpha: 0.07),
+                  ),
                 ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '근무시간 설정',
-                      style: forestringTextStyle.copyWith(
-                        color: primaryColor,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w500,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _timeRangeTarget(
-                          label: '시작',
-                          value: startTime,
-                          selected: editingStart,
-                          onTap: () => switchTarget(true),
-                        ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10),
-                        child: Icon(
-                          Icons.arrow_forward_rounded,
-                          color: Colors.black45,
-                        ),
-                      ),
-                      Expanded(
-                        child: _timeRangeTarget(
-                          label: '종료',
-                          value: endTime,
-                          selected: !editingStart,
-                          onTap: () => switchTarget(false),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: manualController,
-                    keyboardType: TextInputType.datetime,
-                    textInputAction: TextInputAction.done,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'[0-9:]'),
-                      ),
-                      LengthLimitingTextInputFormatter(5),
-                    ],
-                    onChanged: (_) {
-                      if (manualError != null) {
-                        setSheetState(() => manualError = null);
-                      }
-                    },
-                    onSubmitted: (_) => applyManual(),
-                    decoration: InputDecoration(
-                      labelText:
-                          editingStart ? '시작 시간 직접 입력' : '종료 시간 직접 입력',
-                      hintText: '예: 14:30',
-                      prefixIcon: const Icon(
-                        Icons.keyboard_outlined,
-                        color: primaryColor,
-                        size: 19,
-                      ),
-                      suffixIcon: IconButton(
-                        tooltip: '입력 시간 적용',
-                        onPressed: applyManual,
-                        icon: const Icon(
-                          Icons.check_rounded,
-                          color: primaryColor,
-                        ),
-                      ),
-                      errorText: manualError,
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.88),
-                      isDense: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(13),
-                        borderSide: BorderSide(
-                          color: primaryColor.withValues(alpha: 0.10),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 160),
-                    child: isValid
-                        ? Row(
-                            key: const ValueKey('duration'),
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.schedule_rounded,
-                                size: 16,
-                                color: Colors.black45,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                _durationLabel(durationMinutes),
-                                style: forestringTextStyle.copyWith(
-                                  color: Colors.black54,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          )
-                        : Text(
-                            '종료시간은 시작시간보다 뒤여야 합니다.',
-                            key: const ValueKey('error'),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
                             style: forestringTextStyle.copyWith(
-                              color: Colors.redAccent,
-                              fontSize: 13,
+                              color: primaryColor,
+                              fontSize: 20,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 190,
-                    child: CupertinoDatePicker(
-                      key: ValueKey(
-                        '${editingStart ? 'start' : 'end'}-'
-                        '${selectedTime.hour}-${selectedTime.minute}',
-                      ),
-                      mode: CupertinoDatePickerMode.time,
-                      use24hFormat: true,
-                      minuteInterval: 15,
-                      backgroundColor: Colors.transparent,
-                      initialDateTime: DateTime(
-                        2000,
-                        1,
-                        1,
-                        selectedTime.hour,
-                        selectedTime.minute,
-                      ),
-                      onDateTimeChanged: (value) {
-                        final next = TimeOfDay(
-                          hour: value.hour,
-                          minute: value.minute,
-                        );
-                        setSheetState(() {
-                          if (editingStart) {
-                            startTime = next;
-                          } else {
-                            endTime = next;
-                          }
-                          manualController.text =
-                              formatTeacherWorkTime(next);
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: !isValid
-                          ? null
-                          : () {
-                              Navigator.of(sheetContext).pop(
-                                TeacherWorkTimeRange(
-                                  startTime: startTime,
-                                  endTime: endTime,
-                                ),
-                              );
-                            },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor:
-                            primaryColor.withValues(alpha: 0.2),
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
                         ),
-                      ),
-                      child: const Text('완료'),
+                        Text(
+                          formatTeacherWorkTime(selected),
+                          style: forestringTextStyle.copyWith(
+                            color: primaryColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 170,
+                      child: CupertinoDatePicker(
+                        mode: CupertinoDatePickerMode.time,
+                        use24hFormat: true,
+                        minuteInterval: 15,
+                        backgroundColor: Colors.transparent,
+                        initialDateTime: DateTime(
+                          2000,
+                          1,
+                          1,
+                          selected.hour,
+                          selected.minute,
+                        ),
+                        onDateTimeChanged: (value) {
+                          setSheetState(() {
+                            selected = TimeOfDay(
+                              hour: value.hour,
+                              minute: value.minute,
+                            );
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                Navigator.of(sheetContext).pop(),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: primaryColor,
+                              minimumSize: const Size.fromHeight(46),
+                              side: BorderSide(
+                                color:
+                                    primaryColor.withValues(alpha: 0.16),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text('취소'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () =>
+                                Navigator.of(sheetContext).pop(selected),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size.fromHeight(46),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text('완료'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           );
         },
       );
     },
-  );
-
-  manualController.dispose();
-  return result;
-}
-
-TimeOfDay? _parseTeacherWorkTimeInput(String raw) {
-  final match = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(raw.trim());
-  if (match == null) return null;
-  final hour = int.tryParse(match.group(1)!);
-  final minute = int.tryParse(match.group(2)!);
-  if (hour == null ||
-      minute == null ||
-      hour < 0 ||
-      hour > 23 ||
-      minute < 0 ||
-      minute > 59 ||
-      minute % 15 != 0) {
-    return null;
-  }
-  return TimeOfDay(hour: hour, minute: minute);
-}
-
-Widget _timeRangeTarget({
-  required String label,
-  required TimeOfDay value,
-  required bool selected,
-  required VoidCallback onTap,
-}) {
-  return Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: selected
-              ? primaryColor.withValues(alpha: 0.08)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected
-                ? primaryColor
-                : primaryColor.withValues(alpha: 0.16),
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: forestringTextStyle.copyWith(
-                color: selected ? primaryColor : Colors.black54,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              formatTeacherWorkTime(value),
-              style: forestringTextStyle.copyWith(
-                color: primaryColor,
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
   );
 }
 
