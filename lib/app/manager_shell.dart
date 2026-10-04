@@ -5,6 +5,7 @@ import '../core/qa/qa_sandbox_repositories.dart';
 import '../core/qa/qa_sandbox_store.dart';
 import '../core/theme/forestring_theme.dart';
 import '../core/theme/student_accent_controller.dart';
+import '../core/widgets/schedule_display_mode_sheet.dart';
 import '../features/auth/domain/current_profile.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import '../features/lessons/presentation/lesson_controller.dart';
@@ -106,9 +107,12 @@ class _ManagerShellState extends State<ManagerShell> {
 
   Future<void> _handleMenu(String value) async {
     switch (value) {
-      case 'student_colors':
+      case 'schedule_display':
         final controller = context.read<StudentAccentController>();
-        await controller.setEnabled(!controller.isEnabled);
+        await showScheduleDisplayModeSheet(
+          context: context,
+          controller: controller,
+        );
       case 'reset':
         await _resetQaData();
       case 'exit':
@@ -244,24 +248,24 @@ class _ManagerShellState extends State<ManagerShell> {
                       ),
                       itemBuilder: (context) => [
                         PopupMenuItem(
-                          value: 'student_colors',
+                          value: 'schedule_display',
                           child: ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: Icon(
-                              accentController.isEnabled
-                                  ? Icons.palette_rounded
-                                  : Icons.palette_outlined,
+                              accentController.displayMode.icon,
                               color: primaryColor,
                             ),
-                            title: const Text('학생별 색상 구분'),
-                            trailing: Icon(
-                              accentController.isEnabled
-                                  ? Icons.toggle_on_rounded
-                                  : Icons.toggle_off_rounded,
-                              color: accentController.isEnabled
-                                  ? primaryColor
-                                  : Colors.black38,
-                              size: 32,
+                            title: const Text('시간표 표시 방식'),
+                            subtitle: Text(
+                              accentController.displayMode.label,
+                              style: forestringTextStyle.copyWith(
+                                color: Colors.black45,
+                                fontSize: 10.5,
+                              ),
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: Colors.black38,
                             ),
                           ),
                         ),
