@@ -137,7 +137,7 @@ class LessonCard extends StatelessWidget {
                                     const SizedBox(width: 8),
                                     _statusBadge(
                                       '취소',
-                                      Colors.redAccent,
+                                      canceledLessonColor,
                                     ),
                                   ] else if (badge != null) ...[
                                     const SizedBox(width: 8),
