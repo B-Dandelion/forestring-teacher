@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/theme/student_accent.dart';
 import '../../../core/theme/student_accent_controller.dart';
+import '../../../core/widgets/schedule_display_mode_sheet.dart';
 import '../../auth/domain/current_profile.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../teachers/data/teacher_repository.dart';
@@ -1447,13 +1448,13 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                SwitchListTile(
-                  secondary: const Icon(
-                    Icons.palette_outlined,
+                ListTile(
+                  leading: Icon(
+                    accentController.displayMode.icon,
                     color: primaryColor,
                   ),
                   title: Text(
-                    '학생별 색상 구분',
+                    '시간표 표시 방식',
                     style: forestringTextStyle.copyWith(
                       color: Colors.black87,
                       fontSize: 15,
@@ -1461,19 +1462,28 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                     ),
                   ),
                   subtitle: Text(
-                    '주간·일정·마이페이지에서 학생별 색상을 사용합니다.',
+                    '${accentController.displayMode.label} · '
+                    '${accentController.displayMode.description}',
                     style: forestringTextStyle.copyWith(
                       color: Colors.black45,
                       fontSize: 11,
+                      height: 1.35,
                     ),
                   ),
-                  value: accentController.isEnabled,
-                  activeThumbColor: primaryColor,
-                  onChanged: (value) async {
-                    await accentController.setEnabled(value);
-                    if (sheetContext.mounted) {
-                      Navigator.of(sheetContext).pop();
-                    }
+                  trailing: const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.black38,
+                  ),
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    await Future<void>.delayed(
+                      const Duration(milliseconds: 180),
+                    );
+                    if (!mounted) return;
+                    await showScheduleDisplayModeSheet(
+                      context: context,
+                      controller: accentController,
+                    );
                   },
                 ),
                 const Divider(height: 1),
@@ -1514,7 +1524,7 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                     ),
                   ),
                   subtitle: Text(
-                    '학생별 색상을 켰을 때 사용할 개별 지정값을 모두 지웁니다.',
+                    '학생별 색상 표시에서 사용할 개별 지정값을 모두 지웁니다.',
                     style: forestringTextStyle.copyWith(
                       color: Colors.black45,
                       fontSize: 11,
