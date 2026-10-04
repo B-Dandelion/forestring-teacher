@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/widgets/forestring_navigation.dart';
 import '../../../core/widgets/registration_form.dart';
+import '../../../core/widgets/compact_selection_sheet.dart';
+import 'widgets/regular_schedule_picker_widgets.dart';
 import '../../auth/domain/current_profile.dart';
 import '../../branches/data/branch_repository.dart';
 import '../../branches/domain/academy_branch.dart';
@@ -43,6 +45,8 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
   String? _createdStudentId;
   _StudentCreateType _studentType = _StudentCreateType.regular;
   int _flexDurationMinutes = 30;
+  List<StudentAdminWorkWindow> _teacherWorkHours = const [];
+  bool _showPin = false;
 
   bool _loading = true;
   bool _saving = false;
@@ -113,6 +117,7 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
       _teacherId = null;
       _semesterId = null;
       _createdStudentId = null;
+      _teacherWorkHours = const [];
     });
 
     try {
@@ -141,6 +146,10 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
             ? current.first.id
             : (semesters.isEmpty ? null : semesters.first.id);
       });
+
+      if (_teacherId != null) {
+        await _loadTeacherWorkHours(_teacherId!);
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -157,6 +166,15 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
 
   Future<void> _submit() async {
     if (_saving || !_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (_isRegular &&
+        _schedules.any((schedule) => schedule.startMinutes == null)) {
+      setState(() {
+        _errorMessage =
+            '담당 선생님의 근무시간 안에서 정규 수업 시간을 선택해주세요.';
+      });
       return;
     }
 
@@ -303,6 +321,107 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
     return '시작 학기 미선택';
   }
 
+  Future<void> _loadTeacherWorkHours(String teacherId) async {
+    try {
+      final hours = await _repository.fetchTeacherWorkHours(teacherId);
+      if (!mounted || _teacherId != teacherId) return;
+      setState(() => _teacherWorkHours = hours);
+      for (final schedule in _schedules) {
+        _ensureScheduleStart(schedule, keepCurrent: true);
+      }
+    } on StudentAdminFailure catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _teacherWorkHours = const [];
+        _errorMessage = error.message;
+      });
+    }
+  }
+
+  Future<void> _changeTeacher(String? teacherId) async {
+    if (teacherId == null || teacherId == _teacherId) return;
+    setState(() {
+      _teacherId = teacherId;
+      _teacherWorkHours = const [];
+      _errorMessage = null;
+    });
+    await _loadTeacherWorkHours(teacherId);
+  }
+
+  List<int> _availableStartMinutes(_ScheduleDraft schedule) {
+    final result = <int>{};
+    for (final window in _teacherWorkHours.where(
+      (item) => item.weekday == schedule.weekday,
+    )) {
+      var minute = ((window.startMinutes + 14) ~/ 15) * 15;
+      while (minute + schedule.durationMinutes <= window.endMinutes) {
+        result.add(minute);
+        minute += 15;
+      }
+    }
+    final list = result.toList()..sort();
+    return list;
+  }
+
+  void _ensureScheduleStart(
+    _ScheduleDraft schedule, {
+    bool keepCurrent = false,
+  }) {
+    final options = _availableStartMinutes(schedule);
+    final current = schedule.startMinutes;
+    setState(() {
+      if (options.isEmpty) {
+        schedule.startMinutes = null;
+      } else if (keepCurrent &&
+          current != null &&
+          options.contains(current)) {
+        schedule.startMinutes = current;
+      } else if (current == null || !options.contains(current)) {
+        schedule.startMinutes = options.first;
+      }
+    });
+  }
+
+  Future<void> _pickSemester() async {
+    final selected = await showCompactSelectionSheet<String>(
+      context: context,
+      title: '시작 학기 선택',
+      selectedValue: _semesterId,
+      options: _semesters
+          .map(
+            (semester) => CompactSelectionOption(
+              value: semester.id,
+              label: semester.label,
+              subtitle:
+                  '${semester.startsOn.year}.${semester.startsOn.month.toString().padLeft(2, '0')}.${semester.startsOn.day.toString().padLeft(2, '0')} ~ '
+                  '${semester.endsOn.year}.${semester.endsOn.month.toString().padLeft(2, '0')}.${semester.endsOn.day.toString().padLeft(2, '0')}',
+            ),
+          )
+          .toList(),
+    );
+    if (!mounted || selected == null || selected == _semesterId) return;
+    setState(() => _semesterId = selected);
+  }
+
+  InputDecoration _pinDecoration(String label) {
+    return registrationInputDecoration(
+      label,
+      icon: Icons.lock_outline_rounded,
+    ).copyWith(
+      suffixIcon: IconButton(
+        tooltip: _showPin ? 'PIN 숨기기' : 'PIN 보기',
+        onPressed: _saving
+            ? null
+            : () => setState(() => _showPin = !_showPin),
+        icon: Icon(
+          _showPin
+              ? Icons.visibility_off_outlined
+              : Icons.visibility_outlined,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -393,14 +512,11 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
                             const SizedBox(height: 10),
                             TextFormField(
                               controller: _pinController,
-                              decoration: registrationInputDecoration(
-                                'PIN (4자리 숫자)',
-                                icon: Icons.lock_outline_rounded,
-                              ),
+                              decoration: _pinDecoration('PIN (4자리 숫자)'),
                               enabled:
                                   !_saving && _createdStudentId == null,
                               keyboardType: TextInputType.number,
-                              obscureText: true,
+                              obscureText: !_showPin,
                               maxLength: 4,
                               textInputAction: TextInputAction.done,
                               inputFormatters: [
@@ -466,30 +582,16 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
                                     ),
                                   )
                                   .toList(),
-                              onChanged: _saving
-                                  ? null
-                                  : (value) =>
-                                      setState(() => _teacherId = value),
+                              onChanged:
+                                  _saving ? null : _changeTeacher,
                             ),
                             const SizedBox(height: 10),
-                            DropdownButtonFormField<String>(
-                              initialValue: _semesterId,
-                              decoration: registrationInputDecoration(
-                                '시작 학기',
-                                icon: Icons.calendar_month_outlined,
-                              ),
-                              items: _semesters
-                                  .map(
-                                    (semester) => DropdownMenuItem(
-                                      value: semester.id,
-                                      child: Text(semester.label),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: _saving
-                                  ? null
-                                  : (value) =>
-                                      setState(() => _semesterId = value),
+                            CompactSelectionField(
+                              label: '시작 학기',
+                              value: _selectedSemesterLabel,
+                              icon: Icons.calendar_month_outlined,
+                              enabled: !_saving && _semesters.isNotEmpty,
+                              onTap: _pickSemester,
                             ),
                           ],
                         ),
@@ -508,9 +610,11 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
                         OutlinedButton.icon(
                           onPressed: _saving
                               ? null
-                              : () => setState(
-                                    () => _schedules.add(_ScheduleDraft()),
-                                  ),
+                              : () {
+                                  final schedule = _ScheduleDraft();
+                                  setState(() => _schedules.add(schedule));
+                                  _ensureScheduleStart(schedule);
+                                },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: primaryColor,
                             backgroundColor:
@@ -575,7 +679,7 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
                                 runSpacing: 7,
                                 children: [
                                   for (final minutes
-                                      in const [15, 30, 45, 60, 75, 90])
+                                      in const [15, 30, 45, 60])
                                     ChoiceChip(
                                       label: Text('$minutes분'),
                                       selected:
@@ -718,6 +822,8 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
 
   Widget _scheduleCard(int index) {
     final schedule = _schedules[index];
+    final timeOptions = _availableStartMinutes(schedule);
+    const durationOptions = [15, 30, 45, 60];
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
@@ -754,93 +860,73 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
               ],
             ),
             const SizedBox(height: 8),
-            DropdownButtonFormField<int>(
-              initialValue: schedule.weekday,
-              decoration: registrationInputDecoration(
-                '요일',
-                icon: Icons.today_outlined,
-              ),
-              items: const [
-                DropdownMenuItem(value: 1, child: Text('월요일')),
-                DropdownMenuItem(value: 2, child: Text('화요일')),
-                DropdownMenuItem(value: 3, child: Text('수요일')),
-                DropdownMenuItem(value: 4, child: Text('목요일')),
-                DropdownMenuItem(value: 5, child: Text('금요일')),
-                DropdownMenuItem(value: 6, child: Text('토요일')),
-                DropdownMenuItem(value: 7, child: Text('일요일')),
-              ],
-              onChanged: _saving
-                  ? null
-                  : (value) {
-                      if (value != null) {
-                        setState(() => schedule.weekday = value);
-                      }
-                    },
+            RegularWeekdaySelector(
+              value: schedule.weekday,
+              enabled: !_saving && _teacherWorkHours.isNotEmpty,
+              onChanged: (value) {
+                setState(() => schedule.weekday = value);
+                _ensureScheduleStart(schedule);
+              },
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _saving
-                        ? null
-                        : () async {
-                            final picked = await showTimePicker(
-                              context: context,
-                              initialTime: schedule.time,
-                            );
-                            if (picked != null && mounted) {
-                              setState(() => schedule.time = picked);
-                            }
-                          },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: primaryColor,
-                      backgroundColor:
-                          primaryColor.withValues(alpha: 0.035),
-                      side: BorderSide(
-                        color: primaryColor.withValues(alpha: 0.08),
-                      ),
-                      minimumSize: const Size.fromHeight(49),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    icon: const Icon(
-                      Icons.schedule_outlined,
-                      size: 18,
-                    ),
-                    label: Text(
-                      '${schedule.time.hour.toString().padLeft(2, '0')}:'
-                      '${schedule.time.minute.toString().padLeft(2, '0')}',
-                    ),
+                  child: RegularTimeField(
+                    value: schedule.startMinutes,
+                    enabled: !_saving && timeOptions.isNotEmpty,
+                    onTap: () async {
+                      final selected = await showRegularTimePicker(
+                        context: context,
+                        options: timeOptions,
+                        selectedMinutes: schedule.startMinutes,
+                      );
+                      if (!mounted || selected == null) return;
+                      setState(() => schedule.startMinutes = selected);
+                    },
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 128,
                   child: DropdownButtonFormField<int>(
                     initialValue: schedule.durationMinutes,
                     decoration: registrationInputDecoration('수업 길이'),
-                    items: const [
-                      DropdownMenuItem(value: 15, child: Text('15분')),
-                      DropdownMenuItem(value: 30, child: Text('30분')),
-                      DropdownMenuItem(value: 45, child: Text('45분')),
-                      DropdownMenuItem(value: 60, child: Text('60분')),
-                      DropdownMenuItem(value: 75, child: Text('75분')),
-                      DropdownMenuItem(value: 90, child: Text('90분')),
-                    ],
+                    items: durationOptions
+                        .map(
+                          (minutes) => DropdownMenuItem(
+                            value: minutes,
+                            child: Text('$minutes분'),
+                          ),
+                        )
+                        .toList(),
                     onChanged: _saving
                         ? null
                         : (value) {
-                            if (value != null) {
-                              setState(
-                                () => schedule.durationMinutes = value,
-                              );
-                            }
+                            if (value == null) return;
+                            setState(
+                              () => schedule.durationMinutes = value,
+                            );
+                            _ensureScheduleStart(
+                              schedule,
+                              keepCurrent: true,
+                            );
                           },
                   ),
                 ),
               ],
             ),
+            if (_teacherId != null && timeOptions.isEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                '선택한 요일에는 담당 선생님의 근무시간이 없거나 '
+                '선택한 수업 길이를 배치할 수 없습니다.',
+                style: forestringTextStyle.copyWith(
+                  color: Colors.redAccent,
+                  fontSize: 10.5,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -936,19 +1022,20 @@ extension on _StudentCreateType {
 class _ScheduleDraft {
   _ScheduleDraft()
       : weekday = 1,
-        time = const TimeOfDay(hour: 10, minute: 0),
+        startMinutes = null,
         durationMinutes = 30;
 
   int weekday;
-  TimeOfDay time;
+  int? startMinutes;
   int durationMinutes;
 
   Map<String, dynamic> toJson() {
+    final minutes = startMinutes!;
+    final hour = (minutes ~/ 60).toString().padLeft(2, '0');
+    final minute = (minutes % 60).toString().padLeft(2, '0');
     return {
       'weekday': weekday,
-      'startTime':
-          '${time.hour.toString().padLeft(2, '0')}:'
-          '${time.minute.toString().padLeft(2, '0')}',
+      'startTime': '$hour:$minute',
       'durationMinutes': durationMinutes,
     };
   }
