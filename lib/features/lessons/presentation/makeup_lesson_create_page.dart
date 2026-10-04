@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/widgets/forestring_navigation.dart';
+import '../../../core/widgets/registration_form.dart';
 import '../../auth/domain/current_profile.dart';
 import '../../branches/domain/academy_branch.dart';
 import '../../semesters/domain/managed_semester.dart';
@@ -397,20 +398,26 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
             ListView(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 118),
               children: [
-                _semesterContextCard(),
+                RegistrationContextCard(
+                  icon: Icons.event_available_outlined,
+                  title: _semesterLabel(widget.semester.code),
+                  subtitle: '${DateFormat('yyyy.MM.dd').format(_scopeStart)} ~ '
+                      '${DateFormat('yyyy.MM.dd').format(_scopeEnd)}',
+                  detail: '휴원 · 개인 일정 · 기존 수업 충돌을 등록 전에 확인합니다.',
+                ),
                 const SizedBox(height: 20),
-                _sectionTitle(
-                  '수업 대상',
-                  '지점과 학생, 담당자를 먼저 선택해주세요.',
+                const RegistrationSectionHeader(
+                  title: '수업 대상',
+                  subtitle: '지점과 학생, 담당자를 먼저 선택해주세요.',
                 ),
                 const SizedBox(height: 9),
-                _LessonFormCard(
+                RegistrationFormCard(
                   child: Column(
                     children: [
                       if (widget.profile.isMaster)
                         DropdownButtonFormField<String>(
                           initialValue: _branchId,
-                          decoration: _decoration(
+                          decoration: registrationInputDecoration(
                             '지점',
                             icon: Icons.storefront_outlined,
                           ),
@@ -449,7 +456,7 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
                             teachers.any((item) => item.id == _teacherId)
                                 ? _teacherId
                                 : null,
-                        decoration: _decoration(
+                        decoration: registrationInputDecoration(
                           '수업 담당자',
                           icon: Icons.co_present_outlined,
                         ),
@@ -476,12 +483,12 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                _sectionTitle(
-                  '수업 일정',
-                  '학생과 담당자를 선택한 뒤 가능한 시간을 확인합니다.',
+                const RegistrationSectionHeader(
+                  title: '수업 일정',
+                  subtitle: '학생과 담당자를 선택한 뒤 가능한 시간을 확인합니다.',
                 ),
                 const SizedBox(height: 9),
-                _LessonFormCard(
+                RegistrationFormCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -519,7 +526,7 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
                         runSpacing: 7,
                         children: [
                           for (final minutes
-                              in const [15, 30, 45, 60, 75, 90])
+                              in const [15, 30, 45, 60])
                             ChoiceChip(
                               label: Text('$minutes분'),
                               selected: _durationMinutes == minutes,
@@ -563,9 +570,9 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                _sectionTitle(
-                  '수업권',
-                  '필요한 경우 같은 길이의 수업권 1회를 사용합니다.',
+                const RegistrationSectionHeader(
+                  title: '수업권',
+                  subtitle: '필요한 경우 같은 길이의 수업권 1회를 사용합니다.',
                 ),
                 const SizedBox(height: 9),
                 Container(
@@ -620,18 +627,18 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                _sectionTitle(
-                  '메모',
-                  '선택 사항입니다.',
+                const RegistrationSectionHeader(
+                  title: '메모',
+                  subtitle: '선택 사항입니다.',
                 ),
                 const SizedBox(height: 9),
-                _LessonFormCard(
+                RegistrationFormCard(
                   child: TextFormField(
                     enabled: !_saving,
                     maxLength: 100,
                     minLines: 2,
                     maxLines: 3,
-                    decoration: _decoration('메모 (선택)').copyWith(
+                    decoration: registrationInputDecoration('메모 (선택)').copyWith(
                       alignLabelWithHint: true,
                       counterText: '',
                     ),
@@ -650,135 +657,11 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
           ],
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          color: neutralIvory,
-          padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
-          child: FilledButton.icon(
-            onPressed: _saving ? null : _submit,
-            style: FilledButton.styleFrom(
-              backgroundColor: primaryColor,
-              foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-            ),
-            icon: _saving
-                ? const SizedBox(
-                    width: 17,
-                    height: 17,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.add_task_outlined),
-            label: Text(
-              _saving ? '등록 중...' : '추가 수업 등록',
-              style: forestringTextStyle.copyWith(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _semesterContextCard() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
-      decoration: BoxDecoration(
-        color: const Color(0xffEAF3E9),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: primaryColor.withValues(alpha: 0.07),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.72),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.event_available_outlined,
-              color: primaryColor,
-              size: 21,
-            ),
-          ),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _semesterLabel(widget.semester.code),
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.black87,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${DateFormat('yyyy.MM.dd').format(_scopeStart)} ~ '
-                  '${DateFormat('yyyy.MM.dd').format(_scopeEnd)}',
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.black54,
-                    fontSize: 10.5,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '휴원 · 개인 일정 · 기존 수업 충돌을 등록 전에 확인합니다.',
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.black38,
-                    fontSize: 9.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionTitle(String title, String subtitle) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 3),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            title,
-            style: forestringTextStyle.copyWith(
-              color: Colors.black87,
-              fontSize: 17,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: forestringTextStyle.copyWith(
-                color: Colors.black38,
-                fontSize: 9.5,
-              ),
-            ),
-          ),
-        ],
+      bottomNavigationBar: RegistrationBottomAction(
+        label: '추가 수업 등록',
+        loading: _saving,
+        icon: Icons.add_task_outlined,
+        onPressed: _saving ? null : _submit,
       ),
     );
   }
@@ -827,52 +710,10 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
     );
   }
 
-  InputDecoration _decoration(
-    String label, {
-    IconData? icon,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: icon == null
-          ? null
-          : Icon(
-              icon,
-              color: primaryColor,
-              size: 19,
-            ),
-      labelStyle: forestringTextStyle.copyWith(
-        color: Colors.black54,
-        fontSize: 12,
-      ),
-      filled: true,
-      fillColor: neutralIvory.withValues(alpha: 0.72),
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 13,
-      ),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(
-          color: primaryColor.withValues(alpha: 0.06),
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(
-          color: primaryColor.withValues(alpha: 0.22),
-        ),
-      ),
-    );
-  }
-}
+
 
 class _LessonFormCard extends StatelessWidget {
-  const _LessonFormCard({
+  const RegistrationFormCard({
     required this.child,
   });
 
