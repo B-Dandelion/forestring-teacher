@@ -69,17 +69,20 @@ class AuthController extends ChangeNotifier {
       );
     } on TimeoutException {
       _profile = null;
+      await _bestEffortUnbindPush();
       await _bestEffortSignOut();
       _errorMessage = '이전 로그인 정보를 확인하는 데 시간이 오래 걸려 로그아웃했습니다. 다시 로그인해주세요.';
     } on AuthFailure catch (error) {
       _profile = null;
 
+      await _bestEffortUnbindPush();
       await _bestEffortSignOut();
 
       _errorMessage = error.message;
     } catch (_) {
       _profile = null;
 
+      await _bestEffortUnbindPush();
       await _bestEffortSignOut();
 
       _errorMessage = '로그인 정보를 확인하지 못했습니다. 다시 로그인해주세요.';
