@@ -575,16 +575,18 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
                   subtitle: '필요한 경우 같은 길이의 수업권 1회를 사용합니다.',
                 ),
                 const SizedBox(height: 9),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.97),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: primaryColor.withValues(alpha: 0.07),
-                    ),
-                  ),
+                Material(
+                  color: Colors.white.withValues(alpha: 0.97),
+                  borderRadius: BorderRadius.circular(18),
                   clipBehavior: Clip.antiAlias,
-                  child: SwitchListTile.adaptive(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: primaryColor.withValues(alpha: 0.07),
+                      ),
+                    ),
+                    child: SwitchListTile.adaptive(
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 15,
                       vertical: 3,
@@ -626,6 +628,7 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
                     ),
                   ),
                 ),
+              ),
                 const SizedBox(height: 20),
                 const RegistrationSectionHeader(
                   title: '메모',
