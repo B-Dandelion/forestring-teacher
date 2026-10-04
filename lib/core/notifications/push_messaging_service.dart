@@ -112,8 +112,12 @@ class PushMessagingService {
       debugPrint(
         '[FCM] authorization: ${settings.authorizationStatus.name}',
       );
-      debugPrint('[FCM] APNs token: ${apnsToken ?? 'not available'}');
-      debugPrint('[FCM] registration token: ${fcmToken ?? 'not available'}');
+      debugPrint(
+        '[FCM] APNs token available: ${apnsToken != null}',
+      );
+      debugPrint(
+        '[FCM] registration token available: ${fcmToken != null}',
+      );
     }
 
     return diagnostics;
@@ -162,7 +166,9 @@ class PushMessagingService {
       return;
     }
 
-    debugPrint('[FCM] registration token refreshed: $token');
+    debugPrint(
+      '[FCM] registration token refreshed: tokenPresent=${token.isNotEmpty}',
+    );
   }
 
   Future<void> dispose() async {
