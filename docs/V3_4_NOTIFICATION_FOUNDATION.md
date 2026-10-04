@@ -350,3 +350,88 @@ v3.4 must not ship when any of the following is reproducible:
 - [ ] Android physical-device FCM token verified
 - [ ] iOS physical-device APNs + FCM token verified
 - [ ] proceed to notification outbox / sender implementation
+
+
+---
+
+## 15. Implementation status — backend foundation
+
+Implemented on `feature/notifications-v3.4` and applied to production Supabase:
+
+- `device_push_tokens`
+- `notification_preferences`
+- `notification_outbox`
+- `notification_deliveries`
+- authenticated device register / unregister RPCs
+- authenticated notification preference RPCs
+- teacher assignment -> outbox trigger
+- audit event -> outbox trigger
+- idempotent outbox keys
+- atomic `SKIP LOCKED` outbox claim RPC
+- FCM HTTP v1 Edge Function
+- invalid FCM token disable handling
+- retryable FCM error backoff
+- immediate Postgres -> Edge Function dispatch through `pg_net`
+- one-minute `pg_cron` recovery / retry heartbeat
+- Vault-backed internal dispatcher authentication
+- regular-schedule-end notification storm prevention
+
+### Regular schedule end deduplication
+
+`end_regular_schedule()` may cancel many untouched future lesson rows.
+Each cancellation writes a `LESSON_CANCELED` audit event.
+
+Sending one Push for every internal child cancellation would create a
+notification storm. The v3.4 trigger therefore:
+
+1. suppresses `LESSON_CANCELED` events whose reason is
+   `regular_schedule_ended`
+2. listens for the single `REGULAR_SCHEDULE_ENDED` audit event
+3. creates one `lesson_schedule_changed` outbox item for the teacher
+
+This preserves the operational audit ledger while keeping the user-facing
+notification semantics at one meaningful event.
+
+---
+
+## 16. Production secrets required before end-to-end delivery
+
+The dispatcher is intentionally inactive until all required secrets are
+provisioned out of source control.
+
+### Edge Function secrets
+
+`notification-dispatch` requires:
+
+- `FCM_SERVICE_ACCOUNT_JSON`
+  - Firebase / Google service account JSON for project `forestring1-1`
+  - used only to obtain an OAuth token for FCM HTTP v1
+- `NOTIFICATION_DISPATCH_SECRET`
+  - random internal secret used to authenticate Postgres -> Edge Function
+
+### Database Vault
+
+Vault requires:
+
+- secret name: `notification_dispatch_secret`
+- secret value: exactly the same random value as
+  `NOTIFICATION_DISPATCH_SECRET`
+
+The database trigger reads this value at invocation time. It is never
+hardcoded in migration SQL.
+
+### Safe failure behavior
+
+If the Vault secret is absent, `private.invoke_notification_dispatch()`
+returns without sending a request.
+
+If the Edge Function or FCM is temporarily unavailable:
+
+- the lesson / schedule transaction is not rolled back
+- the outbox row remains durable
+- transient failures become retryable
+- `pg_cron` wakes the dispatcher once per minute when due work exists
+- at most five outbox attempts are claimed
+
+Push infrastructure must never be able to make a successful scheduling
+transaction fail.
