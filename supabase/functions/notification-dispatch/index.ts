@@ -1,4 +1,4 @@
-import { withSupabase } from 'npm:@supabase/server@^1'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 import { GoogleAuth } from 'npm:google-auth-library@9.15.1'
 
 type OutboxRow = {
@@ -449,141 +449,204 @@ async function dispatchOne(
   )
 }
 
-export default {
-  fetch: withSupabase(
-    { auth: 'secret' },
+function requireDispatcherSecret(req: Request): void {
+  const expected =
+    Deno.env.get('NOTIFICATION_DISPATCH_SECRET')
 
-    async (req, ctx) => {
-      if (req.method !== 'POST') {
-        return Response.json(
-          { message: 'Method not allowed.' },
-          { status: 405 },
+  const provided =
+    req.headers.get(
+      'x-forestring-dispatch-secret',
+    )
+
+  if (
+    !expected
+    || !provided
+    || provided !== expected
+  ) {
+    throw new Error('FORESTRING_DISPATCH_FORBIDDEN')
+  }
+}
+
+function createAdminClient() {
+  const url = Deno.env.get('SUPABASE_URL')
+
+  const secretKeysRaw =
+    Deno.env.get('SUPABASE_SECRET_KEYS')
+
+  let key: string | undefined
+
+  if (secretKeysRaw) {
+    try {
+      const parsed =
+        JSON.parse(secretKeysRaw) as Record<string, string>
+
+      key = parsed.default
+    } catch (_) {
+      // Fall back to the legacy service-role environment value.
+    }
+  }
+
+  key ??=
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+  if (!url || !key) {
+    throw new Error(
+      'Supabase backend credentials are missing.',
+    )
+  }
+
+  return createClient(
+    url,
+    key,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    },
+  )
+}
+
+Deno.serve(async (req) => {
+  if (req.method !== 'POST') {
+    return Response.json(
+      { message: 'Method not allowed.' },
+      { status: 405 },
+    )
+  }
+
+  try {
+    requireDispatcherSecret(req)
+
+    const supabaseAdmin = createAdminClient()
+
+    const credentials = requireServiceAccount()
+    const accessToken =
+      await getAccessToken(credentials)
+
+    let limit = 25
+
+    try {
+      const body = await req.json()
+
+      if (
+        typeof body?.limit === 'number'
+        && Number.isFinite(body.limit)
+      ) {
+        limit = Math.min(
+          Math.max(
+            Math.trunc(body.limit),
+            1,
+          ),
+          100,
         )
       }
+    } catch (_) {
+      // Empty request body is valid.
+    }
 
+    const {
+      data,
+      error,
+    } = await supabaseAdmin.rpc(
+      'claim_notification_outbox',
+      {
+        p_limit: limit,
+      },
+    )
+
+    if (error) {
+      throw error
+    }
+
+    const rows =
+      Array.isArray(data)
+        ? data as OutboxRow[]
+        : []
+
+    let sentOrSkipped = 0
+    let failed = 0
+
+    for (const outbox of rows) {
       try {
-        const credentials = requireServiceAccount()
-        const accessToken =
-          await getAccessToken(credentials)
+        await dispatchOne(
+          supabaseAdmin,
+          accessToken,
+          credentials.project_id,
+          outbox,
+        )
 
-        let limit = 25
+        sentOrSkipped += 1
+      } catch (error) {
+        failed += 1
+
+        console.error(
+          'notification dispatch row failed:',
+          outbox.id,
+          error,
+        )
+
+        const delaySeconds =
+          retryDelaySeconds(
+            outbox.attempt_count,
+          )
 
         try {
-          const body = await req.json()
-
-          if (
-            typeof body?.limit === 'number'
-            && Number.isFinite(body.limit)
-          ) {
-            limit = Math.min(
-              Math.max(
-                Math.trunc(body.limit),
-                1,
-              ),
-              100,
-            )
-          }
-        } catch (_) {
-          // Empty request body is valid.
+          await updateOutbox(
+            supabaseAdmin,
+            outbox.id,
+            {
+              status: 'failed',
+              locked_at: null,
+              available_at:
+                new Date(
+                  Date.now()
+                    + delaySeconds * 1000,
+                ).toISOString(),
+              last_error:
+                error instanceof Error
+                  ? error.message.slice(0, 2000)
+                  : 'UNKNOWN_DISPATCH_ERROR',
+            },
+          )
+        } catch (updateError) {
+          console.error(
+            'notification outbox recovery failed:',
+            outbox.id,
+            updateError,
+          )
         }
-
-        const {
-          data,
-          error,
-        } = await (
-          ctx.supabaseAdmin as any
-        ).rpc(
-          'claim_notification_outbox',
-          {
-            p_limit: limit,
-          },
-        )
-
-        if (error) {
-          throw error
-        }
-
-        const rows =
-          Array.isArray(data)
-            ? data as OutboxRow[]
-            : []
-
-        let sentOrSkipped = 0
-        let failed = 0
-
-        for (const outbox of rows) {
-          try {
-            await dispatchOne(
-              ctx.supabaseAdmin,
-              accessToken,
-              credentials.project_id,
-              outbox,
-            )
-
-            sentOrSkipped += 1
-          } catch (error) {
-            failed += 1
-
-            console.error(
-              'notification dispatch row failed:',
-              outbox.id,
-              error,
-            )
-
-            const delaySeconds =
-              retryDelaySeconds(
-                outbox.attempt_count,
-              )
-
-            try {
-              await updateOutbox(
-                ctx.supabaseAdmin,
-                outbox.id,
-                {
-                  status: 'failed',
-                  locked_at: null,
-                  available_at:
-                    new Date(
-                      Date.now()
-                        + delaySeconds * 1000,
-                    ).toISOString(),
-                  last_error:
-                    error instanceof Error
-                      ? error.message.slice(0, 2000)
-                      : 'UNKNOWN_DISPATCH_ERROR',
-                },
-              )
-            } catch (updateError) {
-              console.error(
-                'notification outbox recovery failed:',
-                outbox.id,
-                updateError,
-              )
-            }
-          }
-        }
-
-        return Response.json({
-          claimed: rows.length,
-          completed: sentOrSkipped,
-          failed,
-        })
-      } catch (error) {
-        console.error(
-          'notification-dispatch failed:',
-          error,
-        )
-
-        return Response.json(
-          {
-            message:
-              'Notification dispatch failed.',
-          },
-          {
-            status: 500,
-          },
-        )
       }
-    },
-  ),
-}
+    }
+
+    return Response.json({
+      claimed: rows.length,
+      completed: sentOrSkipped,
+      failed,
+    })
+  } catch (error) {
+    const forbidden =
+      error instanceof Error
+      && error.message ===
+        'FORESTRING_DISPATCH_FORBIDDEN'
+
+    if (!forbidden) {
+      console.error(
+        'notification-dispatch failed:',
+        error,
+      )
+    }
+
+    return Response.json(
+      {
+        message:
+          forbidden
+            ? 'Forbidden.'
+            : 'Notification dispatch failed.',
+      },
+      {
+        status: forbidden ? 403 : 500,
+      },
+    )
+  }
+})
