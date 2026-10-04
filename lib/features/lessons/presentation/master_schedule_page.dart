@@ -41,11 +41,14 @@ class MasterSchedulePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = context.watch<LessonController>();
     final accentController = context.watch<StudentAccentController>();
-    final studentAccents = accentController.isEnabled
-        ? accentController.assignments(
-            controller.visibleLessons.map((lesson) => lesson.studentId),
-          )
-        : const <String, Color>{};
+    final displayMode = accentController.displayMode;
+    final studentAccents =
+        displayMode == ScheduleDisplayMode.student
+            ? accentController.assignments(
+                controller.visibleLessons
+                    .map((lesson) => lesson.studentId),
+              )
+            : const <String, Color>{};
     final qaStore =
         isQaSandbox ? context.read<QaSandboxStore>() : null;
     final selectedBranchId = controller.selectedBranchId;
