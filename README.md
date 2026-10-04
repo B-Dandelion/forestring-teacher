@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://github.com/B-Dandelion/forestring_stu">Student App</a>
   ·
-  Current release: <code>v3.2.2</code>
+  Current release: <code>v3.3.0</code>
 </p>
 
 ---
@@ -176,11 +176,11 @@ flutter analyze
 flutter run --dart-define-from-file=env/dev.json
 ```
 
-릴리즈 빌드 예시:
+릴리즈 빌드는 로컬의 `env/prod.json`을 사용합니다. 운영 환경 파일은 저장소에 커밋하지 않습니다.
 
 ```bash
-flutter build appbundle --release --dart-define-from-file=env/dev.json
-flutter build ipa --release --dart-define-from-file=env/dev.json
+flutter build appbundle --release --dart-define-from-file=env/prod.json
+flutter build ipa --release --dart-define-from-file=env/prod.json
 ```
 
 ## Related Project
