@@ -7,6 +7,7 @@ import '../../../core/qa/qa_sandbox_store.dart';
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/theme/student_accent_controller.dart';
 import '../../../core/widgets/forestring_navigation.dart';
+import '../../../core/widgets/schedule_display_mode_sheet.dart';
 import '../../auth/domain/current_profile.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../branches/presentation/branch_management_page.dart';
@@ -154,16 +155,17 @@ class MasterSchedulePage extends StatelessWidget {
             onTap: () => Navigator.of(context).pop(),
           ),
           ForestringDrawerItem(
-            icon: accentController.isEnabled
-                ? Icons.palette_rounded
-                : Icons.palette_outlined,
-            label: accentController.isEnabled
-                ? '학생별 색상 끄기'
-                : '학생별 색상 켜기',
+            icon: accentController.displayMode.icon,
+            label: '시간표 표시 · ${accentController.displayMode.label}',
             onTap: () async {
               Navigator.of(context).pop();
-              await accentController.setEnabled(
-                !accentController.isEnabled,
+              await Future<void>.delayed(
+                const Duration(milliseconds: 180),
+              );
+              if (!context.mounted) return;
+              await showScheduleDisplayModeSheet(
+                context: context,
+                controller: accentController,
               );
             },
           ),
