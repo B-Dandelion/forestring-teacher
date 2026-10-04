@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -8,19 +9,29 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app_gate.dart';
 import 'core/config/app_config.dart';
+import 'core/notifications/push_messaging_service.dart';
 import 'core/theme/forestring_theme.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/auth/presentation/auth_controller.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
     AppConfig.validate();
-    await Supabase.initialize(
-      url: AppConfig.supabaseUrl,
-      publishableKey: AppConfig.supabasePublishableKey,
-    ).timeout(const Duration(seconds: 10));
+    await Future.wait([
+      Supabase.initialize(
+        url: AppConfig.supabaseUrl,
+        publishableKey: AppConfig.supabasePublishableKey,
+      ),
+      Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      ),
+    ]).timeout(const Duration(seconds: 10));
+
+    PushMessagingService.instance.registerBackgroundHandler();
+    await PushMessagingService.instance.initialize();
   } on TimeoutException {
     runApp(
       const _StartupFailureApp(
@@ -56,6 +67,12 @@ Future<void> main() async {
       restoreSession: !managerQaSandbox,
     ),
   );
+
+  if (kDebugMode) {
+    unawaited(
+      PushMessagingService.instance.requestPermissionAndGetToken(),
+    );
+  }
 }
 
 class ForestringTeacher extends StatelessWidget {
