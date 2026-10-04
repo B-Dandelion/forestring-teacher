@@ -1365,7 +1365,7 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
                   width: 40,
                   height: 40,
                   decoration: const BoxDecoration(
-                    color: const Color(0xffEAF3E9),
+                    color: Color(0xffEAF3E9),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
