@@ -13,6 +13,7 @@ class StudentSearchPickerField extends StatelessWidget {
     this.includeAllOption = false,
     this.enabled = true,
     this.compact = false,
+    this.managementSearchStyle = false,
   });
 
   final List<VisibleStudent> students;
@@ -22,6 +23,7 @@ class StudentSearchPickerField extends StatelessWidget {
   final bool includeAllOption;
   final bool enabled;
   final bool compact;
+  final bool managementSearchStyle;
 
   VisibleStudent? get _selectedStudent {
     final id = selectedStudentId;
@@ -56,6 +58,82 @@ class StudentSearchPickerField extends StatelessWidget {
     final selected = _selectedStudent;
     final valueText = selected?.displayName ??
         (includeAllOption ? '전체 학생' : '학생을 검색해 선택');
+
+    if (managementSearchStyle) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: enabled ? () => _open(context) : null,
+          child: Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 13),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.94),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: primaryColor.withValues(alpha: 0.07),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.search_rounded,
+                  color: enabled ? primaryColor : Colors.black26,
+                  size: 21,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    selected == null
+                        ? (includeAllOption
+                            ? '학생 검색 · 전체 학생'
+                            : '학생 이름 검색')
+                        : selected.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: forestringTextStyle.copyWith(
+                      color: selected == null
+                          ? Colors.black38
+                          : Colors.black87,
+                      fontSize: 13,
+                      fontWeight: selected == null
+                          ? FontWeight.w300
+                          : FontWeight.w500,
+                    ),
+                  ),
+                ),
+                if (selected != null)
+                  Container(
+                    margin: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '선택됨',
+                      style: forestringTextStyle.copyWith(
+                        color: primaryColor,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                Icon(
+                  Icons.expand_more_rounded,
+                  color: enabled ? primaryColor : Colors.black26,
+                  size: 19,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     if (compact) {
       return Material(
