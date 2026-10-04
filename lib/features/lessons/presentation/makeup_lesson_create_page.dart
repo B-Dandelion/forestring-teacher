@@ -709,8 +709,7 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
       ),
     );
   }
-
-
+}
 
 class _FixedField extends StatelessWidget {
   const _FixedField({
