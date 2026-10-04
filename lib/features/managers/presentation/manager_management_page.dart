@@ -162,31 +162,16 @@ class _ManagerManagementPageState extends State<ManagerManagementPage> {
               appBar: const ForestringAppBar(title: '지점장 관리'),
               body: SafeArea(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 32),
                   children: [
-                    Text(
-                      currentManager.displayName,
-                      style: forestringTextStyle.copyWith(
-                        color: primaryColor,
-                        fontSize: 23,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      currentManager.branchName,
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.black54,
-                        fontSize: 14,
-                      ),
-                    ),
+                    _managerDetailHero(currentManager),
                     if (currentManager.teachesLessons) ...[
                       const SizedBox(height: 20),
                       Text(
                         '근무시간',
                         style: forestringTextStyle.copyWith(
-                          color: primaryColor,
-                          fontSize: 17,
+                          color: Colors.black87,
+                          fontSize: 18,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -340,43 +325,152 @@ class _ManagerManagementPageState extends State<ManagerManagementPage> {
     if (mounted) await _load();
   }
 
+  Widget _managerDetailHero(ManagedManager manager) {
+    final statusColor = manager.isActive
+        ? (manager.hasScheduledWithdrawal
+            ? const Color(0xffA87524)
+            : primaryColor)
+        : Colors.black45;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.97),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.07),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: const BoxDecoration(
+              color: Color(0xffEEF1F8),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.admin_panel_settings_outlined,
+              color: statusColor,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        manager.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: forestringTextStyle.copyWith(
+                          color: Colors.black87,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    _statusBadge(manager),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.storefront_outlined,
+                      color: Colors.black38,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        manager.branchName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: forestringTextStyle.copyWith(
+                          color: Colors.black54,
+                          fontSize: 11.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (manager.teachesLessons) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    '담당 수강생 ${manager.assignedStudentCount}명 · '
+                    '${_workdaySummary(manager.workHours)}',
+                    style: forestringTextStyle.copyWith(
+                      color: primaryColor,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _detailActionSection({
     required String title,
     required List<Widget> actions,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          title,
-          style: forestringTextStyle.copyWith(
-            color: Colors.black54,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.97),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.07),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Text(
+              title,
+              style: forestringTextStyle.copyWith(
+                color: Colors.black54,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 7),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final itemWidth = actions.length == 1
-                ? constraints.maxWidth
-                : (constraints.maxWidth - 8) / 2;
+          const SizedBox(height: 8),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth = actions.length == 1
+                  ? constraints.maxWidth
+                  : (constraints.maxWidth - 8) / 2;
 
-            return Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final action in actions)
-                  SizedBox(
-                    width: itemWidth,
-                    height: 52,
-                    child: action,
-                  ),
-              ],
-            );
-          },
-        ),
-      ],
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final action in actions)
+                    SizedBox(
+                      width: itemWidth,
+                      height: 52,
+                      child: action,
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -388,7 +482,7 @@ class _ManagerManagementPageState extends State<ManagerManagementPage> {
   }) {
     return OutlinedButton.icon(
       onPressed: onPressed,
-      icon: Icon(icon, size: 20),
+      icon: Icon(icon, size: 19),
       label: Text(
         label,
         maxLines: 1,
@@ -396,12 +490,26 @@ class _ManagerManagementPageState extends State<ManagerManagementPage> {
       ),
       style: OutlinedButton.styleFrom(
         foregroundColor: color,
+        backgroundColor: onPressed == null
+            ? Colors.black.withValues(alpha: 0.025)
+            : color.withValues(alpha: 0.045),
         disabledForegroundColor: Colors.black38,
         side: BorderSide(
-          color: onPressed == null ? Colors.black26 : color,
+          color: onPressed == null
+              ? Colors.black.withValues(alpha: 0.08)
+              : color.withValues(alpha: 0.10),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 11),
-        textStyle: forestringTextStyle.copyWith(fontSize: 13),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(13),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 9,
+          vertical: 11,
+        ),
+        textStyle: forestringTextStyle.copyWith(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
