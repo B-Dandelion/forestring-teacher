@@ -188,7 +188,7 @@ class CompactSelectionField extends StatelessWidget {
         onTap: enabled ? onTap : null,
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          minHeight: 50,
+          constraints: const BoxConstraints(minHeight: 50),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: neutralIvory.withValues(alpha: 0.72),
