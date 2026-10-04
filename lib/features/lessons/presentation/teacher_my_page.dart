@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/notifications/notification_settings_sheet.dart';
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/theme/student_accent.dart';
 import '../../../core/theme/student_accent_controller.dart';
@@ -1487,6 +1488,44 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
                   },
                 ),
                 const Divider(height: 1),
+                if (!widget.profile.isReviewAccount) ...[
+                  ListTile(
+                    leading: const Icon(
+                      Icons.notifications_outlined,
+                      color: primaryColor,
+                    ),
+                    title: Text(
+                      '알림 설정',
+                      style: forestringTextStyle.copyWith(
+                        color: Colors.black87,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '새 수업 배정, 일정 변경, 취소, 보강, 자율 예약',
+                      style: forestringTextStyle.copyWith(
+                        color: Colors.black45,
+                        fontSize: 11,
+                      ),
+                    ),
+                    trailing: const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.black38,
+                    ),
+                    onTap: () async {
+                      Navigator.of(sheetContext).pop();
+                      await Future<void>.delayed(
+                        const Duration(milliseconds: 180),
+                      );
+                      if (!mounted) return;
+                      await showNotificationSettingsSheet(
+                        context: context,
+                      );
+                    },
+                  ),
+                  const Divider(height: 1),
+                ],
                 if (_profilePhoto != null) ...[
                   ListTile(
                     leading: const Icon(
