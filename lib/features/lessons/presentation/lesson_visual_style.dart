@@ -10,6 +10,16 @@ const Color staffChangedLessonColor = Color(0xff9B678A);
 const Color studentRebookedLessonColor = Color(0xff3F7F83);
 const Color canceledLessonColor = Color(0xffC75D63);
 
+Color classicLessonColor(Lesson lesson) {
+  if (lesson.type == LessonType.makeup) {
+    return secondaryColor;
+  }
+  if (lesson.isRescheduled) {
+    return const Color(0xff4F7E67);
+  }
+  return primaryColor;
+}
+
 Color lessonStatusAccentColor(Lesson lesson) {
   if (lesson.isCanceled) {
     return canceledLessonColor;
