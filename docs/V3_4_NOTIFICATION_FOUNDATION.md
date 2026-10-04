@@ -435,3 +435,42 @@ If the Edge Function or FCM is temporarily unavailable:
 
 Push infrastructure must never be able to make a successful scheduling
 transaction fail.
+
+
+---
+
+## 17. Secret provisioning runbook
+
+Do not use the broad Firebase Admin SDK service account unless necessary.
+
+Preferred production setup:
+
+1. create a dedicated Google Cloud service account for Forestring Push sending
+2. grant only `Firebase Cloud Messaging API Admin`
+   (`roles/firebasecloudmessaging.admin`)
+3. generate one JSON private key for that account
+4. store the entire JSON only as the Supabase Edge Function secret
+   `FCM_SERVICE_ACCOUNT_JSON`
+5. never commit the JSON file
+
+The FCM HTTP v1 sender only needs permission to create Cloud Messaging
+messages. The current Edge Function requests the
+`https://www.googleapis.com/auth/firebase.messaging` OAuth scope.
+
+Generate a separate 32-byte internal dispatch secret locally, for example:
+
+```bash
+openssl rand -hex 32
+```
+
+Store that same value in two protected locations:
+
+- Edge Function secret: `NOTIFICATION_DISPATCH_SECRET`
+- Supabase Vault secret: `notification_dispatch_secret`
+
+Never put this value in GitHub, migration SQL, issue comments, app env files,
+or Flutter client code.
+
+After both secrets are present, the existing database trigger and cron job
+start invoking `notification-dispatch` automatically. No migration or
+redeploy is required solely for adding the secrets.
