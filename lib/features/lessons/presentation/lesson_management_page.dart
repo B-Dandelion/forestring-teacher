@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/widgets/forestring_navigation.dart';
+import '../../../core/widgets/management_filters.dart';
 import '../../auth/domain/current_profile.dart';
 import '../../branches/data/branch_repository.dart';
 import '../../branches/domain/academy_branch.dart';
@@ -471,53 +472,55 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
 
   Widget _filterPanel(int count) {
     final students = _filterStudents;
+    final filters = <Widget>[
+      LessonSemesterPicker(
+        semesters: _semesters,
+        selectedSemesterId: _safeSemesterValue,
+        enabled: !_loading,
+        compact: true,
+        onChanged: (value) => _changeSemester(value),
+      ),
+      if (_isMaster) _branchFilterPill(),
+      _statusFilterPill(),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Wrap(
-                spacing: 7,
-                runSpacing: 7,
-                children: [
-                  LessonSemesterPicker(
-                    semesters: _semesters,
-                    selectedSemesterId: _safeSemesterValue,
-                    enabled: !_loading,
-                    compact: true,
-                    onChanged: (value) => _changeSemester(value),
-                  ),
-                  if (_isMaster) _branchFilterPill(),
-                  _statusFilterPill(),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            _viewModeToggle(),
-          ],
+        StudentSearchPickerField(
+          students: students,
+          selectedStudentId: _selectedStudentId,
+          includeAllOption: true,
+          enabled: !_loading,
+          managementSearchStyle: true,
+          onChanged: (value) {
+            setState(() {
+              _selectedStudentId = value;
+              if (value == null && _viewMode == 'calendar') {
+                _viewMode = 'list';
+              }
+            });
+          },
         ),
         const SizedBox(height: 8),
         Row(
           children: [
-            StudentSearchPickerField(
-              students: students,
-              selectedStudentId: _selectedStudentId,
-              includeAllOption: true,
-              enabled: !_loading,
-              compact: true,
-              onChanged: (value) {
-                setState(() {
-                  _selectedStudentId = value;
-                  if (value == null && _viewMode == 'calendar') {
-                    _viewMode = 'list';
-                  }
-                });
-              },
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (var index = 0;
+                        index < filters.length;
+                        index++) ...[
+                      if (index > 0) const SizedBox(width: 7),
+                      filters[index],
+                    ],
+                  ],
+                ),
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: 8),
             Text(
               '$count건',
               style: forestringTextStyle.copyWith(
@@ -526,7 +529,8 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(width: 2),
+            const SizedBox(width: 7),
+            _viewModeToggle(),
           ],
         ),
       ],
@@ -549,7 +553,7 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
             child: Text(branch.name),
           ),
       ],
-      child: _LessonFilterPill(
+      child: ManagementFilterPillSurface(
         label: _selectedBranchLabel(),
         icon: Icons.location_on_rounded,
       ),
@@ -585,7 +589,7 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
         PopupMenuItem(value: 'canceled', child: Text('취소')),
         PopupMenuItem(value: 'special', child: Text('보강·예약')),
       ],
-      child: _LessonFilterPill(label: label),
+      child: ManagementFilterPillSurface(label: label),
     );
   }
 
@@ -968,54 +972,6 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
   }
 
 
-}
-
-class _LessonFilterPill extends StatelessWidget {
-  const _LessonFilterPill({
-    required this.label,
-    this.icon,
-  });
-
-  final String label;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 36,
-      padding: const EdgeInsets.symmetric(horizontal: 11),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: primaryColor.withValues(alpha: 0.10),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 15, color: primaryColor),
-            const SizedBox(width: 5),
-          ],
-          Text(
-            label,
-            style: forestringTextStyle.copyWith(
-              color: Colors.black.withValues(alpha: 0.72),
-              fontSize: 11.5,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 4),
-          const Icon(
-            Icons.expand_more_rounded,
-            size: 17,
-            color: primaryColor,
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 List<T> _uniqueById<T>(Iterable<T> items, String Function(T item) idOf) {
