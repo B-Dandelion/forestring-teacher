@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../../core/theme/forestring_theme.dart';
 
@@ -150,202 +149,109 @@ Future<int?> showRegularTimePicker({
   required BuildContext context,
   required List<int> options,
   required int? selectedMinutes,
-}) async {
+}) {
   final morning = options.where((minutes) => minutes < 12 * 60).toList();
   final afternoon = options.where((minutes) => minutes >= 12 * 60).toList();
-  final controller = TextEditingController(
-    text: selectedMinutes == null
-        ? ''
-        : regularFormatMinutes(selectedMinutes),
-  );
 
-  final result = await showModalBottomSheet<int>(
+  return showModalBottomSheet<int>(
     context: context,
-    isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.42),
     builder: (sheetContext) {
-      String? inputError;
-
-      return StatefulBuilder(
-        builder: (context, setSheetState) {
-          void submitManual() {
-            final parsed = _parseRegularTimeInput(controller.text);
-            if (parsed == null || !options.contains(parsed)) {
-              setSheetState(() {
-                inputError = '담당 선생님의 근무시간 안에서 15분 단위로 입력해주세요.';
-              });
-              return;
-            }
-            Navigator.of(sheetContext).pop(parsed);
-          }
-
-          return SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-              child: Container(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.68,
-                ),
-                padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-                decoration: BoxDecoration(
-                  color: const Color(0xffFCFDF9),
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(
-                    color: primaryColor.withValues(alpha: 0.07),
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x1A000000),
-                      blurRadius: 24,
-                      offset: Offset(0, 9),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '시작 시간 선택',
-                            style: forestringTextStyle.copyWith(
-                              color: primaryColor,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () =>
-                              Navigator.of(sheetContext).pop(),
-                          icon: const Icon(
-                            Icons.close_rounded,
-                            color: primaryColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: controller,
-                      keyboardType: TextInputType.datetime,
-                      textInputAction: TextInputAction.done,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'[0-9:]'),
-                        ),
-                        LengthLimitingTextInputFormatter(5),
-                      ],
-                      onSubmitted: (_) => submitManual(),
-                      onChanged: (_) {
-                        if (inputError != null) {
-                          setSheetState(() => inputError = null);
-                        }
-                      },
-                      decoration: InputDecoration(
-                        labelText: '직접 입력',
-                        hintText: '예: 14:30',
-                        prefixIcon: const Icon(
-                          Icons.keyboard_outlined,
-                          color: primaryColor,
-                          size: 19,
-                        ),
-                        suffixIcon: IconButton(
-                          tooltip: '입력 시간 적용',
-                          onPressed: submitManual,
-                          icon: const Icon(
-                            Icons.check_rounded,
-                            color: primaryColor,
-                          ),
-                        ),
-                        errorText: inputError,
-                        filled: true,
-                        fillColor:
-                            primaryColor.withValues(alpha: 0.035),
-                        isDense: true,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(13),
-                          borderSide: BorderSide(
-                            color:
-                                primaryColor.withValues(alpha: 0.10),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Flexible(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.stretch,
-                          children: [
-                            if (morning.isNotEmpty)
-                              _RegularTimeSection(
-                                title: '오전',
-                                options: morning,
-                                selectedMinutes: selectedMinutes,
-                                onSelected: (value) =>
-                                    Navigator.of(sheetContext).pop(value),
-                              ),
-                            if (morning.isNotEmpty &&
-                                afternoon.isNotEmpty)
-                              const SizedBox(height: 16),
-                            if (afternoon.isNotEmpty)
-                              _RegularTimeSection(
-                                title: '오후',
-                                options: afternoon,
-                                selectedMinutes: selectedMinutes,
-                                onSelected: (value) =>
-                                    Navigator.of(sheetContext).pop(value),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+      return SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.56,
             ),
-          );
-        },
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+            decoration: BoxDecoration(
+              color: const Color(0xffFCFDF9),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: primaryColor.withValues(alpha: 0.07),
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x1A000000),
+                  blurRadius: 24,
+                  offset: Offset(0, 9),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '시작 시간 선택',
+                        style: forestringTextStyle.copyWith(
+                          color: primaryColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (morning.isNotEmpty)
+                          _RegularTimeSection(
+                            title: '오전',
+                            options: morning,
+                            selectedMinutes: selectedMinutes,
+                            onSelected: (value) =>
+                                Navigator.of(sheetContext).pop(value),
+                          ),
+                        if (morning.isNotEmpty && afternoon.isNotEmpty)
+                          const SizedBox(height: 16),
+                        if (afternoon.isNotEmpty)
+                          _RegularTimeSection(
+                            title: '오후',
+                            options: afternoon,
+                            selectedMinutes: selectedMinutes,
+                            onSelected: (value) =>
+                                Navigator.of(sheetContext).pop(value),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     },
   );
-
-  controller.dispose();
-  return result;
-}
-
-int? _parseRegularTimeInput(String raw) {
-  final match = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(raw.trim());
-  if (match == null) return null;
-  final hour = int.tryParse(match.group(1)!);
-  final minute = int.tryParse(match.group(2)!);
-  if (hour == null ||
-      minute == null ||
-      hour < 0 ||
-      hour > 23 ||
-      minute < 0 ||
-      minute > 59 ||
-      minute % 15 != 0) {
-    return null;
-  }
-  return hour * 60 + minute;
 }
 
 class _RegularTimeSection extends StatelessWidget {
