@@ -382,10 +382,7 @@ class _MasterManagementPageState extends State<MasterManagementPage> {
                 _overviewErrorCard(),
               ],
               const SizedBox(height: 22),
-              _sectionTitle(
-                '운영 리포트',
-                subtitle: '실제 수업 기록을 근무시간으로 집계합니다.',
-              ),
+              _sectionTitle('운영 리포트'),
               const SizedBox(height: 10),
               _managementCard(
                 icon: Icons.analytics_outlined,
