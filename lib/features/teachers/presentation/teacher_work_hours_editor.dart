@@ -652,12 +652,4 @@ TimeOfDay _roundToQuarter(TimeOfDay value) {
   return TimeOfDay(hour: value.hour, minute: roundedMinute);
 }
 
-String _durationLabel(int minutes) {
-  final hours = minutes ~/ 60;
-  final remainder = minutes % 60;
-  if (hours == 0) return '총 $remainder분';
-  if (remainder == 0) return '총 $hours시간';
-  return '총 $hours시간 $remainder분';
-}
-
 int _minutes(TimeOfDay value) => value.hour * 60 + value.minute;
