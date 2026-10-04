@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/theme/student_accent_controller.dart';
+import '../../../core/widgets/schedule_display_mode_sheet.dart';
 import '../../auth/domain/current_profile.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../branches/data/branch_repository.dart';
@@ -886,54 +887,70 @@ class _MasterManagementPageState extends State<MasterManagementPage> {
       color: Colors.white.withValues(alpha: 0.97),
       borderRadius: BorderRadius.circular(18),
       clipBehavior: Clip.antiAlias,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: primaryColor.withValues(alpha: 0.07),
-          ),
+      child: InkWell(
+        onTap: () => showScheduleDisplayModeSheet(
+          context: context,
+          controller: accentController,
         ),
-        child: SwitchListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 15,
-          vertical: 3,
-        ),
-        secondary: Container(
-          width: 40,
-          height: 40,
-          decoration: const BoxDecoration(
-            color: Color(0xffE8F0E4),
-            shape: BoxShape.circle,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 15,
+            vertical: 12,
           ),
-          child: Icon(
-            accentController.isEnabled
-                ? Icons.palette_rounded
-                : Icons.palette_outlined,
-            color: primaryColor,
-            size: 21,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: primaryColor.withValues(alpha: 0.07),
+            ),
           ),
-        ),
-        title: Text(
-          '학생별 색상 구분',
-          style: forestringTextStyle.copyWith(
-            color: Colors.black87,
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Color(0xffE8F0E4),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  accentController.displayMode.icon,
+                  color: primaryColor,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '시간표 표시 방식',
+                      style: forestringTextStyle.copyWith(
+                        color: Colors.black87,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${accentController.displayMode.label} · '
+                      '${accentController.displayMode.description}',
+                      style: forestringTextStyle.copyWith(
+                        color: Colors.black45,
+                        fontSize: 10.5,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.black38,
+              ),
+            ],
           ),
-        ),
-        subtitle: Text(
-          accentController.isEnabled
-              ? '학생별 색상을 사용 중입니다. 수업 상태 표시는 함께 유지됩니다.'
-              : '수업 종류와 변경 상태를 기준으로 색상을 표시합니다.',
-          style: forestringTextStyle.copyWith(
-            color: Colors.black45,
-            fontSize: 10.5,
-            height: 1.35,
-          ),
-        ),
-        value: accentController.isEnabled,
-        activeThumbColor: primaryColor,
-        onChanged: (value) => accentController.setEnabled(value),
         ),
       ),
     );
