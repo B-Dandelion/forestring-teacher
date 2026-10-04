@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/widgets/forestring_navigation.dart';
 import '../../../core/widgets/management_filters.dart';
+import '../../../core/widgets/compact_selection_sheet.dart';
 import '../../auth/domain/current_profile.dart';
 import '../../branches/data/branch_repository.dart';
 import '../../branches/domain/academy_branch.dart';
@@ -146,6 +147,27 @@ class _StaffWorkReportPageState extends State<StaffWorkReportPage> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  Future<void> _pickSemester() async {
+    final selected = await showCompactSelectionSheet<String>(
+      context: context,
+      title: '학기 선택',
+      selectedValue: _selectedSemesterId,
+      options: _semesters
+          .map(
+            (semester) => CompactSelectionOption(
+              value: semester.id,
+              label: _semesterLabel(semester.code),
+              subtitle:
+                  '${semester.startsOn.year}.${semester.startsOn.month.toString().padLeft(2, '0')}.${semester.startsOn.day.toString().padLeft(2, '0')} ~ '
+                  '${semester.endsOn.year}.${semester.endsOn.month.toString().padLeft(2, '0')}.${semester.endsOn.day.toString().padLeft(2, '0')}',
+            ),
+          )
+          .toList(),
+    );
+    if (!mounted || selected == null) return;
+    await _changeSemester(selected);
   }
 
   Future<void> _changeSemester(String value) async {
@@ -300,18 +322,10 @@ class _StaffWorkReportPageState extends State<StaffWorkReportPage> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '수업 종료 시각이 지났고 취소되지 않은 수업만 집계합니다.',
+                  '완료된 미취소 수업의 수업시간을 집계합니다.',
                   style: forestringTextStyle.copyWith(
                     color: Colors.black54,
                     fontSize: 10.5,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '표시된 시간은 출퇴근 시간이 아니라 수업 기록 기준 근무시간입니다.',
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.black38,
-                    fontSize: 9.5,
                   ),
                 ),
               ],
@@ -325,23 +339,18 @@ class _StaffWorkReportPageState extends State<StaffWorkReportPage> {
   Widget _filters() {
     return Row(
       children: [
-        PopupMenuButton<String>(
-          initialValue: _selectedSemesterId,
-          enabled: !_loading && _semesters.isNotEmpty,
-          onSelected: _changeSemester,
-          itemBuilder: (context) => _semesters
-              .map(
-                (semester) => PopupMenuItem(
-                  value: semester.id,
-                  child: Text(_semesterLabel(semester.code)),
-                ),
-              )
-              .toList(),
-          child: ManagementFilterPillSurface(
-            icon: Icons.calendar_month_outlined,
-            label: _selectedSemester == null
-                ? '학기'
-                : _semesterLabel(_selectedSemester!.code),
+        Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+          child: InkWell(
+            onTap: _loading || _semesters.isEmpty ? null : _pickSemester,
+            borderRadius: BorderRadius.circular(999),
+            child: ManagementFilterPillSurface(
+              icon: Icons.calendar_month_outlined,
+              label: _selectedSemester == null
+                  ? '학기'
+                  : _semesterLabel(_selectedSemester!.code),
+            ),
           ),
         ),
         if (widget.profile.isMaster) ...[
@@ -517,29 +526,76 @@ class _StaffWorkReportPageState extends State<StaffWorkReportPage> {
       return _emptyCard('집계된 지점 수업이 없습니다.');
     }
 
-    final maxMinutes = rows.fold<int>(
-      0,
-      (max, row) => row.totalMinutes > max ? row.totalMinutes : max,
-    );
-
     return Container(
       padding: const EdgeInsets.all(13),
       decoration: _surfaceDecoration(),
       child: Column(
         children: [
           for (var index = 0; index < rows.length; index++) ...[
-            _comparisonRow(
-              title: rows[index].branchName,
-              subtitle:
-                  '${rows[index].lessonCount}회 · ${rows[index].staffCount}명',
-              valueText: _minutesText(rows[index].totalMinutes),
-              ratio: maxMinutes == 0
-                  ? 0
-                  : rows[index].totalMinutes / maxMinutes,
-              color: primaryColor,
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: const BoxDecoration(
+                    color: Color(0xffEAF3E9),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.storefront_outlined,
+                    color: primaryColor,
+                    size: 19,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        rows[index].branchName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: forestringTextStyle.copyWith(
+                          color: Colors.black87,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${rows[index].lessonCount}회 · ${rows[index].staffCount}명',
+                        style: forestringTextStyle.copyWith(
+                          color: Colors.black38,
+                          fontSize: 9.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _minutesText(rows[index].totalMinutes),
+                  style: forestringTextStyle.copyWith(
+                    color: primaryColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
             if (index != rows.length - 1)
-              const SizedBox(height: 15),
+              Padding(
+                padding: const EdgeInsets.only(
+                  left: 48,
+                  top: 10,
+                  bottom: 10,
+                ),
+                child: Divider(
+                  height: 1,
+                  color: Colors.black.withValues(alpha: 0.05),
+                ),
+              ),
           ],
         ],
       ),
@@ -551,19 +607,10 @@ class _StaffWorkReportPageState extends State<StaffWorkReportPage> {
       return _emptyCard('집계된 선생님 수업이 없습니다.');
     }
 
-    final maxMinutes = report.staff.fold<int>(
-      0,
-      (max, staff) =>
-          staff.totalMinutes > max ? staff.totalMinutes : max,
-    );
-
     return Column(
       children: [
         for (var index = 0; index < report.staff.length; index++) ...[
-          _staffCard(
-            report.staff[index],
-            maxMinutes: maxMinutes,
-          ),
+          _staffCard(report.staff[index]),
           if (index != report.staff.length - 1)
             const SizedBox(height: 9),
         ],
@@ -571,13 +618,7 @@ class _StaffWorkReportPageState extends State<StaffWorkReportPage> {
     );
   }
 
-  Widget _staffCard(
-    StaffWorkSummary staff, {
-    required int maxMinutes,
-  }) {
-    final ratio =
-        maxMinutes == 0 ? 0.0 : staff.totalMinutes / maxMinutes;
-
+  Widget _staffCard(StaffWorkSummary staff) {
     return Container(
       padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
       decoration: _surfaceDecoration(),
@@ -647,12 +688,13 @@ class _StaffWorkReportPageState extends State<StaffWorkReportPage> {
                     _minutesText(staff.totalMinutes),
                     style: forestringTextStyle.copyWith(
                       color: primaryColor,
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
+                  const SizedBox(height: 1),
                   Text(
-                    '${staff.lessonCount}회',
+                    '완료 ${staff.lessonCount}회',
                     style: forestringTextStyle.copyWith(
                       color: Colors.black38,
                       fontSize: 9.5,
@@ -662,8 +704,6 @@ class _StaffWorkReportPageState extends State<StaffWorkReportPage> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          _bar(ratio, primaryColor),
           const SizedBox(height: 10),
           Wrap(
             spacing: 6,
@@ -683,78 +723,6 @@ class _StaffWorkReportPageState extends State<StaffWorkReportPage> {
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _comparisonRow({
-    required String title,
-    required String subtitle,
-    required String valueText,
-    required double ratio,
-    required Color color,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: forestringTextStyle.copyWith(
-                      color: Colors.black87,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: forestringTextStyle.copyWith(
-                      color: Colors.black38,
-                      fontSize: 9.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              valueText,
-              style: forestringTextStyle.copyWith(
-                color: color,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 7),
-        _bar(ratio, color),
-      ],
-    );
-  }
-
-  Widget _bar(double ratio, Color color) {
-    final safeRatio = ratio.clamp(0.0, 1.0).toDouble();
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        height: 8,
-        color: color.withValues(alpha: 0.08),
-        alignment: Alignment.centerLeft,
-        child: FractionallySizedBox(
-          widthFactor: safeRatio,
-          child: Container(
-            color: color.withValues(alpha: 0.58),
-          ),
-        ),
       ),
     );
   }
