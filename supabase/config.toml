@@ -446,3 +446,10 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/staff-create-student/deno.json"
 entrypoint = "./functions/staff-create-student/index.ts"
+
+
+[functions.notification-dispatch]
+enabled = true
+verify_jwt = false
+import_map = "./functions/notification-dispatch/deno.json"
+entrypoint = "./functions/notification-dispatch/index.ts"
