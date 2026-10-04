@@ -57,25 +57,49 @@ class LessonController extends ChangeNotifier {
   }
 
   List<Lesson> get visibleLessons {
-    final teacherId = _selectedTeacherId;
-    if (!canManageLessons || teacherId == null || teacherId.isEmpty) {
+    if (!canManageLessons) {
       return _lessons;
     }
 
-    return _lessons
-        .where((lesson) => lesson.teacherId == teacherId)
-        .toList();
+    Iterable<Lesson> scoped = _lessons;
+    final branchId = _selectedBranchId;
+    final teacherId = _selectedTeacherId;
+
+    if (branchId != null && branchId.isNotEmpty) {
+      scoped = scoped.where((lesson) => lesson.branchId == branchId);
+    }
+    if (teacherId != null && teacherId.isNotEmpty) {
+      scoped = scoped.where((lesson) => lesson.teacherId == teacherId);
+    }
+
+    return scoped.toList();
   }
 
   List<TeacherBlockedPeriod> get visibleBlockedPeriods {
-    final teacherId = _selectedTeacherId;
-    if (teacherId == null || teacherId.isEmpty) {
-      return canManageLessons ? _blockedPeriods : const [];
+    if (!canManageLessons) {
+      return const [];
     }
 
-    return _blockedPeriods
-        .where((period) => period.teacherId == teacherId)
-        .toList();
+    Iterable<TeacherBlockedPeriod> scoped = _blockedPeriods;
+    final branchId = _selectedBranchId;
+    final teacherId = _selectedTeacherId;
+
+    if (branchId != null && branchId.isNotEmpty) {
+      final teacherIds = _teachers
+          .where((teacher) => teacher.branchId == branchId)
+          .map((teacher) => teacher.id)
+          .toSet();
+      scoped = scoped.where(
+        (period) => teacherIds.contains(period.teacherId),
+      );
+    }
+    if (teacherId != null && teacherId.isNotEmpty) {
+      scoped = scoped.where(
+        (period) => period.teacherId == teacherId,
+      );
+    }
+
+    return scoped.toList();
   }
 
   Future<void> initialize() async {
