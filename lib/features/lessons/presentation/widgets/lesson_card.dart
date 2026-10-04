@@ -26,6 +26,7 @@ class LessonCard extends StatelessWidget {
     final end = DateFormat('HH:mm').format(lesson.endsAt);
     final badge = lesson.changeBadgeLabel;
     final badgeColor = lessonStatusAccentColor(lesson);
+    final usesStudentColor = accentColor != null;
     final resolvedAccentColor = lesson.isCanceled
         ? Colors.black38
         : accentColor ?? lessonStatusAccentColor(lesson);
@@ -43,28 +44,33 @@ class LessonCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: lesson.isCanceled
                 ? const Color(0xffF4F5F4)
-                : Colors.white,
+                : usesStudentColor
+                    ? Color.lerp(accentColor, Colors.white, 0.84)
+                    : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: lesson.isCanceled
                   ? Colors.black12
-                  : primaryColor.withValues(alpha: 0.10),
+                  : usesStudentColor
+                      ? accentColor!.withValues(alpha: 0.16)
+                      : primaryColor.withValues(alpha: 0.10),
             ),
           ),
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  width: 4,
-                  decoration: BoxDecoration(
-                    color: resolvedAccentColor,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      bottomLeft: Radius.circular(16),
+                if (!usesStudentColor)
+                  Container(
+                    width: 4,
+                    decoration: BoxDecoration(
+                      color: resolvedAccentColor,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        bottomLeft: Radius.circular(16),
+                      ),
                     ),
                   ),
-                ),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
