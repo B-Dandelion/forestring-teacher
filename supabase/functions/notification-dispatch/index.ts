@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@supabase/supabase-js@2'
+import { withSupabase } from 'npm:@supabase/server@^1'
 import { GoogleAuth } from 'npm:google-auth-library@9.15.1'
 
 type OutboxRow = {
@@ -467,47 +467,10 @@ function requireDispatcherSecret(req: Request): void {
   }
 }
 
-function createAdminClient() {
-  const url = Deno.env.get('SUPABASE_URL')
-
-  const secretKeysRaw =
-    Deno.env.get('SUPABASE_SECRET_KEYS')
-
-  let key: string | undefined
-
-  if (secretKeysRaw) {
-    try {
-      const parsed =
-        JSON.parse(secretKeysRaw) as Record<string, string>
-
-      key = parsed.default
-    } catch (_) {
-      // Fall back to the legacy service-role environment value.
-    }
-  }
-
-  key ??=
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-
-  if (!url || !key) {
-    throw new Error(
-      'Supabase backend credentials are missing.',
-    )
-  }
-
-  return createClient(
-    url,
-    key,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    },
-  )
-}
-
-Deno.serve(async (req) => {
+export default {
+  fetch: withSupabase(
+    { auth: 'none' },
+    async (req, ctx) => {
   if (req.method !== 'POST') {
     return Response.json(
       { message: 'Method not allowed.' },
@@ -518,7 +481,7 @@ Deno.serve(async (req) => {
   try {
     requireDispatcherSecret(req)
 
-    const supabaseAdmin = createAdminClient()
+    const supabaseAdmin = ctx.supabaseAdmin
 
     const credentials = requireServiceAccount()
     const accessToken =
@@ -649,4 +612,6 @@ Deno.serve(async (req) => {
       },
     )
   }
-})
+    },
+  ),
+}
