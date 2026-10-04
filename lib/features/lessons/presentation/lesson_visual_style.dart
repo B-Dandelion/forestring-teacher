@@ -3,23 +3,30 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/forestring_theme.dart';
 import '../domain/lesson.dart';
 
+const Color regularLessonColor = primaryColor;
+const Color flexLessonColor = Color(0xff4B7892);
+const Color makeupLessonColor = Color(0xff7768A7);
+const Color staffChangedLessonColor = Color(0xff9B678A);
+const Color studentRebookedLessonColor = Color(0xff3F7F83);
+const Color canceledLessonColor = Color(0xffC75D63);
+
 Color lessonStatusAccentColor(Lesson lesson) {
   if (lesson.isCanceled) {
-    return Colors.redAccent;
+    return canceledLessonColor;
   }
   if (lesson.isStudentRebooked) {
-    return const Color(0xff4B7892);
+    return studentRebookedLessonColor;
   }
   if (lesson.isStaffChanged) {
-    return const Color(0xffA87524);
+    return staffChangedLessonColor;
   }
   if (lesson.type == LessonType.makeup) {
-    return const Color(0xffB36A2E);
+    return makeupLessonColor;
   }
   if (lesson.type == LessonType.flex) {
-    return const Color(0xff5C8692);
+    return flexLessonColor;
   }
-  return primaryColor;
+  return regularLessonColor;
 }
 
 Color lessonStatusSurfaceColor(Lesson lesson) {
