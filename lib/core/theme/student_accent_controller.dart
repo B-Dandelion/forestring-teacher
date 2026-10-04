@@ -37,13 +37,14 @@ extension ScheduleDisplayModeX on ScheduleDisplayMode {
         ScheduleDisplayMode.student => Icons.palette_outlined,
       };
 
-  static ScheduleDisplayMode fromStorage(String? value) {
-    return switch (value) {
-      'status' => ScheduleDisplayMode.status,
-      'student' => ScheduleDisplayMode.student,
-      _ => ScheduleDisplayMode.classic,
-    };
-  }
+}
+
+ScheduleDisplayMode scheduleDisplayModeFromStorage(String? value) {
+  return switch (value) {
+    'status' => ScheduleDisplayMode.status,
+    'student' => ScheduleDisplayMode.student,
+    _ => ScheduleDisplayMode.classic,
+  };
 }
 
 class StudentAccentController extends ChangeNotifier {
@@ -79,7 +80,7 @@ class StudentAccentController extends ChangeNotifier {
     // A missing key intentionally falls back to the pre-3.3 classic view.
     // Do not migrate the old boolean toggle: existing users must not have
     // their weekly timetable appearance changed automatically.
-    _displayMode = ScheduleDisplayModeX.fromStorage(
+    _displayMode = scheduleDisplayModeFromStorage(
       preferences.getString(_displayModeStorageKey),
     );
 
