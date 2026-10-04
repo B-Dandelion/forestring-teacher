@@ -929,7 +929,7 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
     final semester = _semester;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: neutralIvory,
       appBar: ForestringAppBar(
         title: '학기 상세',
         actions: [
@@ -958,7 +958,7 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
                 onRefresh: _load,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 36),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 36),
                   children: [
                     _headerCard(semester),
                     if (_errorMessage != null) ...[
@@ -1124,16 +1124,11 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: primaryColor.withValues(alpha: 0.025),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: primaryColor.withValues(alpha: 0.13)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x09000000),
-            blurRadius: 14,
-            offset: Offset(0, 4),
-          ),
-        ],
+        color: Colors.white.withValues(alpha: 0.97),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.07),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1145,12 +1140,12 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: primaryColor,
+                  color: const Color(0xffFBF2E2),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.calendar_month_rounded,
-                  color: Colors.white,
+                  color: Color(0xff98651B),
                   size: 23,
                 ),
               ),
@@ -1159,8 +1154,8 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
                 child: Text(
                   _semesterLabel(semester.code),
                   style: forestringTextStyle.copyWith(
-                    color: primaryColor,
-                    fontSize: 22,
+                    color: Colors.black87,
+                    fontSize: 20,
                     fontWeight: FontWeight.w500,
                     height: 1.2,
                   ),
@@ -1239,8 +1234,13 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: primaryColor,
-          side: BorderSide(color: primaryColor.withValues(alpha: 0.65)),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          backgroundColor: primaryColor.withValues(alpha: 0.04),
+          side: BorderSide(
+            color: primaryColor.withValues(alpha: 0.10),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 10),
         ),
         child: Row(
@@ -1282,7 +1282,7 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: primaryColor.withValues(alpha: 0.12)),
+        border: Border.all(color: primaryColor.withValues(alpha: 0.07)),
       ),
       child: Row(
         children: [
@@ -1365,13 +1365,13 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
                   width: 40,
                   height: 40,
                   decoration: const BoxDecoration(
-                    color: primaryColor,
+                    color: const Color(0xffEAF3E9),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.storefront_outlined,
                     size: 22,
-                    color: Colors.white,
+                    color: primaryColor,
                   ),
                 ),
                 const SizedBox(width: 11),
@@ -1594,7 +1594,7 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
     return Text(
       title,
       style: forestringTextStyle.copyWith(
-        color: primaryColor,
+        color: Colors.black87,
         fontSize: 18,
         fontWeight: FontWeight.w500,
       ),
