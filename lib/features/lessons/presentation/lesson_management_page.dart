@@ -595,7 +595,7 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
 
   Widget _viewModeToggle() {
     return Container(
-      height: 36,
+      height: 34,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.94),
@@ -635,7 +635,7 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
         onTap: _loading ? null : () => _changeView({mode}),
         child: Container(
           width: 30,
-          height: 28,
+          height: 26,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: selected
