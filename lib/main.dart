@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app_gate.dart';
 import 'core/config/app_config.dart';
+import 'core/notifications/push_device_registration_service.dart';
 import 'core/notifications/push_messaging_service.dart';
 import 'core/theme/forestring_theme.dart';
 import 'features/auth/data/auth_repository.dart';
@@ -32,6 +33,7 @@ Future<void> main() async {
 
     PushMessagingService.instance.registerBackgroundHandler();
     await PushMessagingService.instance.initialize();
+    PushDeviceRegistrationService.instance.initialize();
   } on TimeoutException {
     runApp(
       const _StartupFailureApp(
@@ -68,11 +70,6 @@ Future<void> main() async {
     ),
   );
 
-  if (kDebugMode) {
-    unawaited(
-      PushMessagingService.instance.requestPermissionAndGetToken(),
-    );
-  }
 }
 
 class ForestringTeacher extends StatelessWidget {
