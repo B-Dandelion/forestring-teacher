@@ -359,11 +359,22 @@ String? _eventDescription(LessonActivityRecord event) {
       return '$beforeText → $afterText'
           '${afterDuration == null ? '' : ' · $afterDuration분'}';
     case 'LESSON_RIGHT_BOOKED':
-    case 'MAKEUP_LESSON_CREATED':
       return _scheduleText(
         _parseDate(event.details['startsAt']),
         _parseDate(event.details['endsAt']),
       );
+    case 'MAKEUP_LESSON_CREATED':
+      final schedule = _scheduleText(
+        _parseDate(event.details['startsAt']),
+        _parseDate(event.details['endsAt']),
+      );
+      final reason = event.details['reason']?.toString().trim();
+      if (schedule == null) {
+        return reason == null || reason.isEmpty ? null : reason;
+      }
+      return reason == null || reason.isEmpty
+          ? schedule
+          : '$schedule · 메모: $reason';
     default:
       return null;
   }
