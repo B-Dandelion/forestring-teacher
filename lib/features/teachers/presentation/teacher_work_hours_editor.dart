@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../data/teacher_repository.dart';
@@ -449,8 +450,13 @@ Future<TeacherWorkTimeRange?> showTeacherWorkTimeRangePicker({
   var startTime = _roundToQuarter(initialStartTime);
   var endTime = _roundToQuarter(initialEndTime);
   var editingStart = initialEditingStart;
+  final manualController = TextEditingController(
+    text: formatTeacherWorkTime(
+      initialEditingStart ? startTime : endTime,
+    ),
+  );
 
-  return showModalBottomSheet<TeacherWorkTimeRange>(
+  final result = await showModalBottomSheet<TeacherWorkTimeRange>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -463,6 +469,37 @@ Future<TeacherWorkTimeRange?> showTeacherWorkTimeRangePicker({
           final endMinutes = _minutes(endTime);
           final isValid = startMinutes < endMinutes;
           final durationMinutes = isValid ? endMinutes - startMinutes : 0;
+          String? manualError;
+
+          void switchTarget(bool start) {
+            setSheetState(() {
+              editingStart = start;
+              manualController.text = formatTeacherWorkTime(
+                start ? startTime : endTime,
+              );
+            });
+          }
+
+          void applyManual() {
+            final parsed = _parseTeacherWorkTimeInput(
+              manualController.text,
+            );
+            if (parsed == null) {
+              setSheetState(() {
+                manualError = '00:00 ~ 23:45 사이의 15분 단위 시간을 입력해주세요.';
+              });
+              return;
+            }
+
+            setSheetState(() {
+              manualError = null;
+              if (editingStart) {
+                startTime = parsed;
+              } else {
+                endTime = parsed;
+              }
+            });
+          }
 
           return SafeArea(
             top: false,
@@ -505,9 +542,7 @@ Future<TeacherWorkTimeRange?> showTeacherWorkTimeRangePicker({
                           label: '시작',
                           value: startTime,
                           selected: editingStart,
-                          onTap: () {
-                            setSheetState(() => editingStart = true);
-                          },
+                          onTap: () => switchTarget(true),
                         ),
                       ),
                       const Padding(
@@ -522,12 +557,56 @@ Future<TeacherWorkTimeRange?> showTeacherWorkTimeRangePicker({
                           label: '종료',
                           value: endTime,
                           selected: !editingStart,
-                          onTap: () {
-                            setSheetState(() => editingStart = false);
-                          },
+                          onTap: () => switchTarget(false),
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: manualController,
+                    keyboardType: TextInputType.datetime,
+                    textInputAction: TextInputAction.done,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'[0-9:]'),
+                      ),
+                      LengthLimitingTextInputFormatter(5),
+                    ],
+                    onChanged: (_) {
+                      if (manualError != null) {
+                        setSheetState(() => manualError = null);
+                      }
+                    },
+                    onSubmitted: (_) => applyManual(),
+                    decoration: InputDecoration(
+                      labelText:
+                          editingStart ? '시작 시간 직접 입력' : '종료 시간 직접 입력',
+                      hintText: '예: 14:30',
+                      prefixIcon: const Icon(
+                        Icons.keyboard_outlined,
+                        color: primaryColor,
+                        size: 19,
+                      ),
+                      suffixIcon: IconButton(
+                        tooltip: '입력 시간 적용',
+                        onPressed: applyManual,
+                        icon: const Icon(
+                          Icons.check_rounded,
+                          color: primaryColor,
+                        ),
+                      ),
+                      errorText: manualError,
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.88),
+                      isDense: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(13),
+                        borderSide: BorderSide(
+                          color: primaryColor.withValues(alpha: 0.10),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   AnimatedSwitcher(
@@ -564,7 +643,7 @@ Future<TeacherWorkTimeRange?> showTeacherWorkTimeRangePicker({
                   ),
                   const SizedBox(height: 8),
                   SizedBox(
-                    height: 210,
+                    height: 190,
                     child: CupertinoDatePicker(
                       key: ValueKey(editingStart),
                       mode: CupertinoDatePickerMode.time,
@@ -589,6 +668,8 @@ Future<TeacherWorkTimeRange?> showTeacherWorkTimeRangePicker({
                           } else {
                             endTime = next;
                           }
+                          manualController.text =
+                              formatTeacherWorkTime(next);
                         });
                       },
                     ),
@@ -628,6 +709,26 @@ Future<TeacherWorkTimeRange?> showTeacherWorkTimeRangePicker({
       );
     },
   );
+
+  manualController.dispose();
+  return result;
+}
+
+TimeOfDay? _parseTeacherWorkTimeInput(String raw) {
+  final match = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(raw.trim());
+  if (match == null) return null;
+  final hour = int.tryParse(match.group(1)!);
+  final minute = int.tryParse(match.group(2)!);
+  if (hour == null ||
+      minute == null ||
+      hour < 0 ||
+      hour > 23 ||
+      minute < 0 ||
+      minute > 59 ||
+      minute % 15 != 0) {
+    return null;
+  }
+  return TimeOfDay(hour: hour, minute: minute);
 }
 
 Widget _timeRangeTarget({
