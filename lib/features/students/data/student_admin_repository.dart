@@ -9,6 +9,18 @@ class StudentAdminFailure implements Exception {
   String toString() => message;
 }
 
+class StudentAdminWorkWindow {
+  const StudentAdminWorkWindow({
+    required this.weekday,
+    required this.startMinutes,
+    required this.endMinutes,
+  });
+
+  final int weekday;
+  final int startMinutes;
+  final int endMinutes;
+}
+
 class StudentAdminTeacher {
   const StudentAdminTeacher({
     required this.id,
@@ -79,6 +91,42 @@ class StudentAdminRepository {
     } on PostgrestException {
       throw const StudentAdminFailure(
         '선생님 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+      );
+    }
+  }
+
+  Future<List<StudentAdminWorkWindow>> fetchTeacherWorkHours(
+    String teacherId,
+  ) async {
+    try {
+      final rows = await _client
+          .from('teacher_work_hours')
+          .select('weekday, start_time, end_time')
+          .eq('teacher_id', teacherId)
+          .order('weekday');
+
+      int parseMinutes(dynamic raw) {
+        final parts = raw.toString().split(':');
+        final hour = int.tryParse(parts.elementAtOrNull(0) ?? '') ?? 0;
+        final minute = int.tryParse(parts.elementAtOrNull(1) ?? '') ?? 0;
+        return hour * 60 + minute;
+      }
+
+      return (rows as List)
+          .map(
+            (raw) {
+              final row = Map<String, dynamic>.from(raw as Map);
+              return StudentAdminWorkWindow(
+                weekday: (row['weekday'] as num).toInt(),
+                startMinutes: parseMinutes(row['start_time']),
+                endMinutes: parseMinutes(row['end_time']),
+              );
+            },
+          )
+          .toList();
+    } on PostgrestException {
+      throw const StudentAdminFailure(
+        '선생님 근무시간을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
       );
     }
   }
