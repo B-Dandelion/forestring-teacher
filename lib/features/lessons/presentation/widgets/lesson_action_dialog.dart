@@ -684,7 +684,7 @@ Future<bool> _confirmWarnings(
     return switch (code) {
       'FORESTRING_OUTSIDE_WORK_HOURS' => '선생님 근무시간 밖입니다.',
       'FORESTRING_OVERLAPS_BLOCKED_PERIOD' => '예약 불가 시간과 겹칩니다.',
-      'FORESTRING_NONSTANDARD_DURATION' => '권장 수업 길이(15/30/60분)가 아닙니다.',
+      'FORESTRING_NONSTANDARD_DURATION' => '권장 수업 길이(15/30/45/60분)가 아닙니다.',
       _ => code,
     };
   }).join('\n');
