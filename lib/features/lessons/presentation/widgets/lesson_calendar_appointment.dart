@@ -17,9 +17,10 @@ class LessonCalendarAppointment extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = lesson.studentName ?? '학생';
     final statusColor = lessonStatusAccentColor(lesson);
-    final backgroundColor = accentColor == null
-        ? lessonStatusSurfaceColor(lesson)
-        : Color.lerp(accentColor, Colors.white, 0.30)!;
+    final usesStudentColor = accentColor != null;
+    final backgroundColor = usesStudentColor
+        ? Color.lerp(accentColor, Colors.white, 0.30)!
+        : lessonStatusSurfaceColor(lesson);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -36,12 +37,14 @@ class LessonCalendarAppointment extends StatelessWidget {
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(4),
-            border: Border(
-              left: BorderSide(
-                color: statusColor,
-                width: 3,
-              ),
-            ),
+            border: usesStudentColor
+                ? null
+                : Border(
+                    left: BorderSide(
+                      color: statusColor,
+                      width: 3,
+                    ),
+                  ),
           ),
           child: compact
               ? Text(
