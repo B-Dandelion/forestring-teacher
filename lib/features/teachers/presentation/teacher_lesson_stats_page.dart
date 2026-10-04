@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/widgets/forestring_navigation.dart';
+import '../../../core/widgets/compact_selection_sheet.dart';
 import '../data/teacher_repository.dart';
 
 class TeacherLessonStatsPage extends StatefulWidget {
@@ -24,6 +25,7 @@ class _TeacherLessonStatsPageState extends State<TeacherLessonStatsPage> {
   late final TeacherRepository _repository;
 
   TeacherLessonStats? _stats;
+  String? _selectedSemesterId;
   bool _loading = true;
   String? _errorMessage;
 
@@ -45,7 +47,23 @@ class _TeacherLessonStatsPageState extends State<TeacherLessonStatsPage> {
         widget.teacher.id,
       );
       if (!mounted) return;
-      setState(() => _stats = stats);
+      final currentSemester = stats.semesters.where(
+        (semester) => semester.isCurrent,
+      );
+      final preferredSemesterId = currentSemester.isNotEmpty
+          ? currentSemester.first.semesterId
+          : (stats.semesters.isEmpty
+              ? null
+              : stats.semesters.first.semesterId);
+      setState(() {
+        _stats = stats;
+        if (_selectedSemesterId == null ||
+            !stats.semesters.any(
+              (semester) => semester.semesterId == _selectedSemesterId,
+            )) {
+          _selectedSemesterId = preferredSemesterId;
+        }
+      });
     } on TeacherFailure catch (error) {
       if (!mounted) return;
       setState(() => _errorMessage = error.message);
@@ -54,6 +72,42 @@ class _TeacherLessonStatsPageState extends State<TeacherLessonStatsPage> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  TeacherSemesterLessonStats? get _selectedSemester {
+    final stats = _stats;
+    final id = _selectedSemesterId;
+    if (stats == null || id == null) return null;
+    for (final semester in stats.semesters) {
+      if (semester.semesterId == id) return semester;
+    }
+    return null;
+  }
+
+  Future<void> _pickSemester() async {
+    final stats = _stats;
+    if (stats == null || stats.semesters.isEmpty) return;
+
+    final selected = await showCompactSelectionSheet<String>(
+      context: context,
+      title: '학기 선택',
+      selectedValue: _selectedSemesterId,
+      options: stats.semesters
+          .map(
+            (semester) => CompactSelectionOption(
+              value: semester.semesterId,
+              label: _semesterLabel(semester.code),
+              subtitle:
+                  '${DateFormat('yyyy.MM.dd').format(semester.startsOn)} ~ '
+                  '${DateFormat('yyyy.MM.dd').format(semester.endsOn)}'
+                  '${semester.isCurrent ? ' · 현재 학기' : ''}',
+            ),
+          )
+          .toList(),
+    );
+
+    if (!mounted || selected == null) return;
+    setState(() => _selectedSemesterId = selected);
   }
 
   @override
@@ -135,7 +189,18 @@ class _TeacherLessonStatsPageState extends State<TeacherLessonStatsPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ...stats.semesters.map(_SemesterStatsCard.new),
+                    CompactSelectionField(
+                      label: '조회 학기',
+                      value: _selectedSemester == null
+                          ? '학기를 선택해주세요.'
+                          : _semesterLabel(_selectedSemester!.code),
+                      icon: Icons.calendar_month_outlined,
+                      enabled: !_loading,
+                      onTap: _pickSemester,
+                    ),
+                    const SizedBox(height: 10),
+                    if (_selectedSemester != null)
+                      _SemesterStatsCard(_selectedSemester!),
                   ],
               ],
             ],
