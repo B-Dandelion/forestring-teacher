@@ -10,6 +10,7 @@ import '../features/auth/presentation/auth_controller.dart';
 import '../features/lessons/presentation/lesson_controller.dart';
 import '../features/lessons/presentation/lesson_management_page.dart';
 import '../features/lessons/presentation/master_schedule_page.dart';
+import '../features/master/presentation/master_management_page.dart';
 import '../features/students/presentation/student_management_page.dart';
 import '../features/teachers/presentation/teacher_management_page.dart';
 
@@ -32,15 +33,25 @@ class ManagerShell extends StatefulWidget {
 class _ManagerShellState extends State<ManagerShell> {
   static const _scheduleIndex = 0;
 
-  static const _titles = [
-    '일정',
-    '수강생',
-    '선생님',
-    '수업',
-  ];
-
   int _currentIndex = _scheduleIndex;
-  final List<Widget?> _pages = List<Widget?>.filled(4, null);
+  late final List<Widget?> _pages;
+
+  List<String> get _titles => [
+        '일정',
+        '수강생',
+        '선생님',
+        '수업',
+        if (widget.profile.isMaster) '관리',
+      ];
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = List<Widget?>.filled(
+      widget.profile.isMaster ? 5 : 4,
+      null,
+    );
+  }
 
   void _selectTab(int index) {
     if (_currentIndex == index) return;
@@ -173,6 +184,9 @@ class _ManagerShellState extends State<ManagerShell> {
           isQaSandbox: widget.isQaSandbox,
           embeddedInShell: true,
         ),
+      4 when widget.profile.isMaster => MasterManagementPage(
+          profile: widget.profile,
+        ),
       _ => const SizedBox.shrink(),
     };
   }
@@ -222,9 +236,11 @@ class _ManagerShellState extends State<ManagerShell> {
               height: 1,
             ),
           ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 10),
+          actions: widget.profile.isMaster
+              ? const []
+              : [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
               child: PopupMenuButton<String>(
                 tooltip: '더보기',
                 onSelected: _handleMenu,
@@ -292,8 +308,8 @@ class _ManagerShellState extends State<ManagerShell> {
                   ),
                 ],
               ),
-            ),
-          ],
+                  ),
+                ],
         ),
         body: Column(
           children: [
@@ -363,28 +379,34 @@ class _ManagerShellState extends State<ManagerShell> {
               onDestinationSelected: _selectTab,
               labelBehavior:
                   NavigationDestinationLabelBehavior.alwaysShow,
-              destinations: const [
-                NavigationDestination(
+              destinations: [
+                const NavigationDestination(
                   icon: Icon(Icons.calendar_month_outlined),
                   selectedIcon:
                       Icon(Icons.calendar_month_rounded),
                   label: '일정',
                 ),
-                NavigationDestination(
+                const NavigationDestination(
                   icon: Icon(Icons.groups_outlined),
                   selectedIcon: Icon(Icons.groups_rounded),
                   label: '수강생',
                 ),
-                NavigationDestination(
+                const NavigationDestination(
                   icon: Icon(Icons.co_present_outlined),
                   selectedIcon: Icon(Icons.co_present_rounded),
                   label: '선생님',
                 ),
-                NavigationDestination(
+                const NavigationDestination(
                   icon: Icon(Icons.event_note_outlined),
                   selectedIcon: Icon(Icons.event_note_rounded),
                   label: '수업',
                 ),
+                if (widget.profile.isMaster)
+                  const NavigationDestination(
+                    icon: Icon(Icons.settings_outlined),
+                    selectedIcon: Icon(Icons.settings_rounded),
+                    label: '관리',
+                  ),
               ],
             ),
           ),
