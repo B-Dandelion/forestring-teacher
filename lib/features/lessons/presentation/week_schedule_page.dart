@@ -120,6 +120,7 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
                       initialDisplayDate: focusTarget,
                       timeZone: 'Korea Standard Time',
                       view: CalendarView.week,
+                      firstDayOfWeek: DateTime.sunday,
                       cellBorderColor: Colors.black12,
                       todayHighlightColor: primaryColor,
                       showCurrentTimeIndicator: true,
