@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://github.com/B-Dandelion/forestring-student">Student App</a>
   ·
-  Current release: <code>v3.3.0</code>
+  Current release: <code>v3.3.1</code>
 </p>
 
 ---
