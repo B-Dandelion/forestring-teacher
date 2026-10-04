@@ -41,7 +41,7 @@ class LessonSemesterPicker extends StatelessWidget {
               : null,
           borderRadius: BorderRadius.circular(999),
           child: Container(
-            height: 36,
+            height: 34,
             padding: const EdgeInsets.symmetric(horizontal: 11),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.94),
