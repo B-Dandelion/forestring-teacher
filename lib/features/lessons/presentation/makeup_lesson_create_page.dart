@@ -338,7 +338,7 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
       return switch (code) {
         'FORESTRING_OUTSIDE_WORK_HOURS' => '근무시간 밖의 수업입니다.',
         'FORESTRING_NONSTANDARD_DURATION' =>
-          '권장 수업 길이(15/30/60분)가 아닙니다.',
+          '권장 수업 길이(15/30/45/60분)가 아닙니다.',
         _ => code,
       };
     }).join('\n');
