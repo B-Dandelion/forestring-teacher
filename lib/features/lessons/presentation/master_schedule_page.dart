@@ -1111,47 +1111,71 @@ class _ManagerLessonAppointment extends StatelessWidget {
     final label = lessonStatusShortLabel(lesson);
     final statusColor = lessonStatusAccentColor(lesson);
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(4, 2, 3, 2),
-      decoration: BoxDecoration(
-        color: palette.$1,
-        borderRadius: BorderRadius.circular(7),
-        border: Border(
-          left: BorderSide(
-            color: palette.$2,
-            width: 3,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxHeight < 28;
+
+        return Container(
+          alignment: Alignment.centerLeft,
+          padding: EdgeInsets.fromLTRB(
+            4,
+            compact ? 0 : 2,
+            3,
+            compact ? 0 : 2,
           ),
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            lesson.studentName ?? '학생',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: forestringTextStyle.copyWith(
-              color: Colors.black87,
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              height: 1,
+          decoration: BoxDecoration(
+            color: palette.$1,
+            borderRadius: BorderRadius.circular(7),
+            border: Border(
+              left: BorderSide(
+                color: palette.$2,
+                width: 3,
+              ),
             ),
           ),
-          const SizedBox(height: 1),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: forestringTextStyle.copyWith(
-              color: statusColor,
-              fontSize: 7.5,
-              fontWeight: FontWeight.w400,
-              height: 1,
-            ),
-          ),
-        ],
-      ),
+          child: compact
+              ? Text(
+                  lesson.studentName ?? '학생',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: forestringTextStyle.copyWith(
+                    color: Colors.black87,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w500,
+                    height: 1,
+                  ),
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      lesson.studentName ?? '학생',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: forestringTextStyle.copyWith(
+                        color: Colors.black87,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: forestringTextStyle.copyWith(
+                        color: statusColor,
+                        fontSize: 7.5,
+                        fontWeight: FontWeight.w400,
+                        height: 1,
+                      ),
+                    ),
+                  ],
+                ),
+        );
+      },
     );
   }
 
@@ -1180,30 +1204,41 @@ class _ManagerBlockedAppointment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.fromLTRB(4, 2, 3, 2),
-      decoration: BoxDecoration(
-        color: const Color(0xffE8E9E7),
-        borderRadius: BorderRadius.circular(7),
-        border: const Border(
-          left: BorderSide(
-            color: Color(0xff8B918D),
-            width: 3,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxHeight < 28;
+
+        return Container(
+          alignment: Alignment.centerLeft,
+          padding: EdgeInsets.fromLTRB(
+            4,
+            compact ? 0 : 2,
+            3,
+            compact ? 0 : 2,
           ),
-        ),
-      ),
-      child: Text(
-        period.displayLabel,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: forestringTextStyle.copyWith(
-          color: Colors.black54,
-          fontSize: 8,
-          fontWeight: FontWeight.w500,
-          height: 1.05,
-        ),
-      ),
+          decoration: BoxDecoration(
+            color: const Color(0xffE8E9E7),
+            borderRadius: BorderRadius.circular(7),
+            border: const Border(
+              left: BorderSide(
+                color: Color(0xff8B918D),
+                width: 3,
+              ),
+            ),
+          ),
+          child: Text(
+            period.displayLabel,
+            maxLines: compact ? 1 : 2,
+            overflow: TextOverflow.ellipsis,
+            style: forestringTextStyle.copyWith(
+              color: Colors.black54,
+              fontSize: 8,
+              fontWeight: FontWeight.w500,
+              height: 1,
+            ),
+          ),
+        );
+      },
     );
   }
 }
