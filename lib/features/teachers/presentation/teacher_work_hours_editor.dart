@@ -462,6 +462,8 @@ Future<TeacherWorkTimeRange?> showTeacherWorkTimeRangePicker({
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.42),
     builder: (sheetContext) {
+      String? manualError;
+
       return StatefulBuilder(
         builder: (context, setSheetState) {
           final selectedTime = editingStart ? startTime : endTime;
@@ -469,7 +471,6 @@ Future<TeacherWorkTimeRange?> showTeacherWorkTimeRangePicker({
           final endMinutes = _minutes(endTime);
           final isValid = startMinutes < endMinutes;
           final durationMinutes = isValid ? endMinutes - startMinutes : 0;
-          String? manualError;
 
           void switchTarget(bool start) {
             setSheetState(() {
