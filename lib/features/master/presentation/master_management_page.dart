@@ -885,16 +885,18 @@ class _MasterManagementPageState extends State<MasterManagementPage> {
   }
 
   Widget _settingsCard(StudentAccentController accentController) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.97),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: primaryColor.withValues(alpha: 0.07),
-        ),
-      ),
+    return Material(
+      color: Colors.white.withValues(alpha: 0.97),
+      borderRadius: BorderRadius.circular(18),
       clipBehavior: Clip.antiAlias,
-      child: SwitchListTile(
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: primaryColor.withValues(alpha: 0.07),
+          ),
+        ),
+        child: SwitchListTile(
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 15,
           vertical: 3,
@@ -935,6 +937,7 @@ class _MasterManagementPageState extends State<MasterManagementPage> {
         value: accentController.isEnabled,
         activeThumbColor: primaryColor,
         onChanged: (value) => accentController.setEnabled(value),
+        ),
       ),
     );
   }
