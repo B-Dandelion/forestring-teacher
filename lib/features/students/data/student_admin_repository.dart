@@ -263,9 +263,11 @@ class StudentAdminRepository {
       throw const StudentAdminFailure('수강권 횟수는 1회 이상이어야 합니다.');
     }
     if (durationMinutes <= 0 ||
-        durationMinutes > 720 ||
+        durationMinutes > 60 ||
         durationMinutes % 15 != 0) {
-      throw const StudentAdminFailure('수업 길이는 15분 단위로 선택해주세요.');
+      throw const StudentAdminFailure(
+        '수업 길이는 15분 단위로 최대 60분까지 선택해주세요.',
+      );
     }
 
     try {
