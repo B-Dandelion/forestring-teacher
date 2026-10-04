@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/B-Dandelion/forestring_stu">Student App</a>
+  <a href="https://github.com/B-Dandelion/forestring-student">Student App</a>
   ·
   Current release: <code>v3.3.0</code>
 </p>
@@ -185,7 +185,7 @@ flutter build ipa --release --dart-define-from-file=env/prod.json
 
 ## Related Project
 
-- [포레스트링 Student](https://github.com/B-Dandelion/forestring_stu) — 수강생용 일정 조회 / 취소 / 보강 예약 앱
+- [포레스트링 Student](https://github.com/B-Dandelion/forestring-student) — 수강생용 일정 조회 / 취소 / 보강 예약 앱
 
 ## Notes
 
