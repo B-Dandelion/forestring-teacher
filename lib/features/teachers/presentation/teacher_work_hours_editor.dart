@@ -475,6 +475,7 @@ Future<TeacherWorkTimeRange?> showTeacherWorkTimeRangePicker({
           void switchTarget(bool start) {
             setSheetState(() {
               editingStart = start;
+              manualError = null;
               manualController.text = formatTeacherWorkTime(
                 start ? startTime : endTime,
               );
@@ -646,7 +647,10 @@ Future<TeacherWorkTimeRange?> showTeacherWorkTimeRangePicker({
                   SizedBox(
                     height: 190,
                     child: CupertinoDatePicker(
-                      key: ValueKey(editingStart),
+                      key: ValueKey(
+                        '${editingStart ? 'start' : 'end'}-'
+                        '${selectedTime.hour}-${selectedTime.minute}',
+                      ),
                       mode: CupertinoDatePickerMode.time,
                       use24hFormat: true,
                       minuteInterval: 15,
