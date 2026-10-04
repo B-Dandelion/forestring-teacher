@@ -255,7 +255,7 @@ class _BranchDetailPageState extends State<BranchDetailPage> {
         RefreshIndicator(
           onRefresh: _load,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 40),
             children: [
               _HeaderCard(details: details),
               const SizedBox(height: 22),
@@ -318,8 +318,8 @@ class _BranchDetailPageState extends State<BranchDetailPage> {
                       label: const Text('휴원 주간'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: primaryColor,
-                        minimumSize: const Size.fromHeight(52),
-                        side: const BorderSide(color: primaryColor),
+                        minimumSize: const Size.fromHeight(50),
+                        side: BorderSide(color: primaryColor.withValues(alpha: 0.12)),
                       ),
                     ),
                   ),
@@ -335,8 +335,8 @@ class _BranchDetailPageState extends State<BranchDetailPage> {
                       label: const Text('휴원일'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: primaryColor,
-                        minimumSize: const Size.fromHeight(52),
-                        side: const BorderSide(color: primaryColor),
+                        minimumSize: const Size.fromHeight(50),
+                        side: BorderSide(color: primaryColor.withValues(alpha: 0.12)),
                       ),
                     ),
                   ),
@@ -364,7 +364,7 @@ class _BranchDetailPageState extends State<BranchDetailPage> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: primaryColor,
                   minimumSize: const Size.fromHeight(54),
-                  side: const BorderSide(color: primaryColor),
+                  side: BorderSide(color: primaryColor.withValues(alpha: 0.12)),
                 ),
               ),
               const SizedBox(height: 12),
@@ -415,38 +415,63 @@ class _HeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusColor =
+        details.isActive ? primaryColor : Colors.black45;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+      padding: const EdgeInsets.fromLTRB(16, 15, 14, 15),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: primaryColor.withValues(alpha: 0.24)),
+        color: Colors.white.withValues(alpha: 0.97),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.07),
+        ),
       ),
       child: Row(
         children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: details.isActive
+                  ? const Color(0xffEAF3E9)
+                  : const Color(0xffEFEFED),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.storefront_outlined,
+              color: statusColor,
+              size: 25,
+            ),
+          ),
+          const SizedBox(width: 13),
           Expanded(
             child: Text(
               details.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: forestringTextStyle.copyWith(
-                color: primaryColor,
-                fontSize: 22,
+                color: Colors.black87,
+                fontSize: 20,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 9,
+              vertical: 4,
+            ),
             decoration: BoxDecoration(
-              color: details.isActive
-                  ? primaryColor.withValues(alpha: 0.10)
-                  : Colors.black.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(20),
+              color: statusColor.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
               details.isActive ? '운영 중' : '비활성',
               style: forestringTextStyle.copyWith(
-                color: details.isActive ? primaryColor : Colors.black54,
+                color: statusColor,
+                fontSize: 10.5,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -467,8 +492,8 @@ class _SectionTitle extends StatelessWidget {
     return Text(
       label,
       style: forestringTextStyle.copyWith(
-        color: primaryColor,
-        fontSize: 19,
+        color: Colors.black87,
+        fontSize: 18,
         fontWeight: FontWeight.w500,
       ),
     );
@@ -491,13 +516,15 @@ class _CountCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryColor.withValues(alpha: 0.18)),
+        color: const Color(0xffF6F8F4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.06),
+        ),
       ),
       child: Column(
         children: [
-          Icon(icon, color: secondaryColor, size: 24),
+          Icon(icon, color: primaryColor, size: 23),
           const SizedBox(height: 7),
           Text(
             '$count명',
@@ -561,9 +588,11 @@ class _OperationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryColor.withValues(alpha: 0.18)),
+        color: Colors.white.withValues(alpha: 0.97),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.07),
+        ),
       ),
       child: Column(
         children: [
