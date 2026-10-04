@@ -36,14 +36,6 @@ class _ManagerShellState extends State<ManagerShell> {
   int _currentIndex = _scheduleIndex;
   late final List<Widget?> _pages;
 
-  List<String> get _titles => [
-        '일정',
-        '수강생',
-        '선생님',
-        '수업',
-        if (widget.profile.isMaster) '관리',
-      ];
-
   @override
   void initState() {
     super.initState();
@@ -218,101 +210,94 @@ class _ManagerShellState extends State<ManagerShell> {
       },
       child: Scaffold(
         backgroundColor: neutralIvory,
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          toolbarHeight: 72,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          backgroundColor: neutralIvory,
-          surfaceTintColor: Colors.transparent,
-          foregroundColor: primaryColor,
-          titleSpacing: 18,
-          title: Text(
-            _titles[_currentIndex],
-            style: forestringTextStyle.copyWith(
-              color: primaryColor,
-              fontSize: 30,
-              fontWeight: FontWeight.w500,
-              height: 1,
-            ),
-          ),
-          actions: widget.profile.isMaster
-              ? const []
-              : [
+        appBar: widget.profile.isMaster
+            ? null
+            : AppBar(
+                automaticallyImplyLeading: false,
+                toolbarHeight: 44,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                backgroundColor: neutralIvory,
+                surfaceTintColor: Colors.transparent,
+                foregroundColor: primaryColor,
+                actions: [
                   Padding(
                     padding: const EdgeInsets.only(right: 10),
-              child: PopupMenuButton<String>(
-                tooltip: '더보기',
-                onSelected: _handleMenu,
-                icon: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.82),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: primaryColor.withValues(alpha: 0.08),
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.more_horiz_rounded,
-                    color: primaryColor,
-                    size: 22,
-                  ),
-                ),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'student_colors',
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(
-                        accentController.isEnabled
-                            ? Icons.palette_rounded
-                            : Icons.palette_outlined,
-                        color: primaryColor,
+                    child: PopupMenuButton<String>(
+                      tooltip: '더보기',
+                      onSelected: _handleMenu,
+                      icon: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.82),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: primaryColor.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.more_horiz_rounded,
+                          color: primaryColor,
+                          size: 21,
+                        ),
                       ),
-                      title: const Text('학생별 색상 구분'),
-                      trailing: Icon(
-                        accentController.isEnabled
-                            ? Icons.toggle_on_rounded
-                            : Icons.toggle_off_rounded,
-                        color: accentController.isEnabled
-                            ? primaryColor
-                            : Colors.black38,
-                        size: 32,
-                      ),
-                    ),
-                  ),
-                  if (widget.isQaSandbox)
-                    const PopupMenuItem(
-                      value: 'reset',
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(Icons.restart_alt_rounded),
-                        title: Text('QA 데이터 초기화'),
-                      ),
-                    ),
-                  PopupMenuItem(
-                    value: 'exit',
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(
-                        widget.isQaSandbox
-                            ? Icons.close_rounded
-                            : Icons.logout_rounded,
-                      ),
-                      title: Text(
-                        widget.isQaSandbox ? 'QA 종료' : '로그아웃',
-                      ),
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'student_colors',
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(
+                              accentController.isEnabled
+                                  ? Icons.palette_rounded
+                                  : Icons.palette_outlined,
+                              color: primaryColor,
+                            ),
+                            title: const Text('학생별 색상 구분'),
+                            trailing: Icon(
+                              accentController.isEnabled
+                                  ? Icons.toggle_on_rounded
+                                  : Icons.toggle_off_rounded,
+                              color: accentController.isEnabled
+                                  ? primaryColor
+                                  : Colors.black38,
+                              size: 32,
+                            ),
+                          ),
+                        ),
+                        if (widget.isQaSandbox)
+                          const PopupMenuItem(
+                            value: 'reset',
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(Icons.restart_alt_rounded),
+                              title: Text('QA 데이터 초기화'),
+                            ),
+                          ),
+                        PopupMenuItem(
+                          value: 'exit',
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(
+                              widget.isQaSandbox
+                                  ? Icons.close_rounded
+                                  : Icons.logout_rounded,
+                            ),
+                            title: Text(
+                              widget.isQaSandbox ? 'QA 종료' : '로그아웃',
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-                  ),
-                ],
-        ),
-        body: Column(
-          children: [
+        body: SafeArea(
+          top: widget.profile.isMaster,
+          bottom: false,
+          child: Column(
+            children: [
             if (widget.isQaSandbox)
               Container(
                 width: double.infinity,
@@ -336,6 +321,7 @@ class _ManagerShellState extends State<ManagerShell> {
             ),
           ],
         ),
+      ),
         bottomNavigationBar: ClipRRect(
           borderRadius: const BorderRadius.vertical(
             top: Radius.circular(22),
