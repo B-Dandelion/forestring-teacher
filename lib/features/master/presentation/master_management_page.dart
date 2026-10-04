@@ -97,7 +97,8 @@ class MasterManagementPage extends StatelessWidget {
                   ),
                   value: accentController.isEnabled,
                   activeThumbColor: primaryColor,
-                  onChanged: accentController.setEnabled,
+                  onChanged: (value) =>
+                      accentController.setEnabled(value),
                 ),
               ],
             ),
