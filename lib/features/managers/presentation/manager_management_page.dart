@@ -717,6 +717,11 @@ class _ManagerManagementPageState extends State<ManagerManagementPage> {
   @override
   Widget build(BuildContext context) {
     final visibleManagers = _visibleManagers;
+    final activeCount =
+        _managers.where((manager) => manager.isActive).length;
+    final teachingCount = _managers
+        .where((manager) => manager.isActive && manager.teachesLessons)
+        .length;
 
     return Scaffold(
       backgroundColor: neutralIvory,
@@ -734,8 +739,12 @@ class _ManagerManagementPageState extends State<ManagerManagementPage> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
         onPressed: _loading ? null : _openCreate,
-        icon: const Icon(Icons.person_add_alt_1_outlined),
+        icon: const Icon(Icons.person_add_alt_1_rounded),
         label: Text(
           '지점장 등록',
           style: forestringTextStyle.copyWith(
@@ -749,43 +758,28 @@ class _ManagerManagementPageState extends State<ManagerManagementPage> {
           onRefresh: _load,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 100),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 100),
             children: [
-              _buildFilters(),
-              const SizedBox(height: 14),
+              _summaryCard(
+                activeCount: activeCount,
+                teachingCount: teachingCount,
+              ),
+              const SizedBox(height: 12),
+              _buildFilters(visibleManagers.length),
               if (_errorMessage != null) ...[
+                const SizedBox(height: 10),
                 _errorCard(_errorMessage!),
-                const SizedBox(height: 12),
               ],
+              const SizedBox(height: 14),
               if (_loading && _managers.isEmpty)
                 const Padding(
-                  padding: EdgeInsets.only(top: 80),
+                  padding: EdgeInsets.only(top: 72),
                   child: Center(child: CircularProgressIndicator()),
                 )
               else if (visibleManagers.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 80),
-                  child: Center(
-                    child: Text(
-                      '조건에 맞는 지점장이 없습니다.',
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ),
-                )
-              else ...[
-                Text(
-                  '${visibleManagers.length}명',
-                  style: forestringTextStyle.copyWith(
-                    color: primaryColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                _emptyCard()
+              else
                 ...visibleManagers.map(_managerCard),
-              ],
             ],
           ),
         ),
@@ -793,155 +787,345 @@ class _ManagerManagementPageState extends State<ManagerManagementPage> {
     );
   }
 
-  Widget _buildFilters() {
+  Widget _summaryCard({
+    required int activeCount,
+    required int teachingCount,
+  }) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.97),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.07),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: const BoxDecoration(
+              color: Color(0xffEEF1F8),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.admin_panel_settings_outlined,
+              color: Color(0xff5E6F9B),
+              size: 23,
+            ),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '지점장 운영 현황',
+                  style: forestringTextStyle.copyWith(
+                    color: Colors.black87,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  _loading
+                      ? '지점장 정보를 불러오는 중입니다.'
+                      : '재직 $activeCount명 · 수업 담당 $teachingCount명',
+                  style: forestringTextStyle.copyWith(
+                    color: Colors.black45,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilters(int visibleCount) {
+    var branchLabel = '전체 지점';
+    if (_branchFilter != _allBranches) {
+      for (final branch in _branches) {
+        if (branch.id == _branchFilter) {
+          branchLabel = branch.name;
+          break;
+        }
+      }
+    }
+    final statusLabel = switch (_statusFilter) {
+      'all' => '전체 상태',
+      'departed' => '퇴사',
+      _ => '재직',
+    };
+
     return Column(
       children: [
         TextField(
           controller: _searchController,
+          onTapOutside: (_) =>
+              FocusManager.instance.primaryFocus?.unfocus(),
           decoration: InputDecoration(
-            hintText: '지점장 이름 검색',
-            prefixIcon: const Icon(Icons.search),
+            hintText: '지점장 이름 또는 지점 검색',
+            hintStyle: forestringTextStyle.copyWith(
+              color: Colors.black38,
+              fontSize: 12,
+            ),
+            prefixIcon: const Icon(
+              Icons.search_rounded,
+              color: primaryColor,
+              size: 19,
+            ),
             suffixIcon: _searchController.text.isEmpty
                 ? null
                 : IconButton(
                     onPressed: _searchController.clear,
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                    ),
                   ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: Colors.white.withValues(alpha: 0.94),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 11,
+            ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: primaryColor.withValues(alpha: 0.07),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: primaryColor.withValues(alpha: 0.07),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: primaryColor.withValues(alpha: 0.22),
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 10),
-        DropdownButtonFormField<String>(
-          initialValue: _branchFilter,
-          decoration: _filterDecoration('지점'),
-          items: [
-            const DropdownMenuItem(
-              value: _allBranches,
-              child: Text('전체 지점'),
+        const SizedBox(height: 9),
+        Row(
+          children: [
+            PopupMenuButton<String>(
+              initialValue: _branchFilter,
+              onSelected: (value) =>
+                  setState(() => _branchFilter = value),
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: _allBranches,
+                  child: Text('전체 지점'),
+                ),
+                ..._branches.map(
+                  (branch) => PopupMenuItem(
+                    value: branch.id,
+                    child: Text(branch.name),
+                  ),
+                ),
+              ],
+              child: _ManagerFilterPill(
+                icon: Icons.storefront_outlined,
+                label: branchLabel,
+              ),
             ),
-            ..._branches.map(
-              (branch) => DropdownMenuItem(
-                value: branch.id,
-                child: Text(branch.name),
+            const SizedBox(width: 7),
+            PopupMenuButton<String>(
+              initialValue: _statusFilter,
+              onSelected: (value) =>
+                  setState(() => _statusFilter = value),
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: 'all',
+                  child: Text('전체 상태'),
+                ),
+                PopupMenuItem(
+                  value: 'active',
+                  child: Text('재직'),
+                ),
+                PopupMenuItem(
+                  value: 'departed',
+                  child: Text('퇴사'),
+                ),
+              ],
+              child: _ManagerFilterPill(
+                icon: Icons.badge_outlined,
+                label: statusLabel,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '$visibleCount명',
+              style: forestringTextStyle.copyWith(
+                color: primaryColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
-          onChanged: (value) {
-            if (value != null) setState(() => _branchFilter = value);
-          },
-        ),
-        const SizedBox(height: 10),
-        DropdownButtonFormField<String>(
-          initialValue: _statusFilter,
-          decoration: _filterDecoration('상태'),
-          items: const [
-            DropdownMenuItem(value: 'all', child: Text('전체')),
-            DropdownMenuItem(value: 'active', child: Text('재직')),
-            DropdownMenuItem(value: 'departed', child: Text('퇴사')),
-          ],
-          onChanged: (value) {
-            if (value != null) setState(() => _statusFilter = value);
-          },
         ),
       ],
     );
   }
 
-  InputDecoration _filterDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: Colors.white,
-      isDense: true,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: primaryColor.withValues(alpha: 0.18)),
+  Widget _managerCard(ManagedManager manager) {
+    final statusColor = manager.isActive
+        ? (manager.hasScheduledWithdrawal
+            ? const Color(0xffA87524)
+            : primaryColor)
+        : Colors.black45;
+    final surfaceColor = manager.isActive
+        ? const Color(0xffEEF1F8)
+        : const Color(0xffEFEFED);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.97),
+        borderRadius: BorderRadius.circular(17),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(17),
+          onTap: () => _openDetails(manager),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(13, 12, 10, 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(
+                color: primaryColor.withValues(alpha: 0.07),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: surfaceColor,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.badge_outlined,
+                    color: statusColor,
+                    size: 23,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              manager.displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: forestringTextStyle.copyWith(
+                                color: manager.isActive
+                                    ? Colors.black87
+                                    : Colors.black54,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          _statusBadge(manager),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.storefront_outlined,
+                            color: Colors.black38,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              manager.branchName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: forestringTextStyle.copyWith(
+                                color: Colors.black54,
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        manager.teachesLessons
+                            ? '담당 수강생 ${manager.assignedStudentCount}명 · '
+                                '${_workdaySummary(manager.workHours)}'
+                            : '수업 업무 미등록',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: forestringTextStyle.copyWith(
+                          color: manager.teachesLessons
+                              ? primaryColor
+                              : Colors.black38,
+                          fontSize: 10.5,
+                          fontWeight: manager.teachesLessons
+                              ? FontWeight.w500
+                              : FontWeight.w300,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.black38,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _managerCard(ManagedManager manager) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 9),
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: primaryColor.withValues(alpha: 0.16)),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _openDetails(manager),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: primaryColor.withValues(alpha: 0.09),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.badge_outlined,
-                  color: primaryColor,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            manager.displayName,
-                            overflow: TextOverflow.ellipsis,
-                            style: forestringTextStyle.copyWith(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        _statusBadge(manager),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      manager.branchName,
-                      overflow: TextOverflow.ellipsis,
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.black54,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      manager.teachesLessons
-                          ? '담당 수강생 ${manager.assignedStudentCount}명 · '
-                              '${_workdaySummary(manager.workHours)}'
-                          : '수업 미등록',
-                      overflow: TextOverflow.ellipsis,
-                      style: forestringTextStyle.copyWith(
-                        color: secondaryColor,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right, color: primaryColor),
-            ],
-          ),
+  Widget _emptyCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 36),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.07),
         ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.admin_panel_settings_outlined,
+            color: primaryColor.withValues(alpha: 0.35),
+            size: 30,
+          ),
+          const SizedBox(height: 9),
+          Text(
+            '조건에 맞는 지점장이 없습니다.',
+            style: forestringTextStyle.copyWith(
+              color: Colors.black45,
+              fontSize: 12,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1003,6 +1187,57 @@ class _ManagerManagementPageState extends State<ManagerManagementPage> {
       7 => '일',
       _ => '-',
     };
+  }
+}
+
+class _ManagerFilterPill extends StatelessWidget {
+  const _ManagerFilterPill({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 11),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.10),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: primaryColor, size: 15),
+          const SizedBox(width: 5),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 110),
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: forestringTextStyle.copyWith(
+                color: Colors.black87,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(width: 3),
+          const Icon(
+            Icons.expand_more_rounded,
+            color: Colors.black38,
+            size: 16,
+          ),
+        ],
+      ),
+    );
   }
 }
 
