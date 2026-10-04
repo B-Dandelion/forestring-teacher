@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/widgets/forestring_navigation.dart';
+import '../../../core/widgets/registration_form.dart';
 import '../../auth/domain/current_profile.dart';
 import '../../branches/data/branch_repository.dart';
 import '../../branches/domain/academy_branch.dart';
@@ -172,6 +173,15 @@ class _TeacherCreatePageState extends State<TeacherCreatePage> {
     }
   }
 
+  String get _selectedBranchName {
+    final id = _branchId;
+    if (id == null) return '지점 미선택';
+    for (final branch in _branches) {
+      if (branch.id == id) return branch.name;
+    }
+    return '지점 미선택';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!widget.profile.isMaster && !widget.profile.isManager) {
@@ -189,162 +199,193 @@ class _TeacherCreatePageState extends State<TeacherCreatePage> {
           ? const Center(child: CircularProgressIndicator())
           : Form(
               key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
+              child: Stack(
                 children: [
-                  if (_errorMessage != null) ...[
-                    _errorCard(_errorMessage!),
-                    const SizedBox(height: 12),
-                  ],
-                  if (_branches.isEmpty) ...[
-                    _emptyBranches(),
-                    const SizedBox(height: 16),
-                  ],
-                  _sectionTitle('계정 정보'),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    initialValue: _branchId,
-                    decoration: _decoration(
-                      widget.profile.isManager ? '지점 (변경 불가)' : '지점',
-                    ),
-                    items: _branches
-                        .map(
-                          (branch) => DropdownMenuItem(
-                            value: branch.id,
-                            child: Text(branch.name),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: _saving || widget.profile.isManager
-                        ? null
-                        : (value) => setState(() => _branchId = value),
-                    validator: (value) => value == null ? '지점을 선택해주세요.' : null,
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: _decoration('선생님 이름'),
-                    enabled: !_saving,
-                    maxLength: 100,
-                    textInputAction: TextInputAction.next,
-                    validator: (value) {
-                      final name = value?.trim() ?? '';
-                      if (name.isEmpty) {
-                        return '선생님 이름을 입력해주세요.';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: _pinController,
-                    decoration: _pinDecoration('PIN (4자리 숫자)'),
-                    enabled: !_saving,
-                    keyboardType: TextInputType.number,
-                    obscureText: !_showPin,
-                    maxLength: 4,
-                    textInputAction: TextInputAction.next,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(4),
+                  ListView(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 118),
+                    children: [
+                      RegistrationContextCard(
+                        icon: Icons.co_present_rounded,
+                        title: '새 선생님 계정',
+                        subtitle: _selectedBranchName,
+                        detail: '계정 정보와 기본 근무시간을 함께 등록합니다.',
+                        surfaceColor: const Color(0xffEEF1F8),
+                        iconColor: const Color(0xff5E6F9B),
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 10),
+                        _errorCard(_errorMessage!),
+                      ],
+                      if (_branches.isEmpty) ...[
+                        const SizedBox(height: 10),
+                        _emptyBranches(),
+                      ],
+                      const SizedBox(height: 20),
+                      const RegistrationSectionHeader(
+                        title: '계정 정보',
+                        subtitle: '지점, 이름, 로그인 PIN을 설정합니다.',
+                      ),
+                      const SizedBox(height: 9),
+                      RegistrationFormCard(
+                        child: Column(
+                          children: [
+                            DropdownButtonFormField<String>(
+                              initialValue: _branchId,
+                              decoration: registrationInputDecoration(
+                                widget.profile.isManager
+                                    ? '지점 (변경 불가)'
+                                    : '지점',
+                                icon: Icons.storefront_outlined,
+                              ),
+                              items: _branches
+                                  .map(
+                                    (branch) => DropdownMenuItem(
+                                      value: branch.id,
+                                      child: Text(branch.name),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: _saving || widget.profile.isManager
+                                  ? null
+                                  : (value) =>
+                                      setState(() => _branchId = value),
+                              validator: (value) =>
+                                  value == null ? '지점을 선택해주세요.' : null,
+                            ),
+                            const SizedBox(height: 10),
+                            TextFormField(
+                              controller: _nameController,
+                              decoration: registrationInputDecoration(
+                                '선생님 이름',
+                                icon: Icons.person_outline_rounded,
+                              ),
+                              enabled: !_saving,
+                              maxLength: 100,
+                              textInputAction: TextInputAction.next,
+                              validator: (value) {
+                                final name = value?.trim() ?? '';
+                                if (name.isEmpty) {
+                                  return '선생님 이름을 입력해주세요.';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 10),
+                            TextFormField(
+                              controller: _pinController,
+                              decoration: _pinDecoration(
+                                'PIN (4자리 숫자)',
+                              ),
+                              enabled: !_saving,
+                              keyboardType: TextInputType.number,
+                              obscureText: !_showPin,
+                              maxLength: 4,
+                              textInputAction: TextInputAction.next,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(4),
+                              ],
+                              validator: (value) => value == null ||
+                                      !RegExp(r'^\d{4}$').hasMatch(value)
+                                  ? '4자리 숫자를 입력해주세요.'
+                                  : null,
+                            ),
+                            const SizedBox(height: 10),
+                            TextFormField(
+                              controller: _pinConfirmController,
+                              decoration: _pinDecoration('PIN 확인'),
+                              enabled: !_saving,
+                              keyboardType: TextInputType.number,
+                              obscureText: !_showPin,
+                              maxLength: 4,
+                              textInputAction: TextInputAction.done,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(4),
+                              ],
+                              validator: (value) {
+                                if (value == null ||
+                                    !RegExp(r'^\d{4}$').hasMatch(value)) {
+                                  return 'PIN을 한 번 더 입력해주세요.';
+                                }
+                                if (value != _pinController.text) {
+                                  return 'PIN이 일치하지 않습니다.';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const RegistrationSectionHeader(
+                        title: '근무시간',
+                        subtitle: '요일별 근무시간을 15분 단위로 설정합니다.',
+                      ),
+                      const SizedBox(height: 9),
+                      TeacherWorkHoursEditor(
+                        values: _workHours,
+                        enabled: !_saving,
+                        onChanged: (values) {
+                          setState(() {
+                            _workHours = values;
+                            _errorMessage = null;
+                          });
+                        },
+                      ),
                     ],
-                    validator: (value) =>
-                        value == null || !RegExp(r'^\d{4}$').hasMatch(value)
-                            ? '4자리 숫자를 입력해주세요.'
-                            : null,
                   ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: _pinConfirmController,
-                    decoration: _pinDecoration('PIN 확인'),
-                    enabled: !_saving,
-                    keyboardType: TextInputType.number,
-                    obscureText: !_showPin,
-                    maxLength: 4,
-                    textInputAction: TextInputAction.done,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(4),
-                    ],
-                    validator: (value) {
-                      if (value == null || !RegExp(r'^\d{4}$').hasMatch(value)) {
-                        return 'PIN을 한 번 더 입력해주세요.';
-                      }
-                      if (value != _pinController.text) {
-                        return 'PIN이 일치하지 않습니다.';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  _sectionTitle('근무시간'),
-                  const SizedBox(height: 6),
-                  Text(
-                    '요일별 근무시간을 15분 단위로 등록합니다.',
-                    style: forestringTextStyle.copyWith(
-                      color: Colors.black54,
-                      fontSize: 13,
+                  if (_saving)
+                    const Positioned.fill(
+                      child: ColoredBox(
+                        color: Color(0x22000000),
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  TeacherWorkHoursEditor(
-                    values: _workHours,
-                    enabled: !_saving,
-                    onChanged: (values) {
-                      setState(() {
-                        _workHours = values;
-                        _errorMessage = null;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  FilledButton(
-                    onPressed:
-                        _saving || _branches.isEmpty ? null : _submit,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: Text(_saving ? '등록 중...' : '선생님 등록'),
-                  ),
-                  const SizedBox(height: 20),
                 ],
               ),
             ),
-    );
-  }
-
-  Widget _sectionTitle(String title) {
-    return Text(
-      title,
-      style: forestringTextStyle.copyWith(
-        color: primaryColor,
-        fontSize: 18,
-        fontWeight: FontWeight.w500,
-      ),
+      bottomNavigationBar: _loading
+          ? null
+          : RegistrationBottomAction(
+              label: '선생님 등록',
+              loading: _saving,
+              icon: Icons.person_add_alt_1_rounded,
+              onPressed:
+                  _saving || _branches.isEmpty ? null : _submit,
+            ),
     );
   }
 
   Widget _emptyBranches() {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: primaryColor.withValues(alpha: 0.16)),
+        color: Colors.orange.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(13),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Row(
         children: [
-          Text(
-            '등록 가능한 활성 지점이 없습니다.',
-            style: forestringTextStyle,
+          const Icon(
+            Icons.info_outline_rounded,
+            color: Color(0xffA87524),
+            size: 18,
           ),
-          const SizedBox(height: 8),
-          OutlinedButton(
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '등록 가능한 활성 지점이 없습니다.',
+              style: forestringTextStyle.copyWith(
+                color: const Color(0xffA87524),
+                fontSize: 10.5,
+              ),
+            ),
+          ),
+          TextButton(
             onPressed: _loadBranches,
-            child: const Text('지점 다시 불러오기'),
+            child: const Text('다시 불러오기'),
           ),
         ],
       ),
@@ -353,38 +394,53 @@ class _TeacherCreatePageState extends State<TeacherCreatePage> {
 
   Widget _errorCard(String message) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 10,
+      ),
       decoration: BoxDecoration(
-        color: Colors.red.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(10),
+        color: Colors.redAccent.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(13),
       ),
-      child: Text(
-        message,
-        style: forestringTextStyle.copyWith(color: Colors.redAccent),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            color: Colors.redAccent,
+            size: 17,
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              message,
+              style: forestringTextStyle.copyWith(
+                color: Colors.redAccent,
+                fontSize: 10.5,
+              ),
+            ),
+          ),
+        ],
       ),
-    );
-  }
-
-  InputDecoration _decoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      counterText: '',
-      border: const OutlineInputBorder(),
-      isDense: true,
     );
   }
 
   InputDecoration _pinDecoration(String label) {
-    return _decoration(label).copyWith(
+    return registrationInputDecoration(
+      label,
+      icon: Icons.lock_outline_rounded,
+    ).copyWith(
       suffixIcon: IconButton(
         tooltip: _showPin ? 'PIN 숨기기' : 'PIN 보기',
         onPressed: _saving
             ? null
             : () => setState(() => _showPin = !_showPin),
         icon: Icon(
-          _showPin ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+          _showPin
+              ? Icons.visibility_off_outlined
+              : Icons.visibility_outlined,
         ),
       ),
     );
   }
+
 }
