@@ -741,7 +741,7 @@ class _StaffWorkReportPageState extends State<StaffWorkReportPage> {
   }
 
   Widget _bar(double ratio, Color color) {
-    final safeRatio = ratio.clamp(0.0, 1.0);
+    final safeRatio = ratio.clamp(0.0, 1.0).toDouble();
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(999),
