@@ -16,16 +16,19 @@ class BranchManagementPage extends StatefulWidget {
   final CurrentProfile profile;
 
   @override
-  State<BranchManagementPage> createState() => _BranchManagementPageState();
+  State<BranchManagementPage> createState() =>
+      _BranchManagementPageState();
 }
 
 class _BranchManagementPageState extends State<BranchManagementPage> {
   final _repository = BranchRepository();
 
   List<AcademyBranch> _branches = const [];
-
   bool _isLoading = true;
   String? _errorMessage;
+
+  int get _activeCount =>
+      _branches.where((branch) => branch.isActive).length;
 
   @override
   void initState() {
@@ -42,18 +45,20 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
     try {
       final branches = await _repository.fetchBranches();
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
+
+      branches.sort((a, b) {
+        if (a.isActive != b.isActive) {
+          return a.isActive ? -1 : 1;
+        }
+        return a.name.compareTo(b.name);
+      });
 
       setState(() {
         _branches = branches;
       });
     } on BranchFailure catch (error) {
-      if (!mounted) {
-        return;
-      }
-
+      if (!mounted) return;
       setState(() {
         _errorMessage = error.message;
       });
@@ -87,10 +92,14 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
             autofocus: true,
             textInputAction: TextInputAction.done,
             style: forestringTextStyle,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: '지점명',
               hintText: '예: 포레스트링 키즈',
-              border: OutlineInputBorder(),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
             onSubmitted: (value) {
               Navigator.of(dialogContext).pop(value);
@@ -106,17 +115,15 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
                 ),
               ),
             ),
-            TextButton(
+            FilledButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(controller.text);
               },
-              child: Text(
-                '추가',
-                style: forestringTextStyle.copyWith(
-                  color: primaryColor,
-                  fontWeight: FontWeight.w500,
-                ),
+              style: FilledButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
               ),
+              child: const Text('추가'),
             ),
           ],
         );
@@ -125,44 +132,65 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
 
     controller.dispose();
 
-    if (name == null || name.trim().isEmpty) {
-      return;
-    }
+    if (name == null || name.trim().isEmpty) return;
 
     try {
       await _repository.createBranch(name: name);
       await _load();
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('지점을 추가했습니다.'),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } on BranchFailure catch (error) {
-      if (!mounted) {
-        return;
-      }
-
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
+        SnackBar(
+          content: Text(error.message),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
+  }
+
+  Future<void> _openDetail(AcademyBranch branch) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => BranchDetailPage(branch: branch),
+      ),
+    );
+
+    if (mounted) await _load();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: neutralIvory,
-      appBar: const ForestringAppBar(title: '지점 관리'),
+      appBar: ForestringAppBar(
+        title: '지점 관리',
+        actions: [
+          IconButton(
+            tooltip: '새로고침',
+            onPressed: _isLoading ? null : _load,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
-        onPressed: _showCreateDialog,
-        icon: const Icon(Icons.add),
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        onPressed: _isLoading ? null : _showCreateDialog,
+        icon: const Icon(Icons.add_rounded),
         label: Text(
           '지점 추가',
           style: forestringTextStyle.copyWith(
@@ -172,127 +200,283 @@ class _BranchManagementPageState extends State<BranchManagementPage> {
         ),
       ),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(22, 22, 18, 10),
-              child: Text(
-                '지점 관리',
-                style: forestringTextStyle.copyWith(
-                  color: primaryColor,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w500,
-                ),
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 100),
+            children: [
+              _summaryCard(),
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 10),
+                _errorCard(),
+              ],
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Text(
+                    '등록 지점',
+                    style: forestringTextStyle.copyWith(
+                      color: Colors.black87,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${_branches.length}곳',
+                    style: forestringTextStyle.copyWith(
+                      color: primaryColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            Expanded(child: _buildBody()),
-          ],
+              const SizedBox(height: 10),
+              if (_isLoading && _branches.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 72),
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (_branches.isEmpty)
+                _emptyCard()
+              else
+                ..._branches.map(_branchCard),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+  Widget _summaryCard() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.97),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.07),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: const BoxDecoration(
+              color: Color(0xffEAF3E9),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.storefront_outlined,
+              color: primaryColor,
+              size: 23,
+            ),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '지점 운영 현황',
+                  style: forestringTextStyle.copyWith(
+                    color: Colors.black87,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  _isLoading
+                      ? '지점 정보를 불러오는 중입니다.'
+                      : '운영 $_activeCount곳 · 비활성 ${_branches.length - _activeCount}곳',
+                  style: forestringTextStyle.copyWith(
+                    color: Colors.black45,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: forestringTextStyle,
+  Widget _branchCard(AcademyBranch branch) {
+    final active = branch.isActive;
+    final statusColor = active ? primaryColor : Colors.black45;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.97),
+        borderRadius: BorderRadius.circular(17),
+        child: InkWell(
+          onTap: () => _openDetail(branch),
+          borderRadius: BorderRadius.circular(17),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(13, 12, 10, 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(
+                color: primaryColor.withValues(alpha: 0.07),
               ),
-              const SizedBox(height: 16),
-              OutlinedButton(
-                onPressed: _load,
-                child: const Text('다시 시도'),
-              ),
-            ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: active
+                        ? const Color(0xffEAF3E9)
+                        : const Color(0xffEFEFED),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.storefront_outlined,
+                    color: statusColor,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        branch.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: forestringTextStyle.copyWith(
+                          color: active
+                              ? Colors.black87
+                              : Colors.black54,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      _statusBadge(
+                        active ? '운영 중' : '비활성',
+                        statusColor,
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.black38,
+                ),
+              ],
+            ),
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    if (_branches.isEmpty) {
-      return Center(
-        child: Text(
-          '등록된 지점이 없습니다.',
-          style: forestringTextStyle,
+  Widget _statusBadge(String label, Color color) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 8,
+          vertical: 3,
         ),
-      );
-    }
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          style: forestringTextStyle.copyWith(
+            color: color,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(18, 6, 18, 100),
-        itemCount: _branches.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (context, index) {
-          final branch = _branches[index];
+  Widget _emptyCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 36),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(
+          color: primaryColor.withValues(alpha: 0.07),
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.storefront_outlined,
+            color: primaryColor.withValues(alpha: 0.35),
+            size: 30,
+          ),
+          const SizedBox(height: 9),
+          Text(
+            '등록된 지점이 없습니다.',
+            style: forestringTextStyle.copyWith(
+              color: Colors.black45,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: primaryColor.withValues(alpha: 0.28),
+  Widget _errorCard() {
+    return InkWell(
+      onTap: _load,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 13,
+          vertical: 11,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.redAccent.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.info_outline_rounded,
+              color: Colors.redAccent,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _errorMessage!,
+                style: forestringTextStyle.copyWith(
+                  color: Colors.redAccent,
+                  fontSize: 11,
+                ),
               ),
             ),
-            child: ListTile(
-              minTileHeight: 72,
-              leading: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: primaryColor.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.storefront_outlined,
-                  color: primaryColor,
-                ),
+            Text(
+              '다시 시도',
+              style: forestringTextStyle.copyWith(
+                color: Colors.redAccent,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
               ),
-              title: Text(
-                branch.name,
-                style: forestringTextStyle.copyWith(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              subtitle: Text(
-                branch.isActive ? '운영 중' : '비활성',
-                style: forestringTextStyle.copyWith(
-                  fontSize: 13,
-                  color: branch.isActive ? secondaryColor : Colors.black45,
-                ),
-              ),
-              trailing: const Icon(
-                Icons.chevron_right,
-                color: primaryColor,
-              ),
-              onTap: () async {
-                await Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => BranchDetailPage(branch: branch),
-                  ),
-                );
-
-                if (mounted) {
-                  await _load();
-                }
-              },
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
