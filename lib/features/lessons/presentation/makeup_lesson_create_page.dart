@@ -908,7 +908,7 @@ class _FixedField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      minHeight: 50,
+      constraints: const BoxConstraints(minHeight: 50),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: neutralIvory.withValues(alpha: 0.72),
