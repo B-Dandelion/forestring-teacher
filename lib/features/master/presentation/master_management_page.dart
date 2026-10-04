@@ -444,7 +444,7 @@ class _MasterManagementPageState extends State<MasterManagementPage> {
               size: 18,
             ),
           ),
-          const Spacer(),
+          const SizedBox(height: 10),
           Text(
             value,
             maxLines: 1,
