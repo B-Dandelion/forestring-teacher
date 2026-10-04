@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/forestring_theme.dart';
 import '../../data/lesson_repository.dart';
 import '../../domain/lesson.dart';
+import '../lesson_visual_style.dart';
 
 Future<bool> showLessonActivityDetailSheet({
   required BuildContext context,
@@ -291,12 +292,12 @@ Widget _activityTimelineItem(
 
 Color _eventColor(LessonActivityRecord event) {
   return switch (event.eventType) {
-    'LESSON_CANCELED' => Colors.redAccent,
-    'LESSON_MANUALLY_UPDATED' => const Color(0xffA87524),
+    'LESSON_CANCELED' => canceledLessonColor,
+    'LESSON_MANUALLY_UPDATED' => staffChangedLessonColor,
     'LESSON_RIGHT_BOOKED' =>
-      _isRebooking(event) ? const Color(0xff4B7892) : primaryColor,
-    'MAKEUP_LESSON_CREATED' => const Color(0xffB36A2E),
-    _ => primaryColor,
+      _isRebooking(event) ? studentRebookedLessonColor : regularLessonColor,
+    'MAKEUP_LESSON_CREATED' => makeupLessonColor,
+    _ => regularLessonColor,
   };
 }
 
