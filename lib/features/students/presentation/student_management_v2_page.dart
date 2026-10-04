@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/widgets/forestring_navigation.dart';
+import '../../../core/widgets/management_filters.dart';
 import '../../auth/domain/current_profile.dart';
 import '../../branches/data/branch_repository.dart';
 import '../../branches/domain/academy_branch.dart';
@@ -337,66 +338,38 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
   }
 
   Widget _buildFilters(int visibleCount) {
+    final filters = <Widget>[
+      if (widget.profile.isMaster) _branchFilterPill(),
+      _statusFilterPill(),
+      _typeFilterPill(),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.94),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: primaryColor.withValues(alpha: 0.07),
-            ),
-          ),
-          child: TextField(
-            controller: _searchController,
-            textInputAction: TextInputAction.search,
-            onTapOutside: (_) =>
-                FocusManager.instance.primaryFocus?.unfocus(),
-            decoration: InputDecoration(
-              hintText: '수강생 이름 또는 선생님 검색',
-              hintStyle: forestringTextStyle.copyWith(
-                color: Colors.black38,
-                fontSize: 13,
-              ),
-              prefixIcon: const Icon(
-                Icons.search_rounded,
-                color: primaryColor,
-                size: 21,
-              ),
-              suffixIcon: _searchController.text.isEmpty
-                  ? null
-                  : IconButton(
-                      tooltip: '검색어 지우기',
-                      onPressed: _searchController.clear,
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        size: 19,
-                      ),
-                    ),
-              filled: true,
-              fillColor: Colors.transparent,
-              isDense: true,
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 13),
-              border: InputBorder.none,
-            ),
-          ),
+        ManagementSearchField(
+          controller: _searchController,
+          hintText: '수강생 이름 또는 선생님 검색',
         ),
-        if (widget.profile.isMaster) ...[
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _branchFilterPill(),
-          ),
-        ],
         const SizedBox(height: 8),
         Row(
           children: [
-            _statusFilterPill(),
-            const SizedBox(width: 7),
-            _typeFilterPill(),
-            const Spacer(),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (var index = 0;
+                        index < filters.length;
+                        index++) ...[
+                      if (index > 0) const SizedBox(width: 7),
+                      filters[index],
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
             Text(
               '$visibleCount명',
               style: forestringTextStyle.copyWith(
@@ -477,7 +450,7 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
             child: Text(branch.name),
           ),
       ],
-      child: _FilterPillSurface(
+      child: ManagementFilterPillSurface(
         label: _selectedBranchLabel(),
         icon: Icons.location_on_outlined,
       ),
@@ -509,7 +482,7 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
             child: Text(item.$2),
           ),
       ],
-      child: _FilterPillSurface(label: label),
+      child: ManagementFilterPillSurface(label: label),
     );
   }
 
@@ -901,54 +874,6 @@ class _StudentMemoSheetState extends State<_StudentMemoSheet> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _FilterPillSurface extends StatelessWidget {
-  const _FilterPillSurface({
-    required this.label,
-    this.icon,
-  });
-
-  final String label;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 34,
-      padding: const EdgeInsets.symmetric(horizontal: 11),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: primaryColor.withValues(alpha: 0.10),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 15, color: primaryColor),
-            const SizedBox(width: 5),
-          ],
-          Text(
-            label,
-            style: forestringTextStyle.copyWith(
-              color: Colors.black.withValues(alpha: 0.72),
-              fontSize: 11.5,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 4),
-          const Icon(
-            Icons.expand_more_rounded,
-            size: 17,
-            color: primaryColor,
-          ),
-        ],
       ),
     );
   }
