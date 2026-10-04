@@ -215,9 +215,9 @@ class _TeacherManagementPageState extends State<TeacherManagementPage> {
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.fromLTRB(
-              14,
-              14,
-              14,
+              10,
+              8,
+              10,
               widget.profile.isMaster || widget.profile.isManager ? 100 : 28,
             ),
             children: [
