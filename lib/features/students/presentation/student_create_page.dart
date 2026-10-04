@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/widgets/forestring_navigation.dart';
+import '../../../core/widgets/registration_form.dart';
 import '../../auth/domain/current_profile.dart';
 import '../../branches/data/branch_repository.dart';
 import '../../branches/domain/academy_branch.dart';
@@ -284,6 +285,24 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
     }
   }
 
+  String get _selectedBranchName {
+    final id = _branchId;
+    if (id == null) return '지점 미선택';
+    for (final branch in _branches) {
+      if (branch.id == id) return branch.name;
+    }
+    return '지점 미선택';
+  }
+
+  String get _selectedSemesterLabel {
+    final id = _semesterId;
+    if (id == null) return '시작 학기 미선택';
+    for (final semester in _semesters) {
+      if (semester.id == id) return semester.label;
+    }
+    return '시작 학기 미선택';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -293,250 +312,470 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
           ? const Center(child: CircularProgressIndicator())
           : Form(
               key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
+              child: Stack(
                 children: [
-                  if (_errorMessage != null) ...[
-                    Text(
-                      _errorMessage!,
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.redAccent,
+                  ListView(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 118),
+                    children: [
+                      RegistrationContextCard(
+                        icon: _isRegular
+                            ? Icons.event_repeat_rounded
+                            : Icons.touch_app_outlined,
+                        title: _studentType.label,
+                        subtitle:
+                            '$_selectedBranchName · $_selectedSemesterLabel',
+                        detail: _isRegular
+                            ? '계정과 첫 학기 정규 일정을 함께 등록합니다.'
+                            : '계정과 첫 학기 자율 예약 수업권을 함께 등록합니다.',
+                        surfaceColor: _isRegular
+                            ? const Color(0xffEAF3E9)
+                            : const Color(0xffEEF4F7),
+                        iconColor: _isRegular
+                            ? primaryColor
+                            : const Color(0xff4B7892),
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 10),
+                        _errorCard(_errorMessage!),
+                      ],
+                      const SizedBox(height: 20),
+                      const RegistrationSectionHeader(
+                        title: '계정 정보',
+                        subtitle: '이름과 로그인 PIN을 설정합니다.',
+                      ),
+                      const SizedBox(height: 9),
+                      RegistrationFormCard(
+                        child: Column(
+                          children: [
+                            DropdownButtonFormField<String>(
+                              initialValue: _branchId,
+                              decoration: registrationInputDecoration(
+                                widget.profile.isManager
+                                    ? '지점 (변경 불가)'
+                                    : '지점',
+                                icon: Icons.storefront_outlined,
+                              ),
+                              items: _branches
+                                  .map(
+                                    (branch) => DropdownMenuItem(
+                                      value: branch.id,
+                                      child: Text(branch.name),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: _saving ||
+                                      widget.profile.isManager ||
+                                      _createdStudentId != null
+                                  ? null
+                                  : (value) {
+                                      if (value != null &&
+                                          value != _branchId) {
+                                        setState(() => _branchId = value);
+                                        _loadBranchData(value);
+                                      }
+                                    },
+                            ),
+                            const SizedBox(height: 10),
+                            TextFormField(
+                              controller: _nameController,
+                              decoration: registrationInputDecoration(
+                                '학생 이름',
+                                icon: Icons.person_outline_rounded,
+                              ),
+                              enabled:
+                                  !_saving && _createdStudentId == null,
+                              textInputAction: TextInputAction.next,
+                              validator: (value) =>
+                                  value == null || value.trim().isEmpty
+                                      ? '학생 이름을 입력해주세요.'
+                                      : null,
+                            ),
+                            const SizedBox(height: 10),
+                            TextFormField(
+                              controller: _pinController,
+                              decoration: registrationInputDecoration(
+                                'PIN (4자리 숫자)',
+                                icon: Icons.lock_outline_rounded,
+                              ),
+                              enabled:
+                                  !_saving && _createdStudentId == null,
+                              keyboardType: TextInputType.number,
+                              obscureText: true,
+                              maxLength: 4,
+                              textInputAction: TextInputAction.done,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(4),
+                              ],
+                              validator: (value) => value == null ||
+                                      !RegExp(r'^\d{4}$').hasMatch(value)
+                                  ? '4자리 숫자를 입력해주세요.'
+                                  : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const RegistrationSectionHeader(
+                        title: '수강 설정',
+                        subtitle: '수강 형태와 담당 선생님, 시작 학기를 선택합니다.',
+                      ),
+                      const SizedBox(height: 9),
+                      RegistrationFormCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              '수강 형태',
+                              style: forestringTextStyle.copyWith(
+                                color: Colors.black54,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _typeChoice(
+                                    type: _StudentCreateType.regular,
+                                    icon: Icons.event_repeat_rounded,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _typeChoice(
+                                    type: _StudentCreateType.flex,
+                                    icon: Icons.touch_app_outlined,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<String>(
+                              initialValue: _teacherId,
+                              decoration: registrationInputDecoration(
+                                '담당 선생님',
+                                icon: Icons.co_present_outlined,
+                              ),
+                              items: _teachers
+                                  .map(
+                                    (teacher) => DropdownMenuItem(
+                                      value: teacher.id,
+                                      child: Text(teacher.displayName),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: _saving
+                                  ? null
+                                  : (value) =>
+                                      setState(() => _teacherId = value),
+                            ),
+                            const SizedBox(height: 10),
+                            DropdownButtonFormField<String>(
+                              initialValue: _semesterId,
+                              decoration: registrationInputDecoration(
+                                '시작 학기',
+                                icon: Icons.calendar_month_outlined,
+                              ),
+                              items: _semesters
+                                  .map(
+                                    (semester) => DropdownMenuItem(
+                                      value: semester.id,
+                                      child: Text(semester.label),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: _saving
+                                  ? null
+                                  : (value) =>
+                                      setState(() => _semesterId = value),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      if (_isRegular) ...[
+                        const RegistrationSectionHeader(
+                          title: '정규 수업',
+                          subtitle: '요일, 시작 시간, 수업 길이를 설정합니다.',
+                        ),
+                        const SizedBox(height: 9),
+                        ...List.generate(
+                          _schedules.length,
+                          (index) => _scheduleCard(index),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _saving
+                              ? null
+                              : () => setState(
+                                    () => _schedules.add(_ScheduleDraft()),
+                                  ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: primaryColor,
+                            backgroundColor:
+                                primaryColor.withValues(alpha: 0.035),
+                            side: BorderSide(
+                              color: primaryColor.withValues(alpha: 0.09),
+                            ),
+                            minimumSize: const Size.fromHeight(46),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          icon: const Icon(Icons.add_rounded),
+                          label: const Text('정규 수업 추가'),
+                        ),
+                      ] else ...[
+                        const RegistrationSectionHeader(
+                          title: '자율 예약',
+                          subtitle: '첫 학기에 사용할 수업권을 설정합니다.',
+                        ),
+                        const SizedBox(height: 9),
+                        RegistrationFormCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _infoCard(
+                                '정규 시간표 없이 발급된 수업권으로 담당 선생님의 빈 시간에 직접 예약합니다.',
+                              ),
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                controller: _rightCountController,
+                                decoration: registrationInputDecoration(
+                                  '이번 학기 수업권 횟수',
+                                  icon: Icons.confirmation_number_outlined,
+                                ),
+                                enabled: !_saving,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                validator: (value) {
+                                  if (_isRegular) return null;
+                                  final count =
+                                      int.tryParse(value ?? '');
+                                  return count == null || count <= 0
+                                      ? '수업권 횟수를 1회 이상 입력해주세요.'
+                                      : null;
+                                },
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                '수업 길이',
+                                style: forestringTextStyle.copyWith(
+                                  color: Colors.black54,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 7,
+                                runSpacing: 7,
+                                children: [
+                                  for (final minutes
+                                      in const [15, 30, 45, 60, 75, 90])
+                                    ChoiceChip(
+                                      label: Text('$minutes분'),
+                                      selected:
+                                          _flexDurationMinutes == minutes,
+                                      showCheckmark: false,
+                                      onSelected: _saving
+                                          ? null
+                                          : (_) => setState(
+                                                () =>
+                                                    _flexDurationMinutes =
+                                                        minutes,
+                                              ),
+                                      selectedColor: primaryColor
+                                          .withValues(alpha: 0.11),
+                                      backgroundColor: primaryColor
+                                          .withValues(alpha: 0.035),
+                                      side: BorderSide(
+                                        color:
+                                            _flexDurationMinutes == minutes
+                                                ? primaryColor.withValues(
+                                                    alpha: 0.28,
+                                                  )
+                                                : primaryColor.withValues(
+                                                    alpha: 0.07,
+                                                  ),
+                                      ),
+                                      labelStyle:
+                                          forestringTextStyle.copyWith(
+                                        color:
+                                            _flexDurationMinutes == minutes
+                                                ? primaryColor
+                                                : Colors.black54,
+                                        fontSize: 11.5,
+                                        fontWeight:
+                                            _flexDurationMinutes == minutes
+                                                ? FontWeight.w500
+                                                : FontWeight.w300,
+                                      ),
+                                      visualDensity:
+                                          const VisualDensity(vertical: -1),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (_saving)
+                    const Positioned.fill(
+                      child: ColoredBox(
+                        color: Color(0x22000000),
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                  ],
-                  _sectionTitle('계정 정보'),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    initialValue: _branchId,
-                    decoration: _decoration('지점'),
-                    items: _branches
-                        .map(
-                          (branch) => DropdownMenuItem(
-                            value: branch.id,
-                            child: Text(branch.name),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: _saving ||
-                            widget.profile.isManager ||
-                            _createdStudentId != null
-                        ? null
-                        : (value) {
-                            if (value != null && value != _branchId) {
-                              setState(() => _branchId = value);
-                              _loadBranchData(value);
-                            }
-                          },
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<_StudentCreateType>(
-                    initialValue: _studentType,
-                    decoration: _decoration('수강 형태'),
-                    items: _StudentCreateType.values
-                        .map(
-                          (type) => DropdownMenuItem(
-                            value: type,
-                            child: Text(type.label),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: _saving || _createdStudentId != null
-                        ? null
-                        : (value) {
-                            if (value != null) {
-                              setState(() {
-                                _studentType = value;
-                                _errorMessage = null;
-                              });
-                            }
-                          },
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: _decoration('학생 이름'),
-                    enabled: !_saving && _createdStudentId == null,
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? '학생 이름을 입력해주세요.'
-                        : null,
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: _pinController,
-                    decoration: _decoration('PIN (4자리 숫자)'),
-                    enabled: !_saving && _createdStudentId == null,
-                    keyboardType: TextInputType.number,
-                    obscureText: true,
-                    maxLength: 4,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
-                    validator: (value) =>
-                        value == null || !RegExp(r'^\d{4}$').hasMatch(value)
-                            ? '4자리 숫자를 입력해주세요.'
-                            : null,
-                  ),
-                  const SizedBox(height: 18),
-                  _sectionTitle(_isRegular ? '정규 수업 설정' : '자율 예약 설정'),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    initialValue: _teacherId,
-                    decoration: _decoration('담당 선생님'),
-                    items: _teachers
-                        .map(
-                          (teacher) => DropdownMenuItem(
-                            value: teacher.id,
-                            child: Text(teacher.displayName),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: _saving
-                        ? null
-                        : (value) => setState(() => _teacherId = value),
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    initialValue: _semesterId,
-                    decoration: _decoration('시작 학기'),
-                    items: _semesters
-                        .map(
-                          (semester) => DropdownMenuItem(
-                            value: semester.id,
-                            child: Text(semester.label),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: _saving
-                        ? null
-                        : (value) => setState(() => _semesterId = value),
-                  ),
-                  if (_isRegular) ...[
-                    const SizedBox(height: 14),
-                    ...List.generate(
-                      _schedules.length,
-                      (index) => _scheduleCard(index),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: _saving
-                          ? null
-                          : () => setState(
-                                () => _schedules.add(_ScheduleDraft()),
-                              ),
-                      icon: const Icon(Icons.add),
-                      label: const Text('정규 수업 추가'),
-                    ),
-                  ] else ...[
-                    const SizedBox(height: 14),
-                    _infoCard(
-                      '자율 예약 학생은 정규 시간표 없이, 발급된 수강권으로 담당 선생님의 빈 시간에 직접 예약합니다.',
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _rightCountController,
-                      decoration: _decoration('이번 학기 수강권 횟수'),
-                      enabled: !_saving,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      validator: (value) {
-                        if (_isRegular) return null;
-                        final count = int.tryParse(value ?? '');
-                        return count == null || count <= 0
-                            ? '수강권 횟수를 1회 이상 입력해주세요.'
-                            : null;
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<int>(
-                      initialValue: _flexDurationMinutes,
-                      decoration: _decoration('수업 길이'),
-                      items: const [
-                        DropdownMenuItem(value: 15, child: Text('15분')),
-                        DropdownMenuItem(value: 30, child: Text('30분')),
-                        DropdownMenuItem(value: 45, child: Text('45분')),
-                        DropdownMenuItem(value: 60, child: Text('60분')),
-                        DropdownMenuItem(value: 75, child: Text('75분')),
-                        DropdownMenuItem(value: 90, child: Text('90분')),
-                      ],
-                      onChanged: _saving
-                          ? null
-                          : (value) {
-                              if (value != null) {
-                                setState(() => _flexDurationMinutes = value);
-                              }
-                            },
-                    ),
-                  ],
-                  const SizedBox(height: 18),
-                  FilledButton(
-                    onPressed: _saving ? null : _submit,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: Text(
-                      _saving
-                          ? '등록 중...'
-                          : _createdStudentId == null
-                              ? '${_studentType.label} 등록'
-                              : '${_studentType.label} 설정 다시 시도',
-                    ),
-                  ),
-                  const SizedBox(height: 20),
                 ],
               ),
             ),
+      bottomNavigationBar: _loading
+          ? null
+          : RegistrationBottomAction(
+              label: _createdStudentId == null
+                  ? '${_studentType.label} 등록'
+                  : '${_studentType.label} 설정 다시 시도',
+              loading: _saving,
+              icon: Icons.person_add_alt_1_rounded,
+              onPressed: _saving ? null : _submit,
+            ),
+    );
+  }
+
+  Widget _typeChoice({
+    required _StudentCreateType type,
+    required IconData icon,
+  }) {
+    final selected = _studentType == type;
+    final enabled = !_saving && _createdStudentId == null;
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: !enabled
+            ? null
+            : () {
+                setState(() {
+                  _studentType = type;
+                  _errorMessage = null;
+                });
+              },
+        borderRadius: BorderRadius.circular(14),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 11,
+          ),
+          decoration: BoxDecoration(
+            color: selected
+                ? primaryColor.withValues(alpha: 0.08)
+                : neutralIvory.withValues(alpha: 0.70),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected
+                  ? primaryColor.withValues(alpha: 0.24)
+                  : primaryColor.withValues(alpha: 0.06),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 17,
+                color: selected ? primaryColor : Colors.black38,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  type.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: forestringTextStyle.copyWith(
+                    color: selected ? primaryColor : Colors.black54,
+                    fontSize: 11.5,
+                    fontWeight:
+                        selected ? FontWeight.w500 : FontWeight.w300,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   Widget _scheduleCard(int index) {
     final schedule = _schedules[index];
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: primaryColor.withValues(alpha: 0.18)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: RegistrationFormCard(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: schedule.weekday,
-                    decoration: _decoration('요일'),
-                    items: const [
-                      DropdownMenuItem(value: 1, child: Text('월요일')),
-                      DropdownMenuItem(value: 2, child: Text('화요일')),
-                      DropdownMenuItem(value: 3, child: Text('수요일')),
-                      DropdownMenuItem(value: 4, child: Text('목요일')),
-                      DropdownMenuItem(value: 5, child: Text('금요일')),
-                      DropdownMenuItem(value: 6, child: Text('토요일')),
-                      DropdownMenuItem(value: 7, child: Text('일요일')),
-                    ],
-                    onChanged: (value) {
+                  child: Text(
+                    '정규 수업 ${index + 1}',
+                    style: forestringTextStyle.copyWith(
+                      color: Colors.black87,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                if (_schedules.length > 1)
+                  IconButton(
+                    tooltip: '삭제',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: _saving
+                        ? null
+                        : () =>
+                            setState(() => _schedules.removeAt(index)),
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.black38,
+                      size: 20,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<int>(
+              initialValue: schedule.weekday,
+              decoration: registrationInputDecoration(
+                '요일',
+                icon: Icons.today_outlined,
+              ),
+              items: const [
+                DropdownMenuItem(value: 1, child: Text('월요일')),
+                DropdownMenuItem(value: 2, child: Text('화요일')),
+                DropdownMenuItem(value: 3, child: Text('수요일')),
+                DropdownMenuItem(value: 4, child: Text('목요일')),
+                DropdownMenuItem(value: 5, child: Text('금요일')),
+                DropdownMenuItem(value: 6, child: Text('토요일')),
+                DropdownMenuItem(value: 7, child: Text('일요일')),
+              ],
+              onChanged: _saving
+                  ? null
+                  : (value) {
                       if (value != null) {
                         setState(() => schedule.weekday = value);
                       }
                     },
-                  ),
-                ),
-                if (_schedules.length > 1) ...[
-                  const SizedBox(width: 4),
-                  IconButton(
-                    tooltip: '삭제',
-                    onPressed: _saving
-                        ? null
-                        : () => setState(() => _schedules.removeAt(index)),
-                    icon: const Icon(Icons.delete_outline),
-                  ),
-                ],
-              ],
             ),
             const SizedBox(height: 10),
             Row(
@@ -554,18 +793,33 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
                               setState(() => schedule.time = picked);
                             }
                           },
-                    icon: const Icon(Icons.access_time),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: primaryColor,
+                      backgroundColor:
+                          primaryColor.withValues(alpha: 0.035),
+                      side: BorderSide(
+                        color: primaryColor.withValues(alpha: 0.08),
+                      ),
+                      minimumSize: const Size.fromHeight(49),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.schedule_outlined,
+                      size: 18,
+                    ),
                     label: Text(
                       '${schedule.time.hour.toString().padLeft(2, '0')}:'
                       '${schedule.time.minute.toString().padLeft(2, '0')}',
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     initialValue: schedule.durationMinutes,
-                    decoration: _decoration('수업 길이'),
+                    decoration: registrationInputDecoration('수업 길이'),
                     items: const [
                       DropdownMenuItem(value: 15, child: Text('15분')),
                       DropdownMenuItem(value: 30, child: Text('30분')),
@@ -574,11 +828,15 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
                       DropdownMenuItem(value: 75, child: Text('75분')),
                       DropdownMenuItem(value: 90, child: Text('90분')),
                     ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() => schedule.durationMinutes = value);
-                      }
-                    },
+                    onChanged: _saving
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              setState(
+                                () => schedule.durationMinutes = value,
+                              );
+                            }
+                          },
                   ),
                 ),
               ],
@@ -589,24 +847,12 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
     );
   }
 
-  Widget _sectionTitle(String title) {
-    return Text(
-      title,
-      style: forestringTextStyle.copyWith(
-        color: primaryColor,
-        fontSize: 18,
-        fontWeight: FontWeight.w500,
-      ),
-    );
-  }
-
   Widget _infoCard(String message) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
       decoration: BoxDecoration(
-        color: primaryColor.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: primaryColor.withValues(alpha: 0.16)),
+        color: primaryColor.withValues(alpha: 0.045),
+        borderRadius: BorderRadius.circular(13),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -614,16 +860,16 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
           const Icon(
             Icons.info_outline_rounded,
             color: primaryColor,
-            size: 20,
+            size: 18,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 7),
           Expanded(
             child: Text(
               message,
               style: forestringTextStyle.copyWith(
-                color: Colors.black87,
-                fontSize: 13,
-                height: 1.45,
+                color: Colors.black54,
+                fontSize: 10.5,
+                height: 1.4,
               ),
             ),
           ),
@@ -632,14 +878,38 @@ class _StudentCreatePageState extends State<StudentCreatePage> {
     );
   }
 
-  InputDecoration _decoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      counterText: '',
-      border: const OutlineInputBorder(),
-      isDense: true,
+  Widget _errorCard(String message) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.redAccent.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            color: Colors.redAccent,
+            size: 17,
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              message,
+              style: forestringTextStyle.copyWith(
+                color: Colors.redAccent,
+                fontSize: 10.5,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
+
 }
 
 enum _StudentCreateType {
