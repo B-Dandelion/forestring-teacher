@@ -322,7 +322,10 @@ class MasterSchedulePage extends StatelessWidget {
         },
       ),
       body: embeddedInShell
-          ? _ManagerScheduleBody(controller: controller)
+          ? _ManagerScheduleBody(
+              controller: controller,
+              profile: profile,
+            )
           : SafeArea(
               child: RefreshIndicator(
           onRefresh: controller.reload,
@@ -602,9 +605,11 @@ class MasterSchedulePage extends StatelessWidget {
 class _ManagerScheduleBody extends StatefulWidget {
   const _ManagerScheduleBody({
     required this.controller,
+    required this.profile,
   });
 
   final LessonController controller;
+  final CurrentProfile profile;
 
   @override
   State<_ManagerScheduleBody> createState() =>
@@ -664,23 +669,87 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
             padding: const EdgeInsets.fromLTRB(10, 2, 6, 8),
             child: Row(
               children: [
-                const Icon(
-                  Icons.location_on_outlined,
-                  color: primaryColor,
-                  size: 18,
-                ),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(
-                    branchName,
-                    overflow: TextOverflow.ellipsis,
-                    style: forestringTextStyle.copyWith(
-                      color: Colors.black87,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                if (widget.profile.isMaster)
+                  Expanded(
+                    child: PopupMenuButton<String>(
+                      initialValue: controller.selectedBranchId,
+                      onSelected: controller.selectBranch,
+                      itemBuilder: (context) => controller.branches
+                          .map(
+                            (branch) => PopupMenuItem<String>(
+                              value: branch.id,
+                              child: Text(
+                                branch.name,
+                                style: forestringTextStyle.copyWith(
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      child: Container(
+                        height: 38,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: primaryColor.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.location_on_outlined,
+                              color: primaryColor,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                branchName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: forestringTextStyle.copyWith(
+                                  color: Colors.black87,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.expand_more_rounded,
+                              color: Colors.black38,
+                              size: 18,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                else ...[
+                  const Icon(
+                    Icons.location_on_outlined,
+                    color: primaryColor,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      branchName,
+                      overflow: TextOverflow.ellipsis,
+                      style: forestringTextStyle.copyWith(
+                        color: Colors.black87,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
+                ],
+                const SizedBox(width: 4),
                 IconButton(
                   tooltip: '새로고침',
                   visualDensity: VisualDensity.compact,
