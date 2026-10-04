@@ -107,8 +107,10 @@ class StudentAdminRepository {
 
       int parseMinutes(dynamic raw) {
         final parts = raw.toString().split(':');
-        final hour = int.tryParse(parts.elementAtOrNull(0) ?? '') ?? 0;
-        final minute = int.tryParse(parts.elementAtOrNull(1) ?? '') ?? 0;
+        final hour =
+            parts.isEmpty ? 0 : (int.tryParse(parts[0]) ?? 0);
+        final minute =
+            parts.length < 2 ? 0 : (int.tryParse(parts[1]) ?? 0);
         return hour * 60 + minute;
       }
 
