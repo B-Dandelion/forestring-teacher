@@ -3,16 +3,22 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/notifications/push_device_registration_service.dart';
 import '../data/auth_repository.dart';
 import '../domain/current_profile.dart';
 
 class AuthController extends ChangeNotifier {
-  AuthController(this._repository);
+  AuthController(
+    this._repository, {
+    PushDeviceRegistrationService? pushRegistration,
+  }) : _pushRegistration =
+            pushRegistration ?? PushDeviceRegistrationService.instance;
 
   static const _sessionCheckTimeout = Duration(seconds: 8);
   static const _signOutTimeout = Duration(seconds: 3);
 
   final AuthRepository _repository;
+  final PushDeviceRegistrationService _pushRegistration;
 
   bool _isInitializing = true;
   bool _isLoading = false;
@@ -57,6 +63,10 @@ class AuthController extends ChangeNotifier {
       _profile = await _repository
           .fetchCurrentProfile()
           .timeout(_sessionCheckTimeout);
+
+      unawaited(
+        _pushRegistration.bindCurrentSession(),
+      );
     } on TimeoutException {
       _profile = null;
       await _bestEffortSignOut();
@@ -101,6 +111,10 @@ class AuthController extends ChangeNotifier {
           .fetchCurrentProfile()
           .timeout(_sessionCheckTimeout);
 
+      unawaited(
+        _pushRegistration.bindCurrentSession(),
+      );
+
       return true;
     } on TimeoutException {
       _profile = null;
@@ -134,12 +148,24 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    await _bestEffortUnbindPush();
     await _bestEffortSignOut();
 
     _profile = null;
     _errorMessage = null;
 
     notifyListeners();
+  }
+
+  Future<void> _bestEffortUnbindPush() async {
+    try {
+      await _pushRegistration
+          .unbindCurrentSession()
+          .timeout(_signOutTimeout);
+    } catch (_) {
+      // Logout must still continue if Push token cleanup cannot reach the
+      // server. A later login will rebind the installation safely.
+    }
   }
 
   Future<void> _bestEffortSignOut() async {
