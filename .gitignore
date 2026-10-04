@@ -55,4 +55,5 @@ ios/build/
 ios/.symlinks/
 
 # Local environment config
-env/dev.json
+env/*.json
+!env/example.json
