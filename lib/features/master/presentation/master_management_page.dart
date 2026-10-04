@@ -1,5 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/theme/student_accent_controller.dart';
@@ -34,10 +39,14 @@ class MasterManagementPage extends StatefulWidget {
 }
 
 class _MasterManagementPageState extends State<MasterManagementPage> {
+  static const _profilePhotoKeyPrefix = 'master_profile_photo_v1';
+
   late final BranchRepository _branchRepository;
   late final ManagerRepository _managerRepository;
   late final SemesterRepository _semesterRepository;
+  final ImagePicker _imagePicker = ImagePicker();
 
+  File? _profilePhoto;
   List<AcademyBranch> _branches = const [];
   List<ManagedManager> _managers = const [];
   List<ManagedSemester> _semesters = const [];
@@ -51,7 +60,161 @@ class _MasterManagementPageState extends State<MasterManagementPage> {
     _managerRepository = widget.managerRepository ?? ManagerRepository();
     _semesterRepository =
         widget.semesterRepository ?? SemesterRepository();
+    _loadProfilePhoto();
     _loadOverview();
+  }
+
+  String get _profilePhotoStorageKey =>
+      '$_profilePhotoKeyPrefix:${widget.profile.id}';
+
+  Future<void> _loadProfilePhoto() async {
+    final preferences = await SharedPreferences.getInstance();
+    final path = preferences.getString(_profilePhotoStorageKey);
+    if (path == null || path.isEmpty) return;
+
+    final file = File(path);
+    if (!await file.exists()) {
+      await preferences.remove(_profilePhotoStorageKey);
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() => _profilePhoto = file);
+  }
+
+  Future<void> _pickProfilePhoto() async {
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        imageQuality: 88,
+        requestFullMetadata: false,
+      );
+      if (picked == null) return;
+
+      final directory = await getApplicationDocumentsDirectory();
+      final extension = _profilePhotoExtension(picked.name);
+      final file = File(
+        '${directory.path}/master_profile_${widget.profile.id}_'
+        '${DateTime.now().millisecondsSinceEpoch}.$extension',
+      );
+
+      try {
+        final bytes = await picked.readAsBytes();
+        if (bytes.isEmpty) {
+          throw const FileSystemException('선택한 사진 데이터가 비어 있습니다.');
+        }
+        await file.writeAsBytes(bytes, flush: true);
+      } catch (_) {
+        final sourceFile = File(picked.path);
+        if (!await sourceFile.exists()) rethrow;
+        await sourceFile.copy(file.path);
+      }
+
+      final previousFile = _profilePhoto;
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(_profilePhotoStorageKey, file.path);
+
+      if (previousFile != null &&
+          previousFile.path != file.path &&
+          await previousFile.exists()) {
+        await previousFile.delete();
+      }
+
+      if (!mounted) return;
+      setState(() => _profilePhoto = file);
+    } catch (error, stackTrace) {
+      debugPrint('Master profile photo save failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('사진을 저장하지 못했습니다. 다시 선택해주세요.'),
+        ),
+      );
+    }
+  }
+
+  String _profilePhotoExtension(String fileName) {
+    final parts = fileName.toLowerCase().split('.');
+    final extension = parts.length > 1 ? parts.last : '';
+    return switch (extension) {
+      'jpg' || 'jpeg' || 'png' || 'heic' || 'heif' || 'webp' => extension,
+      _ => 'jpg',
+    };
+  }
+
+  Future<void> _removeProfilePhoto() async {
+    final file = _profilePhoto;
+    if (file != null && await file.exists()) {
+      await file.delete();
+    }
+
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove(_profilePhotoStorageKey);
+
+    if (!mounted) return;
+    setState(() => _profilePhoto = null);
+  }
+
+  Future<void> _showProfilePhotoMenu() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(
+                    Icons.photo_library_outlined,
+                    color: primaryColor,
+                  ),
+                  title: Text(
+                    _profilePhoto == null ? '프로필 사진 선택' : '프로필 사진 변경',
+                    style: forestringTextStyle.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    await Future<void>.delayed(
+                      const Duration(milliseconds: 200),
+                    );
+                    if (mounted) await _pickProfilePhoto();
+                  },
+                ),
+                if (_profilePhoto != null)
+                  ListTile(
+                    leading: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.redAccent,
+                    ),
+                    title: Text(
+                      '프로필 사진 삭제',
+                      style: forestringTextStyle.copyWith(
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    onTap: () async {
+                      Navigator.of(sheetContext).pop();
+                      await _removeProfilePhoto();
+                    },
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _loadOverview() async {
@@ -269,21 +432,60 @@ class _MasterManagementPageState extends State<MasterManagementPage> {
           ),
           Row(
             children: [
-              Container(
-                width: 62,
-                height: 62,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.13),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.22),
-                  ),
-                ),
-                child: const Icon(
-                  Icons.admin_panel_settings_rounded,
-                  color: Colors.white,
-                  size: 31,
+              GestureDetector(
+                onTap: _showProfilePhotoMenu,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 62,
+                      height: 62,
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.13),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: _profilePhoto == null
+                          ? const Icon(
+                              Icons.admin_panel_settings_rounded,
+                              color: Colors.white,
+                              size: 31,
+                            )
+                          : Image.file(
+                              _profilePhoto!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  const Icon(
+                                Icons.admin_panel_settings_rounded,
+                                color: Colors.white,
+                                size: 31,
+                              ),
+                            ),
+                    ),
+                    Positioned(
+                      right: -2,
+                      bottom: -2,
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: primaryColor.withValues(alpha: 0.16),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.photo_camera_outlined,
+                          color: primaryColor,
+                          size: 13,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 14),
