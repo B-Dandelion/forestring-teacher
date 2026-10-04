@@ -852,7 +852,7 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
                       : SfCalendar(
                           controller: _calendarController,
                           view: CalendarView.week,
-                          firstDayOfWeek: DateTime.monday,
+                          firstDayOfWeek: DateTime.sunday,
                           initialDisplayDate: DateTime.now(),
                           minDate: DateTime(
                             DateTime.now().year,
@@ -867,8 +867,7 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
                           timeZone: 'Korea Standard Time',
                           headerHeight: 0,
                           showNavigationArrow: false,
-                          cellBorderColor:
-                              Colors.black.withValues(alpha: 0.055),
+                          cellBorderColor: Colors.black12,
                           todayHighlightColor: primaryColor,
                           cellEndPadding: 0,
                           dataSource: _MasterDataSource(meetings),
@@ -888,10 +887,9 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
                               return const SizedBox.shrink();
                             }
 
-                            return _ManagerLessonAppointment(
+                            return LessonCalendarAppointment(
                               lesson: meeting.lesson,
-                              studentAccentColor:
-                                  meeting.studentAccentColor,
+                              accentColor: meeting.studentAccentColor,
                             );
                           },
                           specialRegions: selectedTeacherId == null
@@ -901,19 +899,17 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
                                     selectedTeacherId,
                                   ),
                                 ),
-                          viewHeaderHeight: 45,
+                          viewHeaderHeight: 50,
                           viewHeaderStyle: const ViewHeaderStyle(
                             dateTextStyle: TextStyle(
-                              color: Colors.black87,
+                              color: Colors.black,
                               fontFamily: 'ELAND',
                               fontWeight: FontWeight.w500,
-                              fontSize: 12,
                             ),
                             dayTextStyle: TextStyle(
-                              color: Colors.black54,
+                              color: Colors.black,
                               fontFamily: 'ELAND',
-                              fontWeight: FontWeight.w300,
-                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                           timeSlotViewSettings:
@@ -921,16 +917,15 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
                             dayFormat: 'EEE',
                             timeTextStyle: TextStyle(
                               fontFamily: 'OpenSans',
-                              fontWeight: FontWeight.w400,
-                              color: Colors.black45,
-                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black,
+                              fontSize: 11,
                             ),
                             timeInterval: Duration(minutes: 15),
                             timeIntervalHeight: 36,
                             timeFormat: 'H:mm',
                             startHour: 7,
                             endHour: 23,
-                            timeRulerSize: 36,
                           ),
                           onViewChanged: _onViewChanged,
                           onTap: (details) {
@@ -1134,7 +1129,7 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
         ),
         recurrenceRule:
             'FREQ=WEEKLY;BYDAY=${_weekdayCode(workHour.weekday)}',
-        color: primaryColor.withValues(alpha: 0.055),
+        color: primaryColor.withValues(alpha: 0.12),
       );
     }).toList();
   }
@@ -1155,7 +1150,7 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
   DateTime _startOfWeek(DateTime date) {
     final day = DateTime(date.year, date.month, date.day);
     return day.subtract(
-      Duration(days: day.weekday - DateTime.monday),
+      Duration(days: day.weekday % DateTime.sunday),
     );
   }
 
@@ -1163,105 +1158,6 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
       a.year == b.year &&
       a.month == b.month &&
       a.day == b.day;
-}
-
-class _ManagerLessonAppointment extends StatelessWidget {
-  const _ManagerLessonAppointment({
-    required this.lesson,
-    this.studentAccentColor,
-  });
-
-  final Lesson lesson;
-  final Color? studentAccentColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = _palette();
-    final label = lessonStatusShortLabel(lesson);
-    final statusColor = lessonStatusAccentColor(lesson);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxHeight < 28;
-
-        return Container(
-          alignment: Alignment.centerLeft,
-          padding: EdgeInsets.fromLTRB(
-            4,
-            compact ? 0 : 2,
-            3,
-            compact ? 0 : 2,
-          ),
-          decoration: BoxDecoration(
-            color: palette.$1,
-            borderRadius: BorderRadius.circular(7),
-            border: Border(
-              left: BorderSide(
-                color: palette.$2,
-                width: 3,
-              ),
-            ),
-          ),
-          child: compact
-              ? Text(
-                  lesson.studentName ?? '학생',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: forestringTextStyle.copyWith(
-                    color: Colors.black87,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w500,
-                    height: 1,
-                  ),
-                )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      lesson.studentName ?? '학생',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.black87,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        height: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: forestringTextStyle.copyWith(
-                        color: statusColor,
-                        fontSize: 7.5,
-                        fontWeight: FontWeight.w400,
-                        height: 1,
-                      ),
-                    ),
-                  ],
-                ),
-        );
-      },
-    );
-  }
-
-  (Color, Color) _palette() {
-    final statusColor = lessonStatusAccentColor(lesson);
-    final studentColor = studentAccentColor;
-    if (studentColor != null) {
-      return (
-        Color.lerp(studentColor, Colors.white, 0.34)!,
-        statusColor,
-      );
-    }
-    return (
-      lessonStatusSurfaceColor(lesson),
-      statusColor,
-    );
-  }
 }
 
 class _ManagerBlockedAppointment extends StatelessWidget {
