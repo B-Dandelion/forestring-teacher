@@ -712,29 +712,6 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
 
 
 
-class _LessonFormCard extends StatelessWidget {
-  const RegistrationFormCard({
-    required this.child,
-  });
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.97),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: primaryColor.withValues(alpha: 0.07),
-        ),
-      ),
-      child: child,
-    );
-  }
-}
-
 class _FixedField extends StatelessWidget {
   const _FixedField({
     required this.label,
