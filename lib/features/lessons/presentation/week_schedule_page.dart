@@ -42,11 +42,14 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
     final controller = context.watch<LessonController>();
     final teacherId = controller.selectedTeacherId ?? widget.profile.id;
     final accentController = context.watch<StudentAccentController>();
-    final studentAccents = accentController.isEnabled
-        ? accentController.assignments(
-            controller.visibleLessons.map((lesson) => lesson.studentId),
-          )
-        : const <String, Color>{};
+    final displayMode = accentController.displayMode;
+    final studentAccents =
+        displayMode == ScheduleDisplayMode.student
+            ? accentController.assignments(
+                controller.visibleLessons
+                    .map((lesson) => lesson.studentId),
+              )
+            : const <String, Color>{};
     final meetings = <Object>[
       ...controller.visibleLessons
           .where((lesson) => !lesson.isCanceled)
@@ -144,6 +147,7 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
 
                         return LessonCalendarAppointment(
                           lesson: meeting.lesson,
+                          displayMode: displayMode,
                           accentColor: meeting.accentColor,
                         );
                       },
