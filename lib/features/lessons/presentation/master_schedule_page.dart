@@ -107,7 +107,11 @@ class MasterSchedulePage extends StatelessWidget {
 
     final meetings = <Object>[
       ...controller.visibleLessons
-          .where((lesson) => !lesson.isCanceled)
+          .where(
+            (lesson) =>
+                !lesson.isCanceled ||
+                lesson.id == widget.notificationFocus?.targetId,
+          )
           .map(
             (lesson) => _MasterMeeting(
               lesson,
@@ -684,10 +688,7 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
       );
       final targetDate =
           targetLesson?.startsAt ?? notificationFocus.startsAt;
-      final highlightedLessonId =
-          targetLesson != null && !targetLesson.isCanceled
-              ? targetLesson.id
-              : null;
+      final highlightedLessonId = targetLesson?.id;
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) {
