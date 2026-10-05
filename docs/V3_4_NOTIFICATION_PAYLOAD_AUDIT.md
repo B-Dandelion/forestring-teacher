@@ -1,524 +1,296 @@
-# Forestring v3.4 Teacher v1 Push Payload 감사
+# Forestring v3.4 Teacher v1 Push Payload 감사 및 DB 정리 결과
 
 작성일: 2026-10-05  
 기준 문서: `docs/V3_4_NOTIFICATION_POLICY_V1.md`  
-범위: 일반 선생님 첫 출시 ON 이벤트 9종  
-상태: DB / audit / outbox / dispatcher / Flutter 현행 구현 대조 완료
+범위: 일반 선생님 첫 출시 ON 이벤트 8종  
+상태: payload 감사 완료 / notification domain DB 구조 반영 완료
 
-## 1. 결론
+## 1. 최종 결론
 
-현재 Notification transport 자체는 iPhone 실기기에서 E2E 성공했지만, 새로 확정한 v1 payload 계약과 비교하면 **현재 알림 도메인 모델은 부분 구현 상태**다.
+iPhone 실기기에서 Push transport E2E는 이미 성공했고, 이후 확정한 payload 계약을 기준으로 production DB의 audit/RPC/trigger/outbox/dispatcher/Flutter 수신부를 대조했다.
 
-핵심 결론:
+감사 결과 대부분의 이벤트는 기존 audit 데이터가 필요한 원천 정보를 이미 보존하고 있었다. 따라서 business RPC를 대규모로 수정하지 않고 **audit → notification domain event 변환 계층을 정리하는 방식**으로 반영했다.
 
-- 기존 audit 데이터는 9종 중 대부분의 원천 데이터를 이미 충분히 보존한다.
-- 가장 큰 부족은 **audit 데이터 자체보다 audit → notification 변환 계층**이다.
-- `REGULAR_SCHEDULE_ENDED`는 계약에 필요한 기존 정규 일정 snapshot이 audit에 보존되지 않아 source 보강이 필요하다.
-- 최초 담당 배정(`student_assigned`)은 현재 별도 semantic audit event가 없고 raw assignment trigger에서 바로 outbox로 간다.
-- 담당 선생님 변경(`student_teacher_assigned`)은 `STUDENT_TEACHER_CHANGED` audit이 충분한 정보를 갖고 있지만 현재 notification trigger가 이 audit을 사용하지 않는다.
-- 현재 outbox event key 6종은 확정한 event key 9종을 표현하지 못한다.
-- 현재 FCM data에는 공통 envelope(`schemaVersion`, `notificationId`, `targetKind`, `targetId`, `navigationKind`, `recipientProfileId`, `teacherId`, `occurredAt`)가 없다.
-- Flutter 수신부는 아직 payload parser/navigation이 없고 debug log만 남긴다.
+정규 일정 종료(`REGULAR_SCHEDULE_ENDED`)는 사용자 결정에 따라 Push 대상에서 제외했다. 감사 이력은 그대로 유지하며, 일정 종료 과정에서 파생되는 `LESSON_CANCELED(reason=regular_schedule_ended)`도 개별 Push로 변환하지 않는다.
 
-따라서 payload 계약을 약화할 필요는 없으며, **DB에 이미 있는 원천 데이터를 이용해 notification domain event 변환 계층을 정리하는 것이 맞다.**
+최종 teacher v1 Push event는 다음 8종이다.
+
+```text
+student_assigned
+lesson_changed
+lesson_canceled
+makeup_created
+makeup_canceled
+flex_lesson_booked
+regular_schedule_changed
+student_teacher_assigned
+```
 
 ---
 
-## 2. 현행 공통 구조 감사
+## 2. DB 구조 반영
 
-### 2.1 notification_outbox
+### 2.1 notification event catalog
 
-현재 outbox는 다음을 별도 컬럼으로 보유한다.
+내부 테이블:
 
-- `id`
-- `recipient_profile_id`
-- `event_key`
-- `source_kind`
-- `source_id`
-- `dedupe_key`
-- `title`
-- `body`
-- `data jsonb`
-- 발송 상태/시도/시간 필드
+`private.notification_event_catalog`
 
-`data`는 JSON object이므로 새 payload 계약을 담을 공간 자체는 충분하다.
+필드 역할:
+- `event_key`: semantic notification event
+- `target_kind`: assignment / lesson / regularSchedule
+- `navigation_kind`: lesson_week / student_detail
+- `preference_group`: 기존 Flutter 그룹형 알림 설정과의 호환
+- `is_deprecated`: 기존 outbox history key 보존용
 
-그러나 현재 `event_key` CHECK constraint는 다음 6개만 허용한다.
+활성 8종 외에 과거 outbox history의 referential integrity를 위해 다음 legacy key를 deprecated 상태로 남겼다.
 
 ```text
 lesson_assignment
 lesson_schedule_changed
-lesson_canceled
-makeup_created
-makeup_canceled
 flex_booking
 ```
 
-확정 계약의 9개 event key로 확장/교체가 필요하다.
+기존 `notification_outbox.event_key` CHECK constraint는 제거하고 catalog FK로 교체했다.
 
-### 2.2 FCM dispatcher
+### 2.2 role policy
 
-현재 Edge Function은 outbox `data`에 다음 두 값만 중앙 주입한다.
+내부 테이블:
+
+`private.notification_role_policy`
+
+현재 정책:
+- teacher: 활성 8종 `enabled_by_default=true`, `release_enabled=true`
+- manager: `release_enabled=false`
+- master: `release_enabled=false`
+- legacy event: 모든 role `release_enabled=false`
+
+따라서 DB 구조는 manager/master 확장을 수용하지만 첫 출시에서는 일반 선생님 Push만 실제 enqueue된다.
+
+### 2.3 event-level preferences
+
+내부 테이블:
+
+`private.notification_event_preferences`
+
+기존 Flutter 설정 UI와 RPC는 그대로 유지한다.
+
+현재 그룹 매핑:
 
 ```text
-eventKey = outbox.event_key
-outboxId = outbox.id
+새 수업 배정
+→ student_assigned
+→ student_teacher_assigned
+
+수업 일정 변경
+→ lesson_changed
+→ regular_schedule_changed
+
+수업 취소
+→ lesson_canceled
+
+보강
+→ makeup_created
+→ makeup_canceled
+
+자율 학생 예약
+→ flex_lesson_booked
 ```
 
-현재 누락:
+`public.notification_preferences`가 생성/수정되면 DB trigger가 이벤트 단위 설정으로 자동 동기화한다.
 
-- `schemaVersion`
-- `notificationId`
-- `recipientProfileId`
-- `occurredAt`
+---
 
-`notificationId`는 outbox `id`, `recipientProfileId`는 outbox `recipient_profile_id`, `occurredAt`은 outbox `created_at`을 이용해 dispatcher/claim 단계에서 중앙 주입할 수 있다.
+## 3. 공통 payload envelope
 
-### 2.3 현재 DB enqueue helper
+`private.enqueue_notification()`이 outbox INSERT 전에 공통 payload를 중앙 생성한다.
 
-`private.enqueue_teacher_notification()`은:
-
-- role=teacher
-- active=true
-- review=false
-
-만 수신자로 인정한다.
-
-현재 QA 분리 후 `is_qa_account=true / is_review_account=false`인 QA 선생님은 정상 recipient가 된다.
-
-다만 manager/master 장기 설계를 위한 role policy는 아직 없으며 함수명과 구현 모두 teacher 전용으로 하드코딩되어 있다.
-
-### 2.4 notification_preferences
-
-현재는 다음 5개 category boolean 컬럼 구조다.
+필수 공통 값:
 
 ```text
-lesson_assignment_enabled
-lesson_schedule_change_enabled
-lesson_cancellation_enabled
-makeup_enabled
-flex_booking_enabled
-```
-
-따라서:
-- 개별 수업 변경 / 정규 일정 변경 / 정규 일정 종료가 하나의 setting에 묶임
-- 최초 배정 / 담당교사 변경이 하나의 setting에 묶임
-
-v1 grouped UI로는 사용할 수 있으나, 장기적으로 확정한 event catalog / role policy / event preference 구조와는 맞지 않는다.
-
-### 2.5 Flutter
-
-현재 `PushMessagingService`는:
-
-- `onMessage`
-- `onMessageOpenedApp`
-- `getInitialMessage()`
-
-를 연결했지만 실제로는 debug log만 남긴다.
-
-payload parser, `targetKind`, `navigationKind`, pending intent/coordinator는 아직 없다.
-
----
-
-## 3. 이벤트별 감사
-
-### 1. student_assigned
-
-계약:
-
-```text
-eventKey = student_assigned
-targetKind = assignment
-targetId = assignmentId
-navigationKind = student_detail
-
-assignmentStartsOn
-studentType
-```
-
-현재 source:
-
-- `public.assign_student_teacher()`가 `teacher_student_assignments` INSERT
-- 별도 assignment semantic audit event는 생성하지 않음
-- table trigger `private.enqueue_teacher_assignment_notification()`이 직접 outbox enqueue
-
-현재 payload:
-
-```text
-eventKey = lesson_assignment
-assignmentId
-studentId
-startsOn
-branchId
-```
-
-판정: **부분 충족 / source 구조 보강 권장**
-
-충족:
-- assignmentId
-- studentId
-- branchId
-- startsOn
-
-부족:
-- eventKey 분리
-- studentType
-- targetKind / targetId
-- navigationKind
-- teacherId
-- 공통 envelope
-
-구조 문제:
-raw assignment INSERT가 바로 Push로 연결되어 최초 배정과 담당교사 변경을 semantic event 수준에서 구분하지 못한다.
-
-권장:
-`assign_student_teacher()`가 최초 배정용 semantic audit/domain event를 명시적으로 만들고 notification 변환 계층이 이를 소비하도록 정리한다.
-
----
-
-### 2. lesson_changed
-
-원천 audit:
-`LESSON_MANUALLY_UPDATED`
-
-운영 DB 확인:
-- 모든 현행 샘플에 `lessonId`, `teacherId`, `before`, `after` 존재
-- `before/after`에 `startsAt`, `durationMinutes` 존재
-- audit row 자체에 student, branch, actor, effective date, created time 존재
-
-현재 notification:
-`lesson_schedule_changed`
-
-판정: **원천 데이터 충족 / 변환 계층 미충족**
-
-현재 audit 데이터만으로 확정 계약의:
-- previousStartsAt
-- startsAt
-- previousDurationMinutes
-- durationMinutes
-- lessonId
-- teacherId
-- studentId
-- branchId
-- occurredAt
-
-전부 생성 가능하다.
-
-필요 작업:
-event key를 `lesson_changed`로 분리하고 target/navigation/common envelope를 생성하면 된다.
-
----
-
-### 3. lesson_canceled
-
-원천 audit:
-`LESSON_CANCELED`
-
-audit 자체:
-- lessonId 있음
-- student/branch/effective date/created time 있음
-- `actualLessonDurationMinutes`, `reason` 있음
-- teacherId / startsAt은 audit details에 직접 없음
-
-현재 transformer는 canceled lesson row를 조회해:
-- teacherId
-- startsAt
-- endsAt
-
-을 가져오고 있다.
-
-현재 Push data:
-- lessonId
-- startsAt
-- endsAt
-- studentId
-- branchId
-- lessonType
-- cancellationOrigin
-
-판정: **원천 데이터 충분 / 변환 계층 일부 부족**
-
-현재 DB row + audit 조합으로 계약을 충족할 수 있다.
-
-추가 필요:
-- durationMinutes
-- reason(optional)
-- target/navigation/common envelope
-
-취소 lesson row가 유지되는 현재 모델에서는 teacher/time lookup도 안정적이다. 단 fallback snapshot은 outbox 생성 시 저장한다.
-
----
-
-### 4. makeup_created
-
-원천 audit:
-`MAKEUP_LESSON_CREATED`
-
-audit에 이미:
-- lessonId
-- teacherId
-- startsAt
-- endsAt
-- durationMinutes
-- student / branch / created time
-
-존재.
-
-현재 Push data는 durationMinutes를 버리고 있다.
-
-판정: **원천 데이터 완전 충족 / 변환 계층 미충족**
-
-필요 작업:
-- durationMinutes 전달
-- target/navigation/common envelope
-
----
-
-### 5. makeup_canceled
-
-원천 audit:
-`MAKEUP_LESSON_CANCELED`
-
-audit에:
-- lessonId
-- teacherId
-- startsAt
-- endsAt
-- durationMinutes
-- reason
-- student / branch / created time
-
-존재.
-
-현재 Push data는 durationMinutes와 reason을 전달하지 않는다.
-
-판정: **원천 데이터 완전 충족 / 변환 계층 미충족**
-
----
-
-### 6. flex_lesson_booked
-
-원천 audit:
-`LESSON_RIGHT_BOOKED`
-
-현재 notification transformer는 lesson row의 `lesson_type=flex`일 때만 Push를 생성한다.
-
-audit에:
-- lessonId
-- teacherId
-- startsAt
-- endsAt
-- durationMinutes
-- lessonType
-- student / branch / created time
-
-존재.
-
-현재 event key:
-`flex_booking`
-
-확정 event key:
-`flex_lesson_booked`
-
-판정: **원천 데이터 완전 충족 / 변환 계층 미충족**
-
-추가 필요:
-- event key 변경
-- durationMinutes 전달
-- target/navigation/common envelope
-
-참고:
-현재 필터는 "학생 actor인지"가 아니라 "결과 lesson이 flex인지"를 기준으로 한다. 따라서 향후 학생 직접 예약만 별도로 구분해야 한다면 `actor_id` 기반 recipient/event policy를 추가할 수 있다. v1에서 모든 flex 예약 발생을 선생님에게 알려주는 정책이라면 현 source로 충분하다.
-
----
-
-### 7. regular_schedule_changed
-
-원천 audit:
-`REGULAR_SCHEDULE_CHANGED`
-
-audit에:
-- scheduleSlotId
-- effective_on
-- before.teacherId
-- before.weekday
-- before.startTime
-- before.durationMinutes
-- after.teacherId
-- after.weekday
-- after.startTime
-- after.durationMinutes
-- student / branch / created time
-
-존재.
-
-현재 transformer는 teacher가 바뀐 REGULAR_SCHEDULE_CHANGED는 Push를 억제한다. 담당교사 변경 알림과 중복되지 않도록 하기 위한 것으로 현재 정책과 일치한다.
-
-현재 문제:
-- event key가 개별 수업 변경과 동일한 `lesson_schedule_changed`
-- effective_on을 payload로 전달하지 않음
-- navigation이 구분되지 않음
-
-판정: **원천 데이터 완전 충족 / 변환 계층 미충족**
-
-확정 계약의 모든 필드를 현재 audit만으로 생성 가능하다.
-
----
-
-### 8. regular_schedule_ended
-
-원천 audit:
-`REGULAR_SCHEDULE_ENDED`
-
-현재 audit에:
-- scheduleSlotId
-- effective_on
-- student / branch / actor / created time
-- 종료/삭제 처리 개수
-
-존재.
-
-그러나 확정 계약에 필요한 종료 직전 schedule snapshot:
-- teacherId
-- weekday
-- startTime
-- durationMinutes
-
-은 audit details에 보존되지 않는다.
-
-현재 notification trigger는 teacherId를:
-1. `lesson_series`의 해당 scheduleSlotId 최신 row
-2. assignment fallback
-
-으로 사후 조회한다.
-
-판정: **source 보강 필요 — 9종 중 가장 명확한 payload 원천 부족**
-
-문제:
-종료 처리 이후 관련 series가 정리되는 경우 사후 조회에 의존하면 historical snapshot 안정성이 떨어진다.
-
-권장:
-`end_regular_schedule()`가 mutation 전에 active series snapshot을 잡고 `REGULAR_SCHEDULE_ENDED.details`에 최소 다음을 기록한다.
-
-```text
-teacherId
-weekday
-startTime
-durationMinutes
-```
-
-그 후 notification transformer는 audit snapshot만 사용한다.
-
-현재 schedule 종료 시 내부 child notification 폭주를 막는 dedupe/suppression 설계는 유지 가치가 있다.
-
----
-
-### 9. student_teacher_assigned
-
-원천 audit:
-`STUDENT_TEACHER_CHANGED`
-
-audit에:
-- previousTeacherId
-- newTeacherId
-- previousAssignmentId
-- newAssignmentId
-- studentType
-- effective_on
-- student / branch / created time
-
-존재.
-
-즉 확정 계약의:
-- targetId = newAssignmentId
-- teacherId = newTeacherId
-- studentId
-- branchId
-- effectiveFrom
-- occurredAt
-
-을 모두 생성 가능하다.
-
-현재 notification은 이 audit을 사용하지 않는다.
-
-대신 assignment table trigger가 변경 과정의 INSERT 또는 teacher_id UPDATE를 감지하여 새 teacher에게 generic `lesson_assignment`을 보낸다.
-
-수신 정책:
-- 기존 teacher에게 Push를 보내지 않음
-- 새 teacher에게만 보냄
-
-은 현재 trigger 동작과 이미 일치한다.
-
-판정: **원천 데이터 완전 충족 / notification source 전환 필요**
-
-권장:
-담당교사 변경은 raw assignment trigger보다 `STUDENT_TEACHER_CHANGED` semantic audit/domain event를 notification source로 사용한다.
-
-또한 teacher 변경 과정에서 생성되는 `REGULAR_SCHEDULE_CHANGED`는 현재처럼 별도 schedule-change Push를 억제하여 중복을 방지한다.
-
----
-
-## 4. 9종 종합 판정
-
-| 이벤트 | Source 데이터 | 현재 event 분리 | 현재 payload 계약 | 최종 판정 |
-| --- | --- | --- | --- | --- |
-| student_assigned | 부분 | X | X | source semantic event 보강 권장 |
-| lesson_changed | 충분 | X | X | transformer 수정 |
-| lesson_canceled | 충분(lesson row 조회 포함) | O | 부분 | transformer 수정 |
-| makeup_created | 충분 | O | 부분 | transformer 수정 |
-| makeup_canceled | 충분 | O | 부분 | transformer 수정 |
-| flex_lesson_booked | 충분 | O(이름 변경 필요) | 부분 | transformer 수정 |
-| regular_schedule_changed | 충분 | X | X | transformer/event key 분리 |
-| regular_schedule_ended | **부족** | X | X | **source audit snapshot 보강 필요** |
-| student_teacher_assigned | 충분 | X | X | semantic audit source로 전환 |
-
----
-
-## 5. 공통 payload를 만드는 위치
-
-공통 값을 각 audit branch마다 반복 조립하지 않는 것이 좋다.
-
-권장 분리:
-
-### notification domain transformer가 생성
-
-```text
+schemaVersion = 1
+notificationId
 eventKey
 targetKind
 targetId
 navigationKind
+recipientProfileId
+branchId
 teacherId
 studentId
-branchId
-event-specific context
+occurredAt
 ```
 
-### outbox / dispatcher가 중앙 보장
+이벤트별 context는 공통 envelope와 병합된다.
 
-```text
-schemaVersion
-notificationId = outbox.id
-recipientProfileId = outbox.recipient_profile_id
-occurredAt = outbox.created_at (또는 명시적 event occurred_at)
-eventKey = outbox.event_key
-```
+이 구조로 새 이벤트를 추가할 때 각 audit branch에서 공통 필드를 반복 생성하지 않아도 된다.
 
-이 방식이면 새 이벤트 추가 시 공통 필드 누락을 줄일 수 있다.
+FCM dispatcher는 기존처럼 outbox `data`를 문자열 data payload로 전달하며 `eventKey`와 `outboxId`를 추가한다. 새 계약의 필수 공통 필드는 이미 DB outbox data에 들어가므로 dispatcher에 별도 business-domain 로직을 추가하지 않았다.
 
 ---
 
-## 6. 구현 전에 필요한 DB 구조 변경
+## 4. 이벤트별 source 및 결과
 
-payload 감사를 기준으로 다음 변경이 필요하다.
+| eventKey | source | target/navigation | 결과 |
+| --- | --- | --- | --- |
+| `student_assigned` | 최초 `teacher_student_assignments` INSERT → `STUDENT_ASSIGNED` audit | assignment / student_detail | 구현 |
+| `lesson_changed` | `LESSON_MANUALLY_UPDATED` | lesson / lesson_week | 구현 |
+| `lesson_canceled` | `LESSON_CANCELED` | lesson / lesson_week | 구현 |
+| `makeup_created` | `MAKEUP_LESSON_CREATED` | lesson / lesson_week | 구현 |
+| `makeup_canceled` | `MAKEUP_LESSON_CANCELED` | lesson / lesson_week | 구현 |
+| `flex_lesson_booked` | `LESSON_RIGHT_BOOKED` 중 lesson_type=flex | lesson / lesson_week | 구현 |
+| `regular_schedule_changed` | `REGULAR_SCHEDULE_CHANGED` | regularSchedule / student_detail | 구현 |
+| `student_teacher_assigned` | `STUDENT_TEACHER_CHANGED` | assignment / student_detail | 구현 |
 
-1. outbox event key constraint를 확정 event catalog와 맞춘다.
-2. 개별 수업 변경 / 정규 일정 변경 / 정규 일정 종료의 event key를 분리한다.
-3. 최초 assignment와 teacher reassignment를 semantic event로 분리한다.
-4. `REGULAR_SCHEDULE_ENDED` audit에 종료 직전 schedule snapshot을 추가한다.
-5. notification domain transformer가 `targetKind/targetId/navigationKind`를 생성하도록 한다.
-6. dispatcher가 common envelope를 중앙 주입한다.
-7. manager/master를 향후 켤 수 있도록 teacher-only hardcode를 role policy 구조로 옮긴다.
-8. preference 구조는 당장 grouped UX를 유지할 수 있으나 DB는 event catalog와 확장 가능하도록 재설계한다.
-9. Flutter는 payload parser + pending navigation intent + destination resolver를 추가한다.
+### student_assigned
 
-이 감사 단계에서는 운영 데이터 mutation이나 notification schema 변경을 수행하지 않았다.
+기존에는 assignment table trigger가 raw INSERT/teacher update를 바로 `lesson_assignment` Push로 변환했다.
+
+현재는 최초 assignment INSERT일 때만 `STUDENT_ASSIGNED` semantic audit을 만든 뒤 공통 transformer가 `student_assigned`로 변환한다.
+
+다른 assignment row가 이미 존재하면 최초 배정으로 보지 않는다.
+
+### student_teacher_assigned
+
+담당 선생님 변경은 raw assignment trigger가 아니라 기존 `STUDENT_TEACHER_CHANGED` audit을 사용한다.
+
+recipient는 `newTeacherId`만 사용한다.
+
+기존 선생님에는 v1 Push를 발송하지 않는다.
+
+담당 선생님 변경 과정에서 같이 발생하는 `REGULAR_SCHEDULE_CHANGED` 중 before/after teacher가 다른 이벤트는 별도 정규 일정 변경 Push로 보내지 않아 중복을 막는다.
+
+### lesson_changed
+
+기존 audit의 `before/after`에서:
+
+- previousStartsAt
+- startsAt
+- previousDurationMinutes
+- durationMinutes
+
+를 그대로 payload snapshot으로 만든다.
+
+### lesson_canceled
+
+취소된 lesson row에서 teacher/start/duration을 읽어 payload snapshot을 만든다.
+
+`reason=regular_schedule_ended`인 내부 취소는 Push로 변환하지 않는다.
+
+### makeup_created / makeup_canceled
+
+기존 audit에 이미 있는 lessonId/teacherId/startsAt/durationMinutes/reason을 사용한다.
+
+### flex_lesson_booked
+
+`LESSON_RIGHT_BOOKED` 중 실제 lesson type이 flex인 경우만 변환한다.
+
+### regular_schedule_changed
+
+기존 audit의:
+- effective_on
+- before weekday/startTime/durationMinutes
+- after weekday/startTime/durationMinutes
+- scheduleSlotId
+
+를 사용한다.
+
+navigation은 주간 수업 포커스가 아니라 `student_detail`이다.
+
+---
+
+## 5. 정규 일정 종료 제외 결정
+
+`REGULAR_SCHEDULE_ENDED`는 notification catalog에 활성 event로 등록하지 않았다.
+
+동작:
+
+```text
+정규 일정 종료
+→ REGULAR_SCHEDULE_ENDED audit: 유지
+→ notification domain event: 생성하지 않음
+→ 내부 future lesson cancellation:
+   reason=regular_schedule_ended 이면 Push 억제
+```
+
+따라서 정규 일정 종료 1회 때문에 미래 수업 수만큼 취소 Push가 발생하지 않으며, 별도의 일정 종료 Push도 없다.
+
+---
+
+## 6. QA / review recipient
+
+review와 QA 역할 분리 이후:
+
+- `is_review_account=true`: 실운영 Push 대상 제외
+- `is_qa_account=true`: 정상 business / Supabase / FCM 경로 사용 가능
+
+generic enqueue는 `is_review_account=false`만 요구하므로 real-backend QA 계정은 정상 recipient가 된다.
+
+검증 시 QA 계정에 활성 8개 event preference가 모두 생성되고 `release_enabled=true`인 것을 확인했다.
+
+---
+
+## 7. 기존 Flutter 설정 호환
+
+기존 Flutter:
+- 전체 알림
+- 새 수업 배정
+- 수업 일정 변경
+- 수업 취소
+- 보강 등록·취소
+- 자율 학생 예약
+
+UI와 RPC는 이번 DB 정리에서 변경하지 않았다.
+
+DB 내부에서 grouped preference를 event-level preference로 동기화하므로 현재 앱 빌드를 깨지 않는다.
+
+향후 이벤트별 세분화 UI가 필요하면 Flutter에서 `private.notification_event_preferences`를 직접 읽는 것이 아니라 별도 public RPC 계약을 추가한다.
+
+---
+
+## 8. 검증 결과
+
+적용 migration:
+
+```text
+20261005071810 normalize_notification_domain_events
+20261005072045 index_notification_event_foreign_keys
+```
+
+검증:
+- active notification catalog: 8종
+- teacher: 8종 release enabled
+- manager/master: release disabled
+- legacy event key: deprecated / release disabled
+- outbox historical rows: 보존
+- outbox event key integrity: catalog FK 적용
+- legacy enqueue trigger/functions: 제거
+- 새 audit → notification transformer trigger: 1개
+- 최초 assignment semantic audit trigger: 1개
+- grouped preference → event preference sync trigger: 1개
+- QA teacher event preferences: 8종 enabled
+- QA/review 분리 유지
+
+Performance Advisor가 새 FK 2개에 covering index를 권고하여 후속 migration으로 추가했고, 재검사에서 해당 두 경고가 사라진 것을 확인했다.
+
+Security Advisor의 새 항목은 private notification table에 RLS가 켜져 있으나 policy가 없다는 INFO다. 세 테이블은 private schema 내부용이며 direct access를 모두 revoke하고 SECURITY DEFINER 내부 함수만 접근하도록 설계했으므로 의도한 deny-by-default 상태다.
+
+기존 프로젝트의 다른 GraphQL 노출/SECURITY DEFINER 관련 Advisor 경고는 이번 notification 변경과 별개이며 이번 작업에서 범위를 확장해 수정하지 않았다.
+
+---
+
+## 9. 다음 단계
+
+DB payload 생성 구조는 준비됐다.
+
+다음 구현은 Flutter에서 진행한다.
+
+1. Push payload parser
+2. NotificationNavigationIntent
+3. pending intent coordinator
+4. `lesson_week` resolver
+5. `student_detail` resolver
+6. foreground 인앱 알림
+7. background 알림 탭 navigation
+8. terminated → session/profile/Shell/data 준비 후 pending intent 소비
+9. iPhone 실기기 E2E
