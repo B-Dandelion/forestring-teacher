@@ -55,15 +55,15 @@ Forestring의 Push 알림은 특정 `lesson_id` 중심 기능으로 제한하지
 
 | 알림 이벤트 | 목적 | 기본 destination | 첫 출시 |
 | --- | --- | --- | --- |
-| 새 학생/수업 배정 | 새 담당 학생 및 향후 수업 발생 인지 | 주간 화면, 첫 영향 수업 또는 적용 주차 | ON |
+| 새 학생/수업 배정 | 새 담당 학생 및 향후 수업 발생 인지 | 마이페이지 → 해당 학생 상세 | ON |
 | 개별 수업 시간/길이 변경 | 실제 예정 수업 변경 인지 | 해당 수업 강조 | ON |
 | 수업 취소 | 예정 수업 취소 인지 | 해당 날짜·시간 또는 취소 수업 정보 | ON |
 | 보강 수업 등록 | 새로운 보강 일정 인지 | 해당 보강 수업 강조 | ON |
 | 보강 수업 취소 | 보강 일정 취소 인지 | 해당 날짜·시간 또는 취소 수업 정보 | ON |
 | 자율 학생 수업 예약 | 학생이 직접 예약한 신규 수업 인지 | 해당 수업 강조 | ON |
-| 정규 일정 변경 | 반복 일정 규칙 변경 인지 | 변경 적용 주차 + 새 정규 시간 포커스 | ON |
-| 정규 일정 종료 | 향후 정규 일정 종료 인지 | 종료 적용 주차 또는 학생 관련 화면 | ON |
-| 담당 선생님 변경 | 학생이 새 담당으로 들어오거나 기존 담당에서 빠짐 | 학생 + 적용일/주차 | ON |
+| 정규 일정 변경 | 반복 일정 규칙 변경 인지 | 마이페이지 → 해당 학생 상세 | ON |
+| 정규 일정 종료 | 향후 정규 일정 종료 인지 | 마이페이지 → 해당 학생 상세 | ON |
+| 새 담당 선생님 배정 | 학생이 새 담당 선생님에게 배정됨 | 마이페이지 → 해당 학생 상세 | ON |
 | 학생 퇴원 예정/확정 | 담당 학생의 향후 수업 종료 인지 | 학생 정보 또는 마지막 수업 주차 | OFF / 향후 |
 | 근무시간 변경 | 예약 가능 시간 변경 인지 | 주간 화면 + 변경 시간대 | OFF / 향후 |
 | 개인 일정 등록/변경/삭제 | 예약 불가 시간 변경 인지 | 해당 개인 일정 블록 | OFF / 향후 |
@@ -270,3 +270,111 @@ lesson이 아닌 정규 일정/개인 일정/담당 관계 이벤트는 각 targ
 7. Foreground / Background / Terminated를 iPhone 실기기에서 각각 검증한다.
 8. 일반 선생님 v1 검증 완료 후 manager/master 발송은 비활성 상태로 출시한다.
 9. 개발자 운영 알림은 별도 정책 문서 및 수신 방식으로 설계한다.
+
+
+---
+
+## 10. 일반 선생님 v1 Push payload 계약
+
+이 절의 계약을 기준으로 현재 DB audit event / RPC / notification outbox / FCM data payload를 감사한다.
+
+### 10.1 공통 원칙
+
+- `lessonId`를 모든 알림의 공통 식별자로 사용하지 않는다.
+- `focusAt`은 공통 필드로 사용하지 않는다.
+- 도메인 대상은 `targetKind + targetId`로 식별한다.
+- 화면 이동은 Flutter route 문자열이 아니라 의미적 `navigationKind`로 표현한다.
+- v1의 navigation 종류는 우선 `lesson_week`, `student_detail` 두 가지다.
+- 가능한 경우 앱은 `targetId`로 최신 DB 객체를 우선 조회한다.
+- 취소/삭제 등으로 최신 객체 조회가 불가능할 수 있는 이벤트는 payload snapshot을 fallback으로 사용한다.
+- 기존 담당 선생님에게 담당 변경 Push를 보내지 않는다. 새 담당 선생님만 수신한다.
+- `recipientRole`은 권한 판단용 payload로 사용하지 않는다. 실제 역할은 session 복원 후 `CurrentProfile.role`을 신뢰한다.
+
+### 10.2 공통 data payload
+
+| 필드 | v1 | 설명 |
+| --- | --- | --- |
+| `schemaVersion` | 필수 | payload 계약 버전. 최초값 `1` |
+| `notificationId` | 필수 | 중복 처리/추적용 알림 식별자 |
+| `eventKey` | 필수 | 알림 도메인 이벤트 |
+| `targetKind` | 필수 | `lesson`, `regularSchedule`, `assignment` |
+| `targetId` | 필수 | 해당 도메인 객체 ID |
+| `navigationKind` | 필수 | `lesson_week` 또는 `student_detail` |
+| `recipientProfileId` | 필수 | 현재 로그인 계정과 알림 수신자 일치 검증 |
+| `branchId` | 필수 | 지점 context |
+| `teacherId` | 필수 | 수신 선생님/향후 필터 context |
+| `studentId` | 필수 | 대상 학생 |
+| `occurredAt` | 필수 | 알림 원인 사건 발생 시각 |
+
+`actorProfileId` 등 발신 행위자 정보는 recipient 계산과 감사에는 필요할 수 있으나 v1 클라이언트 navigation에 필요하지 않으면 서버 측 notification domain event에만 유지한다.
+
+### 10.3 이벤트별 계약
+
+| # | eventKey | target | navigationKind | 이벤트별 필수 context | 선택 context |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `student_assigned` | `assignment / assignmentId` | `student_detail` | `assignmentStartsOn`, `studentType` | 없음 |
+| 2 | `lesson_changed` | `lesson / lessonId` | `lesson_week` | `previousStartsAt`, `startsAt`, `previousDurationMinutes`, `durationMinutes` | 없음 |
+| 3 | `lesson_canceled` | `lesson / lessonId` | `lesson_week` | `startsAt`, `durationMinutes` | `reason` |
+| 4 | `makeup_created` | `lesson / lessonId` | `lesson_week` | `startsAt`, `durationMinutes` | 없음 |
+| 5 | `makeup_canceled` | `lesson / lessonId` | `lesson_week` | `startsAt`, `durationMinutes` | `reason` |
+| 6 | `flex_lesson_booked` | `lesson / lessonId` | `lesson_week` | `startsAt`, `durationMinutes` | 없음 |
+| 7 | `regular_schedule_changed` | `regularSchedule / scheduleSlotId` | `student_detail` | `effectiveFrom`, `previousWeekday`, `previousStartTime`, `previousDurationMinutes`, `weekday`, `startTime`, `durationMinutes` | 없음 |
+| 8 | `regular_schedule_ended` | `regularSchedule / scheduleSlotId` | `student_detail` | `effectiveFrom`, `weekday`, `startTime`, `durationMinutes` | 없음 |
+| 9 | `student_teacher_assigned` | `assignment / assignmentId` | `student_detail` | `effectiveFrom` | 없음 |
+
+### 10.4 navigation 동작
+
+#### lesson_week
+
+대상:
+- 개별 수업 변경
+- 수업 취소
+- 보강 등록/취소
+- 자율 예약
+
+처리:
+1. `targetId`의 lesson을 현재 로딩 데이터/DB에서 찾는다.
+2. 찾으면 최신 `lesson.startsAt`을 기준으로 해당 주차로 이동하고 lesson을 강조한다.
+3. 취소/삭제 등으로 lesson을 찾지 못하면 payload의 `startsAt`을 이용해 해당 주차/시간대로 이동한다.
+4. 대상 상세를 열면 강조 상태를 해제한다.
+
+#### student_detail
+
+대상:
+- 신규 학생/수업 배정
+- 정규 일정 변경
+- 정규 일정 종료
+- 새 담당 선생님 배정
+
+처리:
+1. 마이페이지의 내 수강생 영역으로 이동한다.
+2. `studentId` 대상 학생 상세를 연다.
+3. 화면은 Push snapshot보다 DB의 최신 학생/수강 정보를 우선 표시한다.
+
+### 10.5 담당 선생님 변경 수신 정책
+
+```text
+기존 선생님 A → 새 선생님 B
+
+A: Push 발송하지 않음
+B: student_teacher_assigned 발송
+```
+
+기존 선생님 제거 사실은 audit history에는 남겨도 v1 Push recipient에는 포함하지 않는다.
+
+### 10.6 감사 기준
+
+각 9개 이벤트에 대해 다음 경로를 순서대로 검증한다.
+
+```text
+Business operation
+→ audit event(s)
+→ notification domain event 정규화
+→ recipient 결정
+→ 필수 payload/context 생성
+→ notification_outbox 저장
+→ Edge dispatcher
+→ FCM data payload 전달
+```
+
+감사 중 기존 DB 구조에서 `targetId`가 안정적으로 존재하지 않거나, 필요한 이전값이 audit metadata에 보존되지 않는 경우에는 계약을 약화하기보다 notification domain event 생성 시점에 필요한 snapshot을 명시적으로 저장하는 방향을 우선 검토한다.
