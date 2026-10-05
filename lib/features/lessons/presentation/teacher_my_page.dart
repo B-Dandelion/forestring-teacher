@@ -345,24 +345,35 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
       return;
     }
 
-    AssignedStudentSummary? target;
-
-    for (final student in _students) {
-      if (student.id == studentId) {
-        target = student;
-        break;
-      }
-    }
-
     _lastNotificationStudentRevision =
         widget.notificationStudentRevision;
+    _notificationStudentOpenScheduled = true;
 
-    if (target == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        _notificationStudentOpenScheduled = false;
+        return;
+      }
+
+      if (!widget.profile.isReviewAccount) {
+        await _loadStudents();
+      }
+
+      if (!mounted) {
+        _notificationStudentOpenScheduled = false;
+        return;
+      }
+
+      AssignedStudentSummary? target;
+      for (final student in _students) {
+        if (student.id == studentId) {
+          target = student;
+          break;
         }
+      }
 
+      if (target == null) {
+        _notificationStudentOpenScheduled = false;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -371,22 +382,12 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-      });
-      return;
-    }
-
-    _notificationStudentOpenScheduled = true;
-    final selectedStudent = target;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) {
-        _notificationStudentOpenScheduled = false;
         return;
       }
 
       await showTeacherStudentInfoSheet(
         context: context,
-        student: selectedStudent,
+        student: target,
       );
 
       _notificationStudentOpenScheduled = false;
