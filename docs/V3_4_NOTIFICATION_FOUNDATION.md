@@ -20,14 +20,18 @@ Development order:
 
 ## 2. Teacher v1 notification scope
 
-The first production slice for regular teachers is limited to:
+The first production slice for regular teachers is limited to 8 semantic events:
 
-- new lesson assignment
-- lesson schedule changed
+- new student / initial assignment
+- one-off lesson changed
 - lesson canceled
 - makeup lesson created
 - makeup lesson canceled
 - flex student reservation
+- regular schedule changed
+- newly assigned teacher after teacher reassignment
+
+`REGULAR_SCHEDULE_ENDED` remains an audit event only and is not a Push event.
 
 Regular teachers do not mutate their own assigned lessons in the current product flow, so self-notification suppression is not a first-phase requirement for the teacher role.
 
@@ -261,9 +265,15 @@ Expected responsibilities:
 
 ### notification_preferences
 
-Stores per-profile notification preferences.
+Keeps the current Flutter-compatible grouped settings contract and global Push toggle.
 
-Initial teacher version can use a simple global Push toggle and expand later by event type.
+Event-level settings are normalized internally in:
+
+- `private.notification_event_catalog`
+- `private.notification_role_policy`
+- `private.notification_event_preferences`
+
+The existing grouped Flutter settings are synchronized to event-level preferences by a database trigger, so the current UI remains compatible while the backend is ready for more roles and events.
 
 ### notification_outbox
 
@@ -337,19 +347,20 @@ v3.4 must not ship when any of the following is reproducible:
 - [ ] teacher Android Firebase registration verified
 - [ ] teacher iOS Firebase registration verified
 - [x] FCM HTTP v1 enabled
-- [ ] Apple Push Notifications capability enabled
-- [ ] APNs auth key created
-- [ ] APNs auth key uploaded to teacher Firebase iOS app
+- [x] Apple Push Notifications capability enabled
+- [x] APNs auth key created
+- [x] APNs auth key uploaded to teacher Firebase iOS app
 - [x] legacy Firebase runtime inventory started
 - [ ] active scheduler bindings inspected
 - [ ] legacy Cloud Functions removed after dependency check
 - [ ] release cleanup script updated for FCM
-- [ ] FlutterFire configuration regenerated
-- [ ] `firebase_core` added
-- [ ] `firebase_messaging` added
+- [x] FlutterFire configuration regenerated
+- [x] `firebase_core` added
+- [x] `firebase_messaging` added
 - [ ] Android physical-device FCM token verified
-- [ ] iOS physical-device APNs + FCM token verified
-- [ ] proceed to notification outbox / sender implementation
+- [x] iOS physical-device APNs + FCM token verified
+- [x] notification outbox / sender implementation
+- [x] iPhone background Push E2E verified
 
 
 ---
@@ -364,8 +375,12 @@ Implemented on `feature/notifications-v3.4` and applied to production Supabase:
 - `notification_deliveries`
 - authenticated device register / unregister RPCs
 - authenticated notification preference RPCs
-- teacher assignment -> outbox trigger
-- audit event -> outbox trigger
+- semantic notification event catalog
+- role-based release policy (teacher enabled, manager/master disabled)
+- event-level notification preferences with grouped-setting compatibility
+- initial assignment -> `STUDENT_ASSIGNED` audit normalization
+- audit event -> notification domain transformer -> outbox
+- common payload envelope (`schemaVersion/notificationId/targetKind/targetId/navigationKind/recipientProfileId/...`)
 - idempotent outbox keys
 - atomic `SKIP LOCKED` outbox claim RPC
 - FCM HTTP v1 Edge Function
@@ -376,21 +391,17 @@ Implemented on `feature/notifications-v3.4` and applied to production Supabase:
 - Vault-backed internal dispatcher authentication
 - regular-schedule-end notification storm prevention
 
-### Regular schedule end deduplication
+### Regular schedule end policy
 
-`end_regular_schedule()` may cancel many untouched future lesson rows.
-Each cancellation writes a `LESSON_CANCELED` audit event.
+`end_regular_schedule()` may create internal child cancellation audit events.
 
-Sending one Push for every internal child cancellation would create a
-notification storm. The v3.4 trigger therefore:
+The v3.4 policy is:
 
-1. suppresses `LESSON_CANCELED` events whose reason is
-   `regular_schedule_ended`
-2. listens for the single `REGULAR_SCHEDULE_ENDED` audit event
-3. creates one `lesson_schedule_changed` outbox item for the teacher
+1. `REGULAR_SCHEDULE_ENDED` remains in the operational audit ledger
+2. it is **not** converted to a Push notification
+3. child `LESSON_CANCELED` events whose reason is `regular_schedule_ended` are also suppressed from Push
 
-This preserves the operational audit ledger while keeping the user-facing
-notification semantics at one meaningful event.
+This preserves detailed audit history without producing either a schedule-end Push or a cancellation storm.
 
 ---
 
