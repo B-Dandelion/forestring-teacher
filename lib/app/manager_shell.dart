@@ -215,12 +215,20 @@ class _ManagerShellState extends State<ManagerShell> {
 
     _notificationResolutionScheduled = true;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _notificationResolutionScheduled = false;
-
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) {
+        _notificationResolutionScheduled = false;
         return;
       }
+
+      await lessonController.reload();
+
+      if (!mounted) {
+        _notificationResolutionScheduled = false;
+        return;
+      }
+
+      _notificationResolutionScheduled = false;
 
       final intent = coordinator.takePendingForProfile(
         widget.profile.id,
