@@ -28,6 +28,9 @@ class StudentManagementPage extends StatelessWidget {
     this.teacherManagementRepository,
     this.isQaSandbox = false,
     this.embeddedInShell = false,
+    this.notificationStudentId,
+    this.notificationBranchId,
+    this.notificationRevision = 0,
   });
 
   final CurrentProfile profile;
@@ -40,6 +43,9 @@ class StudentManagementPage extends StatelessWidget {
   final StudentTeacherManagementRepository? teacherManagementRepository;
   final bool isQaSandbox;
   final bool embeddedInShell;
+  final String? notificationStudentId;
+  final String? notificationBranchId;
+  final int notificationRevision;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +72,9 @@ class StudentManagementPage extends StatelessWidget {
       regularScheduleRepository: regularScheduleRepository,
       teacherManagementRepository: teacherManagementRepository,
       embeddedInShell: embeddedInShell,
+      notificationStudentId: notificationStudentId,
+      notificationBranchId: notificationBranchId,
+      notificationRevision: notificationRevision,
     );
   }
 }

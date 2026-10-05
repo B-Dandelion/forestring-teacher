@@ -9,6 +9,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app_gate.dart';
 import 'core/config/app_config.dart';
+import 'core/notifications/notification_foreground_host.dart';
+import 'core/notifications/notification_navigation_coordinator.dart';
 import 'core/notifications/push_device_registration_service.dart';
 import 'core/notifications/push_messaging_service.dart';
 import 'core/theme/forestring_theme.dart';
@@ -55,8 +57,15 @@ Future<void> main() async {
   );
 
   runApp(
-    ChangeNotifierProvider.value(
-      value: authController,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(
+          value: authController,
+        ),
+        ChangeNotifierProvider.value(
+          value: NotificationNavigationCoordinator.instance,
+        ),
+      ],
       child: const ForestringTeacher(),
     ),
   );
@@ -97,7 +106,9 @@ class ForestringTeacher extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: '포레스트링 선생님',
         theme: buildForestringTheme(),
-        home: const AppGate(),
+        home: const NotificationForegroundHost(
+          child: AppGate(),
+        ),
       ),
     );
   }

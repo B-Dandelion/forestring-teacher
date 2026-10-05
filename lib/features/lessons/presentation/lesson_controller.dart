@@ -45,6 +45,14 @@ class LessonController extends ChangeNotifier {
   bool get canManageLessons => isMaster || isManager;
   LessonRepository get repository => _repository;
 
+  Lesson? findLessonById(String lessonId) {
+    for (final lesson in _lessons) {
+      if (lesson.id == lessonId) {
+        return lesson;
+      }
+    }
+    return null;
+  }
 
   List<VisibleTeacher> get branchTeachers {
     if (!canManageLessons || _selectedBranchId == null) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
+import '../../../core/notifications/notification_payload.dart';
 import '../../../core/qa/qa_sandbox_repositories.dart';
 import '../../../core/qa/qa_sandbox_store.dart';
 import '../../../core/theme/forestring_theme.dart';
@@ -23,6 +24,7 @@ import 'widgets/blocked_period_calendar_appointment.dart';
 import 'widgets/blocked_period_info_dialog.dart';
 import 'widgets/lesson_action_dialog.dart';
 import 'widgets/lesson_calendar_appointment.dart';
+import 'widgets/notification_lesson_highlight.dart';
 
 class MasterSchedulePage extends StatelessWidget {
   const MasterSchedulePage({
@@ -31,12 +33,16 @@ class MasterSchedulePage extends StatelessWidget {
     this.isQaSandbox = false,
     this.onQaExit,
     this.embeddedInShell = false,
+    this.notificationFocus,
+    this.notificationFocusRevision = 0,
   });
 
   final CurrentProfile profile;
   final bool isQaSandbox;
   final VoidCallback? onQaExit;
   final bool embeddedInShell;
+  final NotificationNavigationIntent? notificationFocus;
+  final int notificationFocusRevision;
 
   @override
   Widget build(BuildContext context) {
@@ -330,6 +336,9 @@ class MasterSchedulePage extends StatelessWidget {
           ? _ManagerScheduleBody(
               controller: controller,
               profile: profile,
+              notificationFocus: notificationFocus,
+              notificationFocusRevision:
+                  notificationFocusRevision,
             )
           : SafeArea(
               child: RefreshIndicator(
@@ -612,10 +621,14 @@ class _ManagerScheduleBody extends StatefulWidget {
   const _ManagerScheduleBody({
     required this.controller,
     required this.profile,
+    required this.notificationFocus,
+    required this.notificationFocusRevision,
   });
 
   final LessonController controller;
   final CurrentProfile profile;
+  final NotificationNavigationIntent? notificationFocus;
+  final int notificationFocusRevision;
 
   @override
   State<_ManagerScheduleBody> createState() =>
@@ -625,6 +638,8 @@ class _ManagerScheduleBody extends StatefulWidget {
 class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
   late final CalendarController _calendarController;
   late DateTime _visibleWeekStart;
+  int _lastAppliedNotificationFocusRevision = -1;
+  String? _highlightedLessonId;
 
   @override
   void initState() {
@@ -655,6 +670,42 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
             : const <String, Color>{};
     final selectedTeacherId = controller.selectedTeacherId;
     final branchName = _selectedBranchName(controller);
+    final notificationFocus = widget.notificationFocus;
+
+    if (!controller.isLoading &&
+        notificationFocus != null &&
+        _lastAppliedNotificationFocusRevision !=
+            widget.notificationFocusRevision) {
+      _lastAppliedNotificationFocusRevision =
+          widget.notificationFocusRevision;
+
+      final targetLesson = controller.findLessonById(
+        notificationFocus.targetId,
+      );
+      final targetDate =
+          targetLesson?.startsAt ?? notificationFocus.startsAt;
+      final highlightedLessonId =
+          targetLesson != null && !targetLesson.isCanceled
+              ? targetLesson.id
+              : null;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+
+        if (targetDate != null) {
+          _calendarController.displayDate = targetDate;
+        }
+
+        setState(() {
+          if (targetDate != null) {
+            _visibleWeekStart = _startOfWeek(targetDate);
+          }
+          _highlightedLessonId = highlightedLessonId;
+        });
+      });
+    }
 
     final meetings = <Object>[
       ...controller.visibleLessons
@@ -896,10 +947,26 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
                               return const SizedBox.shrink();
                             }
 
-                            return LessonCalendarAppointment(
+                            final appointment =
+                                LessonCalendarAppointment(
                               lesson: meeting.lesson,
                               displayMode: displayMode,
-                              accentColor: meeting.studentAccentColor,
+                              accentColor:
+                                  meeting.studentAccentColor,
+                            );
+
+                            if (meeting.lesson.id !=
+                                _highlightedLessonId) {
+                              return appointment;
+                            }
+
+                            return NotificationLessonHighlight(
+                              key: ValueKey(
+                                'notification-highlight-'
+                                '${meeting.lesson.id}-'
+                                '${widget.notificationFocusRevision}',
+                              ),
+                              child: appointment,
                             );
                           },
                           specialRegions: selectedTeacherId == null
@@ -956,6 +1023,13 @@ class _ManagerScheduleBodyState extends State<_ManagerScheduleBody> {
                             }
                             if (meeting is! _MasterMeeting) {
                               return;
+                            }
+
+                            if (_highlightedLessonId ==
+                                meeting.lesson.id) {
+                              setState(() {
+                                _highlightedLessonId = null;
+                              });
                             }
 
                             showLessonActionDialog(

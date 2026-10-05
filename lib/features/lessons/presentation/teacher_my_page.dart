@@ -19,14 +19,19 @@ import '../../teachers/data/teacher_repository.dart';
 import '../domain/lesson.dart';
 import 'lesson_controller.dart';
 import 'lesson_visual_style.dart';
+import 'widgets/teacher_student_info_sheet.dart';
 
 class TeacherMyPage extends StatefulWidget {
   const TeacherMyPage({
     super.key,
     required this.profile,
+    this.notificationStudentId,
+    this.notificationStudentRevision = 0,
   });
 
   final CurrentProfile profile;
+  final String? notificationStudentId;
+  final int notificationStudentRevision;
 
   @override
   State<TeacherMyPage> createState() => _TeacherMyPageState();
@@ -44,6 +49,8 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
   List<String> _studentOrder = const [];
   bool _loadingStudents = true;
   String? _studentError;
+  int _lastNotificationStudentRevision = -1;
+  bool _notificationStudentOpenScheduled = false;
 
   @override
   void initState() {
@@ -326,6 +333,66 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
     }
   }
 
+  void _scheduleNotificationStudentInfo() {
+    final studentId = widget.notificationStudentId;
+
+    if (studentId == null ||
+        studentId.isEmpty ||
+        _loadingStudents ||
+        _notificationStudentOpenScheduled ||
+        _lastNotificationStudentRevision ==
+            widget.notificationStudentRevision) {
+      return;
+    }
+
+    AssignedStudentSummary? target;
+
+    for (final student in _students) {
+      if (student.id == studentId) {
+        target = student;
+        break;
+      }
+    }
+
+    _lastNotificationStudentRevision =
+        widget.notificationStudentRevision;
+
+    if (target == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              '알림의 학생 정보를 현재 담당 수강생 목록에서 찾지 못했습니다.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      });
+      return;
+    }
+
+    _notificationStudentOpenScheduled = true;
+    final selectedStudent = target;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        _notificationStudentOpenScheduled = false;
+        return;
+      }
+
+      await showTeacherStudentInfoSheet(
+        context: context,
+        student: selectedStudent,
+      );
+
+      _notificationStudentOpenScheduled = false;
+    });
+  }
+
   Future<void> _refresh() async {
     final controller = context.read<LessonController>();
 
@@ -342,6 +409,8 @@ class _TeacherMyPageState extends State<TeacherMyPage> {
 
   @override
   Widget build(BuildContext context) {
+    _scheduleNotificationStudentInfo();
+
     final lessonController = context.watch<LessonController>();
     final accentController = context.watch<StudentAccentController>();
     final now = DateTime.now();

@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../core/notifications/notification_destination_resolver.dart';
+import '../core/notifications/notification_navigation_coordinator.dart';
+import '../core/notifications/notification_payload.dart';
 import '../core/theme/forestring_theme.dart';
 import '../features/auth/domain/current_profile.dart';
 import '../features/lessons/presentation/teacher_home_page.dart';
@@ -22,12 +27,18 @@ class _TeacherShellState extends State<TeacherShell> {
 
   int _currentIndex = _scheduleIndex;
   int _weekFocusRevision = 0;
+  NotificationNavigationIntent? _notificationLessonFocus;
+  int _notificationLessonFocusRevision = 0;
+  String? _notificationStudentId;
+  int _notificationStudentRevision = 0;
+  bool _notificationResolutionScheduled = false;
 
   void _selectTab(int index) {
     if (index == 0) {
       setState(() {
         _currentIndex = index;
         _weekFocusRevision += 1;
+        _notificationLessonFocus = null;
       });
       return;
     }
@@ -41,8 +52,75 @@ class _TeacherShellState extends State<TeacherShell> {
     });
   }
 
+  void _scheduleNotificationResolution(
+    NotificationNavigationCoordinator coordinator,
+    LessonController lessonController,
+  ) {
+    if (_notificationResolutionScheduled ||
+        lessonController.isLoading ||
+        !coordinator.hasPendingNavigation) {
+      return;
+    }
+
+    _notificationResolutionScheduled = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _notificationResolutionScheduled = false;
+
+      if (!mounted) {
+        return;
+      }
+
+      final intent = coordinator.takePendingForProfile(
+        widget.profile.id,
+      );
+      if (intent == null) {
+        return;
+      }
+
+      final destination = NotificationDestinationResolver.resolve(
+        profile: widget.profile,
+        intent: intent,
+      );
+      if (destination == null) {
+        return;
+      }
+
+      Navigator.of(context).popUntil((route) => route.isFirst);
+
+      switch (destination.kind) {
+        case NotificationDestinationKind.teacherWeek:
+          setState(() {
+            _currentIndex = 0;
+            _notificationLessonFocus = intent;
+            _notificationLessonFocusRevision += 1;
+          });
+          return;
+        case NotificationDestinationKind.teacherStudentDetail:
+          setState(() {
+            _currentIndex = 2;
+            _notificationStudentId = intent.studentId;
+            _notificationStudentRevision += 1;
+          });
+          return;
+        case NotificationDestinationKind.managementWeek:
+        case NotificationDestinationKind.managementStudentDetail:
+          return;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final lessonController = context.watch<LessonController>();
+    final notificationCoordinator =
+        context.watch<NotificationNavigationCoordinator>();
+
+    _scheduleNotificationResolution(
+      notificationCoordinator,
+      lessonController,
+    );
+
     return PopScope(
         canPop: _currentIndex == _scheduleIndex,
         onPopInvokedWithResult: (didPop, result) {
@@ -61,12 +139,18 @@ class _TeacherShellState extends State<TeacherShell> {
               WeekSchedulePage(
                 profile: widget.profile,
                 focusRevision: _weekFocusRevision,
+                notificationFocus: _notificationLessonFocus,
+                notificationFocusRevision:
+                    _notificationLessonFocusRevision,
               ),
               TeacherHomePage(
                 profile: widget.profile,
               ),
               TeacherMyPage(
                 profile: widget.profile,
+                notificationStudentId: _notificationStudentId,
+                notificationStudentRevision:
+                    _notificationStudentRevision,
               ),
             ],
           ),

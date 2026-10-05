@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../firebase_options.dart';
+import 'notification_navigation_coordinator.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -35,7 +36,6 @@ class PushMessagingService {
 
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
   StreamSubscription<RemoteMessage>? _openedSubscription;
-  StreamSubscription<String>? _tokenRefreshSubscription;
 
   bool _initialized = false;
 
@@ -54,9 +54,9 @@ class PushMessagingService {
 
     if (Platform.isIOS) {
       await _messaging.setForegroundNotificationPresentationOptions(
-        alert: true,
+        alert: false,
         badge: true,
-        sound: true,
+        sound: false,
       );
     }
 
@@ -65,16 +65,20 @@ class PushMessagingService {
     );
 
     _openedSubscription = FirebaseMessaging.onMessageOpenedApp.listen(
-      _handleOpenedMessage,
-    );
-
-    _tokenRefreshSubscription = _messaging.onTokenRefresh.listen(
-      _handleTokenRefresh,
+      (message) {
+        _handleOpenedMessage(
+          message,
+          fromTerminated: false,
+        );
+      },
     );
 
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
-      _handleOpenedMessage(initialMessage);
+      _handleOpenedMessage(
+        initialMessage,
+        fromTerminated: true,
+      );
     }
   }
 
@@ -140,45 +144,44 @@ class PushMessagingService {
   }
 
   void _handleForegroundMessage(RemoteMessage message) {
-    if (!kDebugMode) {
-      return;
-    }
-
-    debugPrint(
-      '[FCM] foreground message: '
-      'id=${message.messageId}, data=${message.data}',
+    NotificationNavigationCoordinator.instance.receiveForeground(
+      message,
     );
+
+    if (kDebugMode) {
+      debugPrint(
+        '[FCM] foreground message: '
+        'id=${message.messageId}, '
+        'dataKeys=${message.data.keys.toList()}',
+      );
+    }
   }
 
-  void _handleOpenedMessage(RemoteMessage message) {
-    if (!kDebugMode) {
-      return;
-    }
-
-    debugPrint(
-      '[FCM] opened message: '
-      'id=${message.messageId}, data=${message.data}',
+  void _handleOpenedMessage(
+    RemoteMessage message, {
+    required bool fromTerminated,
+  }) {
+    NotificationNavigationCoordinator.instance.receiveOpened(
+      message,
+      fromTerminated: fromTerminated,
     );
-  }
 
-  void _handleTokenRefresh(String token) {
-    if (!kDebugMode) {
-      return;
+    if (kDebugMode) {
+      debugPrint(
+        '[FCM] opened message: '
+        'id=${message.messageId}, '
+        'fromTerminated=$fromTerminated, '
+        'dataKeys=${message.data.keys.toList()}',
+      );
     }
-
-    debugPrint(
-      '[FCM] registration token refreshed: tokenPresent=${token.isNotEmpty}',
-    );
   }
 
   Future<void> dispose() async {
     await _foregroundSubscription?.cancel();
     await _openedSubscription?.cancel();
-    await _tokenRefreshSubscription?.cancel();
 
     _foregroundSubscription = null;
     _openedSubscription = null;
-    _tokenRefreshSubscription = null;
     _initialized = false;
   }
 }

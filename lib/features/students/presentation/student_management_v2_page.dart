@@ -34,6 +34,9 @@ class StudentManagementV2Page extends StatefulWidget {
     this.regularScheduleRepository,
     this.teacherManagementRepository,
     this.embeddedInShell = false,
+    this.notificationStudentId,
+    this.notificationBranchId,
+    this.notificationRevision = 0,
   });
 
   final CurrentProfile profile;
@@ -45,6 +48,9 @@ class StudentManagementV2Page extends StatefulWidget {
   final StudentRegularScheduleRepository? regularScheduleRepository;
   final StudentTeacherManagementRepository? teacherManagementRepository;
   final bool embeddedInShell;
+  final String? notificationStudentId;
+  final String? notificationBranchId;
+  final int notificationRevision;
 
   @override
   State<StudentManagementV2Page> createState() =>
@@ -68,6 +74,8 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
   String _statusFilter = 'active';
   bool _loading = true;
   String? _errorMessage;
+  int _lastNotificationStudentRevision = -1;
+  bool _notificationStudentOpenScheduled = false;
 
   @override
   void initState() {
@@ -124,8 +132,9 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
           .where((branch) => branch.isActive)
           .toList()
         ..sort((a, b) => a.name.compareTo(b.name));
-      final branchId =
-          widget.profile.isManager ? widget.profile.branchId : null;
+      final branchId = widget.profile.isManager
+          ? widget.profile.branchId
+          : widget.notificationBranchId;
 
       if (!mounted) return;
       setState(() {
@@ -164,6 +173,59 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _scheduleNotificationStudentOpen() {
+    final studentId = widget.notificationStudentId;
+
+    if (studentId == null ||
+        studentId.isEmpty ||
+        _loading ||
+        _notificationStudentOpenScheduled ||
+        _lastNotificationStudentRevision ==
+            widget.notificationRevision) {
+      return;
+    }
+
+    ManagedStudent? target;
+
+    for (final student in _students) {
+      if (student.id == studentId) {
+        target = student;
+        break;
+      }
+    }
+
+    _lastNotificationStudentRevision = widget.notificationRevision;
+
+    if (target == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('알림의 수강생 정보를 찾지 못했습니다.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      });
+      return;
+    }
+
+    _notificationStudentOpenScheduled = true;
+    final selectedStudent = target;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        _notificationStudentOpenScheduled = false;
+        return;
+      }
+
+      await _openStudent(selectedStudent);
+      _notificationStudentOpenScheduled = false;
+    });
   }
 
   List<ManagedStudent> get _visibleStudents {
@@ -260,6 +322,8 @@ class _StudentManagementV2PageState extends State<StudentManagementV2Page> {
 
   @override
   Widget build(BuildContext context) {
+    _scheduleNotificationStudentOpen();
+
     final visibleStudents = _visibleStudents;
 
     return Scaffold(

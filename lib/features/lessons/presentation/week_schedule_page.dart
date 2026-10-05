@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
+import '../../../core/notifications/notification_payload.dart';
 import '../../../core/theme/forestring_theme.dart';
 import '../../../core/theme/student_accent_controller.dart';
 import '../../auth/domain/current_profile.dart';
@@ -12,16 +13,21 @@ import 'widgets/blocked_period_calendar_appointment.dart';
 import 'widgets/blocked_period_info_dialog.dart';
 import 'widgets/lesson_calendar_appointment.dart';
 import 'widgets/lesson_info_dialog.dart';
+import 'widgets/notification_lesson_highlight.dart';
 
 class WeekSchedulePage extends StatefulWidget {
   const WeekSchedulePage({
     super.key,
     required this.profile,
     required this.focusRevision,
+    this.notificationFocus,
+    this.notificationFocusRevision = 0,
   });
 
   final CurrentProfile profile;
   final int focusRevision;
+  final NotificationNavigationIntent? notificationFocus;
+  final int notificationFocusRevision;
 
   @override
   State<WeekSchedulePage> createState() => _WeekSchedulePageState();
@@ -30,6 +36,8 @@ class WeekSchedulePage extends StatefulWidget {
 class _WeekSchedulePageState extends State<WeekSchedulePage> {
   final CalendarController _calendarController = CalendarController();
   int _lastAppliedFocusRevision = -1;
+  int _lastAppliedNotificationFocusRevision = -1;
+  String? _highlightedLessonId;
 
   @override
   void dispose() {
@@ -65,8 +73,42 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
     ];
 
     final focusTarget = DateTime.now();
+    final notificationFocus = widget.notificationFocus;
 
     if (!controller.isLoading &&
+        notificationFocus != null &&
+        _lastAppliedNotificationFocusRevision !=
+            widget.notificationFocusRevision) {
+      _lastAppliedNotificationFocusRevision =
+          widget.notificationFocusRevision;
+      _lastAppliedFocusRevision = widget.focusRevision;
+
+      final targetLesson = controller.findLessonById(
+        notificationFocus.targetId,
+      );
+      final targetDate =
+          targetLesson?.startsAt ?? notificationFocus.startsAt;
+      final highlightedLessonId =
+          targetLesson != null && !targetLesson.isCanceled
+              ? targetLesson.id
+              : null;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+
+        if (targetDate != null) {
+          _calendarController.displayDate = targetDate;
+        }
+
+        if (_highlightedLessonId != highlightedLessonId) {
+          setState(() {
+            _highlightedLessonId = highlightedLessonId;
+          });
+        }
+      });
+    } else if (!controller.isLoading &&
         _lastAppliedFocusRevision != widget.focusRevision) {
       _lastAppliedFocusRevision = widget.focusRevision;
 
@@ -76,6 +118,12 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
         }
 
         _calendarController.displayDate = focusTarget;
+
+        if (_highlightedLessonId != null) {
+          setState(() {
+            _highlightedLessonId = null;
+          });
+        }
       });
     }
 
@@ -145,10 +193,24 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
                           return const SizedBox.shrink();
                         }
 
-                        return LessonCalendarAppointment(
+                        final appointment = LessonCalendarAppointment(
                           lesson: meeting.lesson,
                           displayMode: displayMode,
                           accentColor: meeting.accentColor,
+                        );
+
+                        if (meeting.lesson.id !=
+                            _highlightedLessonId) {
+                          return appointment;
+                        }
+
+                        return NotificationLessonHighlight(
+                          key: ValueKey(
+                            'notification-highlight-'
+                            '${meeting.lesson.id}-'
+                            '${widget.notificationFocusRevision}',
+                          ),
+                          child: appointment,
                         );
                       },
                       specialRegions: _timeRegions(
@@ -209,6 +271,13 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
 
                         if (meeting is! _LessonMeeting) {
                           return;
+                        }
+
+                        if (_highlightedLessonId ==
+                            meeting.lesson.id) {
+                          setState(() {
+                            _highlightedLessonId = null;
+                          });
                         }
 
                         showLessonInfoDialog(

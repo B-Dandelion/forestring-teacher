@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../core/notifications/notification_destination_resolver.dart';
+import '../core/notifications/notification_navigation_coordinator.dart';
+import '../core/notifications/notification_payload.dart';
 import '../core/qa/qa_sandbox_repositories.dart';
 import '../core/qa/qa_sandbox_store.dart';
 import '../core/theme/forestring_theme.dart';
@@ -36,6 +39,12 @@ class _ManagerShellState extends State<ManagerShell> {
 
   int _currentIndex = _scheduleIndex;
   late final List<Widget?> _pages;
+  NotificationNavigationIntent? _notificationLessonFocus;
+  int _notificationLessonFocusRevision = 0;
+  String? _notificationStudentId;
+  String? _notificationStudentBranchId;
+  int _notificationStudentRevision = 0;
+  bool _notificationResolutionScheduled = false;
 
   @override
   void initState() {
@@ -131,6 +140,9 @@ class _ManagerShellState extends State<ManagerShell> {
           isQaSandbox: widget.isQaSandbox,
           onQaExit: widget.onQaExit,
           embeddedInShell: true,
+          notificationFocus: _notificationLessonFocus,
+          notificationFocusRevision:
+              _notificationLessonFocusRevision,
         ),
       1 => StudentManagementPage(
           profile: widget.profile,
@@ -154,6 +166,9 @@ class _ManagerShellState extends State<ManagerShell> {
               : QaStudentTeacherManagementRepository(qaStore),
           isQaSandbox: widget.isQaSandbox,
           embeddedInShell: true,
+          notificationStudentId: _notificationStudentId,
+          notificationBranchId: _notificationStudentBranchId,
+          notificationRevision: _notificationStudentRevision,
         ),
       2 => TeacherManagementPage(
           profile: widget.profile,
@@ -187,9 +202,83 @@ class _ManagerShellState extends State<ManagerShell> {
     };
   }
 
+  void _scheduleNotificationResolution(
+    NotificationNavigationCoordinator coordinator,
+    LessonController lessonController,
+  ) {
+    if (widget.isQaSandbox ||
+        _notificationResolutionScheduled ||
+        lessonController.isLoading ||
+        !coordinator.hasPendingNavigation) {
+      return;
+    }
+
+    _notificationResolutionScheduled = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _notificationResolutionScheduled = false;
+
+      if (!mounted) {
+        return;
+      }
+
+      final intent = coordinator.takePendingForProfile(
+        widget.profile.id,
+      );
+      if (intent == null) {
+        return;
+      }
+
+      final destination = NotificationDestinationResolver.resolve(
+        profile: widget.profile,
+        intent: intent,
+      );
+      if (destination == null) {
+        return;
+      }
+
+      Navigator.of(context).popUntil((route) => route.isFirst);
+
+      switch (destination.kind) {
+        case NotificationDestinationKind.managementWeek:
+          if (widget.profile.isMaster) {
+            lessonController.selectBranch(intent.branchId);
+          }
+          lessonController.selectTeacher(intent.teacherId);
+
+          setState(() {
+            _currentIndex = _scheduleIndex;
+            _notificationLessonFocus = intent;
+            _notificationLessonFocusRevision += 1;
+            _pages[_scheduleIndex] = null;
+          });
+          return;
+        case NotificationDestinationKind.managementStudentDetail:
+          setState(() {
+            _currentIndex = 1;
+            _notificationStudentId = intent.studentId;
+            _notificationStudentBranchId = intent.branchId;
+            _notificationStudentRevision += 1;
+            _pages[1] = null;
+          });
+          return;
+        case NotificationDestinationKind.teacherWeek:
+        case NotificationDestinationKind.teacherStudentDetail:
+          return;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<LessonController>();
+    final notificationCoordinator =
+        context.watch<NotificationNavigationCoordinator>();
+
+    _scheduleNotificationResolution(
+      notificationCoordinator,
+      controller,
+    );
     final accentController = context.watch<StudentAccentController>();
     final qaStore = widget.isQaSandbox
         ? context.read<QaSandboxStore>()
