@@ -152,7 +152,8 @@ class StudentRegularScheduleRepository {
             .from('profiles')
             .select('id, display_name')
             .inFilter('id', teacherIds)
-            .eq('is_review_account', false);
+            .eq('is_review_account', false)
+            .eq('is_qa_account', false);
 
         for (final row in profileRows) {
           teacherNames[row['id'] as String] = row['display_name'].toString();

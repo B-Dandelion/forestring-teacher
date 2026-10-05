@@ -99,6 +99,7 @@ class BranchRepository {
           .eq('role', 'manager')
           .eq('is_active', true)
           .eq('is_review_account', false)
+          .eq('is_qa_account', false)
           .order('display_name', ascending: true);
 
       return rows

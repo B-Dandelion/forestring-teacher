@@ -276,6 +276,7 @@ class LessonRepository {
           .select('id, display_name, branch_id, is_active')
           .eq('role', 'student')
           .eq('is_review_account', false)
+          .eq('is_qa_account', false)
           .order('display_name');
 
       final profiles = (profileRows as List)

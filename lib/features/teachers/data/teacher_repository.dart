@@ -322,12 +322,14 @@ class TeacherRepository {
               .select('id, display_name, branch_id, is_active')
               .eq('role', 'teacher')
               .eq('is_review_account', false)
+              .eq('is_qa_account', false)
               .order('display_name')
           : await _client
               .from('profiles')
               .select('id, display_name, branch_id, is_active')
               .eq('role', 'teacher')
               .eq('is_review_account', false)
+              .eq('is_qa_account', false)
               .eq('branch_id', branchId)
               .order('display_name');
 
@@ -501,7 +503,8 @@ class TeacherRepository {
             .select('id, display_name, is_active')
             .inFilter('id', studentIds)
             .eq('role', 'student')
-            .eq('is_review_account', false),
+            .eq('is_review_account', false)
+            .eq('is_qa_account', false),
         _client
             .from('students')
             .select('id, student_type, status')

@@ -140,12 +140,14 @@ class StudentManagementRepository {
               .select('id, display_name, branch_id, is_active')
               .eq('role', 'student')
               .eq('is_review_account', false)
+              .eq('is_qa_account', false)
               .order('display_name')
           : await _client
               .from('profiles')
               .select('id, display_name, branch_id, is_active')
               .eq('role', 'student')
               .eq('is_review_account', false)
+              .eq('is_qa_account', false)
               .eq('branch_id', branchId)
               .order('display_name');
 
@@ -255,6 +257,7 @@ class StudentManagementRepository {
             .select('id, display_name')
             .inFilter('id', teacherIds)
             .eq('is_review_account', false)
+            .eq('is_qa_account', false)
             .order('display_name');
 
         for (final raw in teacherRows as List) {

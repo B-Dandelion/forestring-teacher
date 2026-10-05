@@ -36,6 +36,7 @@ class StudentTeacherManagementRepository {
           .eq('branch_id', branchId)
           .eq('is_active', true)
           .eq('is_review_account', false)
+          .eq('is_qa_account', false)
           .inFilter('role', ['teacher', 'manager'])
           .order('display_name');
 
