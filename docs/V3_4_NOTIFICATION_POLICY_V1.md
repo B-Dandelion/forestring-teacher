@@ -1,7 +1,7 @@
 # Forestring v3.4 알림 정책 1차 확정안
 
 작성일: 2026-10-05  
-상태: 1차 확정  
+상태: 1차 확정 / DB 구조 반영  
 대상 앱: 선생님·지점장·전체 관리자 앱  
 첫 출시 범위: 일반 선생님 Push만 활성화
 
@@ -62,7 +62,6 @@ Forestring의 Push 알림은 특정 `lesson_id` 중심 기능으로 제한하지
 | 보강 수업 취소 | 보강 일정 취소 인지 | 해당 날짜·시간 또는 취소 수업 정보 | ON |
 | 자율 학생 수업 예약 | 학생이 직접 예약한 신규 수업 인지 | 해당 수업 강조 | ON |
 | 정규 일정 변경 | 반복 일정 규칙 변경 인지 | 마이페이지 → 해당 학생 상세 | ON |
-| 정규 일정 종료 | 향후 정규 일정 종료 인지 | 마이페이지 → 해당 학생 상세 | ON |
 | 새 담당 선생님 배정 | 학생이 새 담당 선생님에게 배정됨 | 마이페이지 → 해당 학생 상세 | ON |
 | 학생 퇴원 예정/확정 | 담당 학생의 향후 수업 종료 인지 | 학생 정보 또는 마지막 수업 주차 | OFF / 향후 |
 | 근무시간 변경 | 예약 가능 시간 변경 인지 | 주간 화면 + 변경 시간대 | OFF / 향후 |
@@ -187,24 +186,17 @@ notification_role_policy
 ```
 
 첫 출시 정책:
-- teacher: 핵심 이벤트만 `release_enabled=true`
+- teacher: v1 핵심 8개 이벤트만 `release_enabled=true`
 - manager: `release_enabled=false`
 - master: `release_enabled=false`
+
+DB에는 `private.notification_event_catalog`과 `private.notification_role_policy`로 반영되어 있다.
 
 ### 6.4 사용자 개인 설정은 이벤트 추가에 대응 가능해야 한다
 
 이벤트가 늘어날 것을 고려해 장기적으로는 알림 설정을 이벤트별 행 구조로 확장할 수 있도록 한다.
 
-예:
-
-```text
-notification_preference_events
-- profile_id
-- event_key
-- enabled
-```
-
-현재 구현과의 호환성은 실제 스키마 변경 단계에서 별도 검토한다.
+실제 DB에는 `private.notification_event_preferences(profile_id, event_key, enabled)`를 두었다. 기존 Flutter 알림 설정 UI는 그룹형 설정을 그대로 사용하고, DB trigger가 해당 값을 이벤트 단위 설정으로 동기화한다. 따라서 앱 UI 호환성을 깨지 않으면서 향후 이벤트별 설정으로 확장할 수 있다.
 
 ---
 
@@ -261,15 +253,18 @@ lesson이 아닌 정규 일정/개인 일정/담당 관계 이벤트는 각 targ
 
 ## 9. 다음 작업
 
-1. 일반 선생님 첫 출시 ON 이벤트의 domain event key를 확정한다.
-2. 각 이벤트별 필요한 payload/context 필드를 표로 정의한다.
-3. 현재 audit event / RPC / trigger / outbox payload가 필요한 정보를 제공하는지 전수 감사한다.
-4. 부족한 domain event 또는 payload를 추가한다.
-5. 역할별 recipient policy를 구현한다.
-6. Notification navigation intent/coordinator 및 destination resolver를 구현한다.
-7. Foreground / Background / Terminated를 iPhone 실기기에서 각각 검증한다.
-8. 일반 선생님 v1 검증 완료 후 manager/master 발송은 비활성 상태로 출시한다.
-9. 개발자 운영 알림은 별도 정책 문서 및 수신 방식으로 설계한다.
+완료:
+1. 일반 선생님 첫 출시 ON 이벤트 8종 확정
+2. 이벤트별 payload/context 계약 확정
+3. audit/RPC/trigger/outbox/FCM payload 전수 감사
+4. notification event catalog / role policy / event preference / domain transformer DB 반영
+5. manager/master `release_enabled=false` 정책 반영
+
+다음:
+1. Flutter Notification navigation intent/coordinator 및 destination resolver 구현
+2. Foreground / Background / Terminated를 iPhone 실기기에서 각각 검증
+3. 일반 선생님 v1 검증 완료 후 manager/master 발송은 비활성 상태로 출시
+4. 개발자 운영 알림은 별도 정책 문서 및 수신 방식으로 설계
 
 
 ---
@@ -319,8 +314,7 @@ lesson이 아닌 정규 일정/개인 일정/담당 관계 이벤트는 각 targ
 | 5 | `makeup_canceled` | `lesson / lessonId` | `lesson_week` | `startsAt`, `durationMinutes` | `reason` |
 | 6 | `flex_lesson_booked` | `lesson / lessonId` | `lesson_week` | `startsAt`, `durationMinutes` | 없음 |
 | 7 | `regular_schedule_changed` | `regularSchedule / scheduleSlotId` | `student_detail` | `effectiveFrom`, `previousWeekday`, `previousStartTime`, `previousDurationMinutes`, `weekday`, `startTime`, `durationMinutes` | 없음 |
-| 8 | `regular_schedule_ended` | `regularSchedule / scheduleSlotId` | `student_detail` | `effectiveFrom`, `weekday`, `startTime`, `durationMinutes` | 없음 |
-| 9 | `student_teacher_assigned` | `assignment / assignmentId` | `student_detail` | `effectiveFrom` | 없음 |
+| 8 | `student_teacher_assigned` | `assignment / assignmentId` | `student_detail` | `effectiveFrom` | 없음 |
 
 ### 10.4 navigation 동작
 
@@ -343,7 +337,6 @@ lesson이 아닌 정규 일정/개인 일정/담당 관계 이벤트는 각 targ
 대상:
 - 신규 학생/수업 배정
 - 정규 일정 변경
-- 정규 일정 종료
 - 새 담당 선생님 배정
 
 처리:
@@ -364,7 +357,7 @@ B: student_teacher_assigned 발송
 
 ### 10.6 감사 기준
 
-각 9개 이벤트에 대해 다음 경로를 순서대로 검증한다.
+각 8개 이벤트에 대해 다음 경로를 순서대로 검증한다.
 
 ```text
 Business operation
@@ -378,3 +371,10 @@ Business operation
 ```
 
 감사 중 기존 DB 구조에서 `targetId`가 안정적으로 존재하지 않거나, 필요한 이전값이 audit metadata에 보존되지 않는 경우에는 계약을 약화하기보다 notification domain event 생성 시점에 필요한 snapshot을 명시적으로 저장하는 방향을 우선 검토한다.
+
+
+### 10.7 정규 일정 종료 정책
+
+`REGULAR_SCHEDULE_ENDED`는 감사 이력에는 계속 기록하지만 Push 알림으로 만들지 않는다.
+
+정규 일정 종료 처리 과정에서 발생하는 내부 `LESSON_CANCELED` 이벤트 중 `reason=regular_schedule_ended`인 항목도 개별 Push로 변환하지 않는다. 따라서 정규 일정 하나를 종료했을 때 미래 수업 개수만큼 취소 알림이 발생하는 문제를 방지하면서, 사용자에게 별도의 정규 일정 종료 Push도 보내지 않는다.
