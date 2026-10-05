@@ -6,6 +6,7 @@ import '../core/notifications/notification_navigation_coordinator.dart';
 import '../core/notifications/notification_payload.dart';
 import '../core/theme/forestring_theme.dart';
 import '../features/auth/domain/current_profile.dart';
+import '../features/lessons/presentation/lesson_controller.dart';
 import '../features/lessons/presentation/teacher_home_page.dart';
 import '../features/lessons/presentation/teacher_my_page.dart';
 import '../features/lessons/presentation/week_schedule_page.dart';
