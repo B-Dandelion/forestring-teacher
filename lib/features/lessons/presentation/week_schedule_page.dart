@@ -60,7 +60,11 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
             : const <String, Color>{};
     final meetings = <Object>[
       ...controller.visibleLessons
-          .where((lesson) => !lesson.isCanceled)
+          .where(
+            (lesson) =>
+                !lesson.isCanceled ||
+                lesson.id == widget.notificationFocus?.targetId,
+          )
           .map(
             (lesson) => _LessonMeeting(
               lesson,
@@ -88,10 +92,7 @@ class _WeekSchedulePageState extends State<WeekSchedulePage> {
       );
       final targetDate =
           targetLesson?.startsAt ?? notificationFocus.startsAt;
-      final highlightedLessonId =
-          targetLesson != null && !targetLesson.isCanceled
-              ? targetLesson.id
-              : null;
+      final highlightedLessonId = targetLesson?.id;
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) {
