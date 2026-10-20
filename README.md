@@ -15,6 +15,7 @@
   ·
   Current release: <code>v3.3.1</code>
 </p>
+<p align="center">  <a href="https://github.com/B-Dandelion/forestring-teacher/actions/workflows/flutter-ci.yml"><img src="https://github.com/B-Dandelion/forestring-teacher/actions/workflows/flutter-ci.yml/badge.svg" alt="Flutter CI" /></a></p>
 
 ---
 
