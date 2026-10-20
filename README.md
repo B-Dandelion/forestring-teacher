@@ -11,6 +11,8 @@
 <p align="center">
   <a href="https://github.com/B-Dandelion/forestring-student">Student App</a>
   ·
+  <a href="https://b-dandelion.github.io/portfolio/forestring.html">Case Study</a>
+  ·
   Current release: <code>v3.3.1</code>
 </p>
 
@@ -24,6 +26,21 @@
 
 > **1인 개발 · 실제 운영 서비스**  
 > 요구사항 정리부터 앱·데이터 구조·백엔드 로직·스토어 배포·운영 및 유지보수까지 직접 담당했습니다.
+
+### At a glance
+
+| | |
+| --- | --- |
+| 첫 출시 | 2024-10-22 |
+| 운영 범위 | 바이올린 학원 지점 2곳 · 역할 4개 (master / manager / teacher / student) |
+| 누적 수강생 | 96명 (현재 재원 43명) |
+| 수업 기록 | 3,690건 (진행 완료 2,339건 · 보강 175건 · 취소 198건) |
+| 수업권 | 2,020건 (발급·예약·사용·이월 상태 추적) |
+| 백엔드 규모 | DB 함수 174개 · 트리거 65개 · RLS 정책 21개 · 정기 자동화 작업(pg_cron) 5개 · 감사 로그 830건 |
+
+<sub>2026-10-20 운영 DB 기준. 앱 심사용·QA 계정은 제외했고, 수업 기록은 Firebase에서 이관한 2025-03 이후 데이터를 포함합니다.</sub>
+
+설계 판단과 운영 중 장애(학기 자동 전환 실패)를 추적한 과정은 [포트폴리오 프로젝트 사례](https://b-dandelion.github.io/portfolio/forestring.html)에 정리했습니다.
 
 ### 사용자 역할
 
@@ -44,6 +61,8 @@
 - 지점 생성 및 운영 정보 관리
 - 학기 / 휴원 기간 관리와 다음 학기 일정 준비
 - 역할별 데이터 접근 범위 및 관리자 권한 분리
+
+**개발 중 (v3.4):** 수업 배정·변경·취소, 보강 생성·취소, 플렉스 수강생 예약을 알리는 푸시 알림. Supabase/PostgreSQL을 단일 원본으로 두고 FCM·APNs는 전송에만 사용합니다. ([설계 문서](docs/V3_4_NOTIFICATION_FOUNDATION.md))
 
 ## Screenshots
 
@@ -131,9 +150,18 @@ UI에서 메뉴를 숨기는 것에 그치지 않고, 데이터 접근은 **RLS�
 ```text
 supabase/
 ├── migrations/   # schema, RLS, RPC, scheduling changes
-├── functions/    # PIN login / account management Edge Functions
+├── functions/    # account Edge Functions (below)
 └── tests/        # database-side verification
 ```
+
+| Edge Function | Role |
+| --- | --- |
+| `login-with-pin` | PIN 기반 로그인 |
+| `master-create-manager` | 지점장 계정 생성 (master 전용) |
+| `master-create-teacher` | 강사 계정 생성 (master, 또는 자기 지점의 manager) |
+| `staff-create-student` | 수강생 계정 생성 (master, 또는 자기 지점의 manager) |
+| `staff-reset-account-pin` | 계정 PIN 초기화 (manager는 자기 지점만) |
+| `staff-update-account-name` | 계정 표시 이름 변경 (manager는 자기 지점만) |
 
 ## Tech Stack
 
@@ -158,6 +186,7 @@ lib/
 │   ├── branches/
 │   ├── lessons/
 │   ├── managers/
+│   ├── master/
 │   ├── semesters/
 │   ├── students/
 │   └── teachers/
