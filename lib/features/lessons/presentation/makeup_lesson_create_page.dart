@@ -37,8 +37,7 @@ class MakeupLessonCreatePage extends StatefulWidget {
   final LessonRepository? repository;
 
   @override
-  State<MakeupLessonCreatePage> createState() =>
-      _MakeupLessonCreatePageState();
+  State<MakeupLessonCreatePage> createState() => _MakeupLessonCreatePageState();
 }
 
 class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
@@ -53,6 +52,7 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
   String _reason = '';
   bool _deductLessonRight = false;
   int? _availableRightCount;
+  bool _canDeductPast = false;
   bool _loadingRightCount = false;
   int _rightLoadToken = 0;
   bool _saving = false;
@@ -106,6 +106,17 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
         ? widget.semester.endsOn
         : widget.semester.effectiveEnd(branchId);
   }
+
+  DateTime get _startsAt => DateTime(
+        _date.year,
+        _date.month,
+        _date.day,
+        _time.hour,
+        _time.minute,
+      );
+
+  bool get _isPast => _startsAt.isBefore(DateTime.now());
+  bool get _deductionAllowed => !_isPast || _canDeductPast;
 
   List<VisibleStudent> get _availableStudents {
     final branchId = _branchId;
@@ -174,9 +185,10 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
 
   Future<void> _refreshAvailableRightCount() async {
     final studentId = _studentId;
+    final branchId = _branchId;
     final token = ++_rightLoadToken;
 
-    if (studentId == null) {
+    if (studentId == null || branchId == null) {
       if (mounted) {
         setState(() {
           _availableRightCount = null;
@@ -189,16 +201,20 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
 
     setState(() => _loadingRightCount = true);
     try {
-      final count = await _repository.fetchAvailableLessonRightCount(
+      final availability = await _repository.fetchMakeupLessonRightAvailability(
         studentId: studentId,
         semesterId: widget.semester.id,
+        branchId: branchId,
         durationMinutes: _durationMinutes,
       );
       if (!mounted || token != _rightLoadToken) return;
       setState(() {
-        _availableRightCount = count;
+        _availableRightCount = availability.availableCount;
+        _canDeductPast = availability.canDeductPast;
         _loadingRightCount = false;
-        if (count == 0) _deductLessonRight = false;
+        if (availability.availableCount == 0 || !_deductionAllowed) {
+          _deductLessonRight = false;
+        }
       });
     } on LessonFailure {
       if (!mounted || token != _rightLoadToken) return;
@@ -211,25 +227,21 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
   }
 
   Future<void> _pickDate() async {
-    final today = _dateOnly(DateTime.now());
-    final firstDate = today.isAfter(_scopeStart) ? today : _scopeStart;
-    if (firstDate.isAfter(_scopeEnd)) {
-      _message('선택한 학기는 이미 종료되었습니다.');
-      return;
-    }
-
-    final initialDate = _date.isBefore(firstDate) ? firstDate : _date;
+    final initialDate = _clampToSemester(_date);
     final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
-      firstDate: firstDate,
+      firstDate: _scopeStart,
       lastDate: _scopeEnd,
       helpText: '추가 수업 날짜',
       cancelText: '취소',
       confirmText: '선택',
     );
     if (picked != null && mounted) {
-      setState(() => _date = _dateOnly(picked));
+      setState(() {
+        _date = _dateOnly(picked);
+        if (!_deductionAllowed) _deductLessonRight = false;
+      });
     }
   }
 
@@ -251,7 +263,10 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
       durationMinutes: _durationMinutes,
     );
     if (picked != null && mounted) {
-      setState(() => _time = picked);
+      setState(() {
+        _time = picked;
+        if (!_deductionAllowed) _deductLessonRight = false;
+      });
     }
   }
 
@@ -280,18 +295,12 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
       _message('사용할 수 있는 $_durationMinutes분 수업권이 없습니다.');
       return;
     }
-
-    final startsAt = DateTime(
-      _date.year,
-      _date.month,
-      _date.day,
-      _time.hour,
-      _time.minute,
-    );
-    if (!startsAt.isAfter(DateTime.now())) {
-      _message('현재보다 이후 시간을 선택해주세요.');
+    if (_deductLessonRight && !_deductionAllowed) {
+      _message('정산이 완료되었거나 학기 계획이 없어 과거 수업의 수업권을 차감할 수 없습니다.');
       return;
     }
+
+    final startsAt = _startsAt;
 
     setState(() => _saving = true);
     try {
@@ -375,6 +384,9 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
     if (_loadingRightCount) return '사용 가능한 수업권을 확인하는 중입니다.';
     final count = _availableRightCount;
     if (count == null) return '수업권 정보를 확인하지 못했습니다.';
+    if (!_deductionAllowed) {
+      return '학기 정산이 완료되었거나 학기 계획이 없어 과거 수업에는 수업권을 사용할 수 없습니다.';
+    }
     return '$_durationMinutes분 수업권 $count회 사용 가능';
   }
 
@@ -386,6 +398,7 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
     final canDeduct = !_saving &&
         !_loadingRightCount &&
         _studentId != null &&
+        _deductionAllowed &&
         (_availableRightCount ?? 0) > 0;
 
     return Scaffold(
@@ -606,8 +619,7 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
                     ),
                     value: _deductLessonRight,
                     onChanged: canDeduct
-                        ? (value) =>
-                            setState(() => _deductLessonRight = value)
+                        ? (value) => setState(() => _deductLessonRight = value)
                         : null,
                     activeThumbColor: primaryColor,
                     title: Text(

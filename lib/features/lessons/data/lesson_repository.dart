@@ -57,6 +57,18 @@ class VisibleStudent {
   final bool isActive;
 }
 
+class MakeupLessonRightAvailability {
+  const MakeupLessonRightAvailability({
+    required this.availableCount,
+    required this.planStatus,
+  });
+
+  final int availableCount;
+  final String? planStatus;
+
+  bool get canDeductPast => planStatus == 'planned' || planStatus == 'active';
+}
+
 class LessonRepository {
   LessonRepository({
     SupabaseClient? client,
@@ -299,8 +311,8 @@ class LessonRepository {
               id: row['id'] as String,
               displayName: row['display_name'].toString(),
               branchId: row['branch_id'] as String?,
-              isActive: row['is_active'] == true &&
-                  statusById[row['id']] == 'active',
+              isActive:
+                  row['is_active'] == true && statusById[row['id']] == 'active',
             ),
           )
           .toList();
@@ -401,21 +413,61 @@ class LessonRepository {
     required String studentId,
     required String semesterId,
     required int durationMinutes,
+    String? branchId,
   }) async {
     try {
-      final rows = await _client
+      var query = _client
           .from('lesson_rights')
           .select('id')
           .eq('student_id', studentId)
           .eq('usable_semester_id', semesterId)
           .eq('duration_minutes', durationMinutes)
           .eq('status', 'available');
+      if (branchId != null) query = query.eq('branch_id', branchId);
+      final rows = await query;
       return (rows as List).length;
     } on PostgrestException catch (error) {
       throw LessonFailure(
         _friendlyDatabaseMessage(
           error.message,
           fallback: '사용 가능한 수업권을 확인하지 못했습니다.',
+        ),
+      );
+    }
+  }
+
+  Future<MakeupLessonRightAvailability> fetchMakeupLessonRightAvailability({
+    required String studentId,
+    required String semesterId,
+    required String branchId,
+    required int durationMinutes,
+  }) async {
+    try {
+      final results = await Future.wait<dynamic>([
+        fetchAvailableLessonRightCount(
+          studentId: studentId,
+          semesterId: semesterId,
+          branchId: branchId,
+          durationMinutes: durationMinutes,
+        ),
+        _client
+            .from('student_semester_plans')
+            .select('status')
+            .eq('student_id', studentId)
+            .eq('semester_id', semesterId)
+            .eq('branch_id', branchId)
+            .maybeSingle(),
+      ]);
+      final plan = results[1] as Map<String, dynamic>?;
+      return MakeupLessonRightAvailability(
+        availableCount: results[0] as int,
+        planStatus: plan?['status']?.toString(),
+      );
+    } on PostgrestException catch (error) {
+      throw LessonFailure(
+        _friendlyDatabaseMessage(
+          error.message,
+          fallback: '수업권 정산 상태를 확인하지 못했습니다.',
         ),
       );
     }
@@ -608,16 +660,25 @@ class LessonRepository {
     } else if (message.contains('FORESTRING_ACTIVE_TEACHER_REQUIRED')) {
       userMessage = '현재 수업 가능한 선생님 또는 지점장을 선택해주세요.';
     } else if (message.contains('FORESTRING_MAKEUP_START_IN_PAST')) {
-      userMessage = '과거 시간으로 보강 수업을 등록할 수 없습니다.';
+      userMessage = '현재 서버에서는 과거 추가 수업을 지원하지 않습니다. 관리자에게 문의해주세요.';
+    } else if (message.contains('FORESTRING_MAKEUP_OUTSIDE_ENROLLMENT')) {
+      userMessage = '선택한 수업일이 현재 지점의 학생 재원기간에 포함되지 않습니다.';
+    } else if (message.contains('FORESTRING_MAKEUP_DEDUCTION_PLAN_NOT_OPEN')) {
+      userMessage =
+          '정산이 완료되었거나 사용 가능한 학기 계획이 없어 과거 수업의 수업권을 차감할 수 없습니다. 수업권 사용을 끄고 등록해주세요.';
+    } else if (message.contains('FORESTRING_STUDENT_SETTLEMENT_BUSY')) {
+      userMessage = '학기 정산 또는 학생 정보 변경이 진행 중입니다. 잠시 후 다시 시도해주세요.';
     } else if (message.contains('FORESTRING_MAKEUP_CROSSES_DAY')) {
       userMessage = '보강 수업은 자정을 넘길 수 없습니다.';
     } else if (message.contains('FORESTRING_MAKEUP_INPUT_REQUIRED')) {
       userMessage = '보강 수업의 학생, 선생님, 시간 정보를 확인해주세요.';
-    } else if (message.contains('FORESTRING_MAKEUP_LESSON_NOT_FOUND_AFTER_CREATE')) {
+    } else if (message
+        .contains('FORESTRING_MAKEUP_LESSON_NOT_FOUND_AFTER_CREATE')) {
       userMessage = '보강 수업은 생성되었지만 결과를 확인하지 못했습니다. 새로고침 후 확인해주세요.';
     } else if (message.contains('FORESTRING_SEMESTER_NOT_FOUND_FOR_DATE')) {
       userMessage = '선택한 날짜에 적용되는 학기가 없습니다.';
-    } else if (message.contains('FORESTRING_NO_MATCHING_AVAILABLE_LESSON_RIGHT')) {
+    } else if (message
+        .contains('FORESTRING_NO_MATCHING_AVAILABLE_LESSON_RIGHT')) {
       userMessage = '선택한 수업 길이와 같은 사용 가능한 수업권이 없습니다.';
     } else if (message.contains('FORESTRING_CLOSURE_CONFLICT')) {
       userMessage = '휴원 기간에는 보강 수업을 등록할 수 없습니다.';

@@ -48,7 +48,7 @@ class _StudentWithdrawalPageState
         DateTime(now.year, now.month, now.day);
   }
 
-  bool get _isToday {
+  bool get _isEffective {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final selected = DateTime(
@@ -56,7 +56,12 @@ class _StudentWithdrawalPageState
       _withdrawalDate.month,
       _withdrawalDate.day,
     );
-    return selected == today;
+    return !selected.isAfter(today);
+  }
+
+  bool get _isToday {
+    final now = DateTime.now();
+    return _withdrawalDate == DateTime(now.year, now.month, now.day);
   }
 
   Future<void> _pickDate() async {
@@ -64,9 +69,8 @@ class _StudentWithdrawalPageState
     final today = DateTime(now.year, now.month, now.day);
     final selected = await showDatePicker(
       context: context,
-      initialDate:
-          _withdrawalDate.isBefore(today) ? today : _withdrawalDate,
-      firstDate: today,
+      initialDate: _withdrawalDate,
+      firstDate: DateTime(1900),
       lastDate: DateTime(today.year + 3, 12, 31),
       helpText: '퇴원일 선택',
       cancelText: '취소',
@@ -208,8 +212,10 @@ class _StudentWithdrawalPageState
             const SizedBox(height: 12),
             _messageBox(
               _isToday
-                  ? '오늘을 선택하면 즉시 퇴원 처리됩니다. 오늘 이후 수업은 정리되고, 사용 가능한 수업권은 회수되며 학생 계정은 비활성화됩니다. 과거 수업 기록은 유지됩니다.'
-                  : '$dateText부터 수업을 진행하지 않는 것으로 예약합니다. 저장 즉시 해당 날짜 이후 예정 수업이 정리됩니다. 퇴원일 전까지는 학생 계정이 유지되며 예약을 취소할 수 있습니다.',
+                  ? '오늘을 선택하면 즉시 퇴원 처리됩니다. 오늘 00:00 이후의 수업은 제거되고, 남아 있는 사용 가능한 수강권은 회수되며 학생 계정은 비활성화됩니다. 과거 수업 기록은 유지됩니다.'
+                  : _isEffective
+                      ? '$dateText부터 퇴원한 것으로 즉시 처리합니다. 기존 수업·취소·정산·배정·정규 일정 이력과 충돌하는 과거 퇴원은 저장할 수 없습니다. 남아 있는 미래 예정 수업을 정리하고 사용 가능한 수업권을 회수하며 학생 계정을 비활성화합니다.'
+                      : '$dateText부터 수업을 진행하지 않는 것으로 예약합니다. 저장 즉시 해당 날짜 이후 예정 수업이 정리됩니다. 퇴원일 전까지는 학생 계정이 유지되며 예약을 취소할 수 있습니다.',
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 12),
@@ -237,7 +243,9 @@ class _StudentWithdrawalPageState
                   ? '처리 중...'
                   : _isToday
                       ? '오늘 퇴원'
-                      : '퇴원 예약',
+                      : _isEffective
+                          ? '퇴원 처리'
+                          : '퇴원 예약',
               style: forestringTextStyle.copyWith(
                 color: Colors.white,
                 fontSize: 15,

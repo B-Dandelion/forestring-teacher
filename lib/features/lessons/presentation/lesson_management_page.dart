@@ -344,11 +344,6 @@ class _LessonManagementPageState extends State<LessonManagementPage> {
       _message('학기를 먼저 선택해주세요.');
       return;
     }
-    if (semester.isPast) {
-      _message('지난 학기에는 새 추가 수업을 등록할 수 없습니다.');
-      return;
-    }
-
     final activeBranches =
         _branches.where((branch) => branch.isActive).toList();
     if (activeBranches.isEmpty) {

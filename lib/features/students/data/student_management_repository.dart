@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StudentManagementFailure implements Exception {
@@ -126,9 +128,12 @@ class StudentWithdrawalResult {
 class StudentManagementRepository {
   StudentManagementRepository({
     SupabaseClient? client,
-  }) : _client = client ?? Supabase.instance.client;
+    DateTime Function()? now,
+  })  : _client = client ?? Supabase.instance.client,
+        _now = now ?? DateTime.now;
 
   final SupabaseClient _client;
+  final DateTime Function() _now;
 
   Future<List<ManagedStudent>> fetchStudents({
     String? branchId,
@@ -429,14 +434,12 @@ class StudentManagementRepository {
             (row['newBaseRightCount'] as num?)?.toInt() ?? newBaseRightCount,
         insertedCount: (row['insertedCount'] as num?)?.toInt() ?? 0,
         removedCount: (row['removedCount'] as num?)?.toInt() ?? 0,
-        newCancellationLimit:
-            (row['newCancellationLimit'] as num?)?.toInt() ??
-                (row['cancellationLimit'] as num?)?.toInt() ??
-                0,
-        newCarryoverCap:
-            (row['newCarryoverCap'] as num?)?.toInt() ??
-                (row['carryoverCap'] as num?)?.toInt() ??
-                0,
+        newCancellationLimit: (row['newCancellationLimit'] as num?)?.toInt() ??
+            (row['cancellationLimit'] as num?)?.toInt() ??
+            0,
+        newCarryoverCap: (row['newCarryoverCap'] as num?)?.toInt() ??
+            (row['carryoverCap'] as num?)?.toInt() ??
+            0,
       );
     } on StudentManagementFailure {
       rethrow;
@@ -527,23 +530,27 @@ class StudentManagementRepository {
       withdrawalDate.month,
       withdrawalDate.day,
     );
-    final now = DateTime.now();
+    final now = _now();
     final today = DateTime(now.year, now.month, now.day);
 
-    if (day.isBefore(today)) {
-      throw const StudentManagementFailure(
-        '과거 날짜로 퇴원 처리할 수 없습니다.',
-      );
-    }
-
     try {
-      await _client.rpc(
+      final result = await _client.rpc(
         'schedule_student_withdrawal',
         params: {
           'p_student_id': studentId,
           'p_withdrawal_date': _dateOnly(day),
         },
       );
+
+      if (result is Map && result['finalized'] == true) {
+        return _finalizedWithdrawalResult(Map<String, dynamic>.from(result));
+      }
+
+      if (day.isBefore(today)) {
+        throw const StudentManagementFailure(
+          '과거 퇴원 처리 결과를 확인하지 못했습니다. 학생 상태를 새로고침한 뒤 확인해주세요.',
+        );
+      }
 
       if (day == today) {
         return await finalizeWithdrawal(studentId: studentId);
@@ -555,7 +562,7 @@ class StudentManagementRepository {
       );
     } on PostgrestException catch (error) {
       throw StudentManagementFailure(
-        _friendlyWithdrawalMessage(error.message),
+        _friendlyWithdrawalMessage(error.message, details: error.details),
       );
     }
   }
@@ -575,27 +582,27 @@ class StudentManagementRepository {
         );
       }
 
-      final row = Map<String, dynamic>.from(result);
-      final withdrawalDateRaw = row['withdrawalDate'];
-      if (withdrawalDateRaw == null) {
-        throw const StudentManagementFailure(
-          '퇴원일을 확인하지 못했습니다.',
-        );
-      }
-
-      return StudentWithdrawalResult(
-        withdrawalDate: DateTime.parse(withdrawalDateRaw.toString()),
-        finalized: true,
-        deletedLessonCount: (row['deletedLessonCount'] as num?)?.toInt() ?? 0,
-        revokedRightCount: (row['revokedRightCount'] as num?)?.toInt() ?? 0,
-      );
+      return _finalizedWithdrawalResult(Map<String, dynamic>.from(result));
     } on StudentManagementFailure {
       rethrow;
     } on PostgrestException catch (error) {
       throw StudentManagementFailure(
-        _friendlyWithdrawalMessage(error.message),
+        _friendlyWithdrawalMessage(error.message, details: error.details),
       );
     }
+  }
+
+  StudentWithdrawalResult _finalizedWithdrawalResult(Map<String, dynamic> row) {
+    final withdrawalDate = DateTime.tryParse(row['withdrawalDate'].toString());
+    if (withdrawalDate == null) {
+      throw const StudentManagementFailure('퇴원일을 확인하지 못했습니다.');
+    }
+    return StudentWithdrawalResult(
+      withdrawalDate: withdrawalDate,
+      finalized: true,
+      deletedLessonCount: (row['deletedLessonCount'] as num?)?.toInt() ?? 0,
+      revokedRightCount: (row['revokedRightCount'] as num?)?.toInt() ?? 0,
+    );
   }
 
   Future<void> cancelWithdrawal({
@@ -608,7 +615,7 @@ class StudentManagementRepository {
       );
     } on PostgrestException catch (error) {
       throw StudentManagementFailure(
-        _friendlyWithdrawalMessage(error.message),
+        _friendlyWithdrawalMessage(error.message, details: error.details),
       );
     }
   }
@@ -620,7 +627,7 @@ class StudentManagementRepository {
     return '$year-$month-$day';
   }
 
-  String _friendlyWithdrawalMessage(String message) {
+  String _friendlyWithdrawalMessage(String message, {dynamic details}) {
     String? userMessage;
 
     if (message.contains('FORESTRING_AUTH_REQUIRED')) {
@@ -629,7 +636,18 @@ class StudentManagementRepository {
         message.contains('FORESTRING_EFFECTIVE_ACCESS_REQUIRED')) {
       userMessage = '현재 계정은 더 이상 사용할 수 없습니다.';
     } else if (message.contains('FORESTRING_STUDENT_WITHDRAWAL_DATE_IN_PAST')) {
-      userMessage = '과거 날짜로 퇴원 처리할 수 없습니다.';
+      userMessage = '현재 서버에서는 과거 퇴원을 지원하지 않습니다. 관리자에게 문의해주세요.';
+    } else if (message.contains('FORESTRING_STUDENT_SETTLEMENT_BUSY')) {
+      userMessage = '학기 정산 또는 학생 정보 변경이 진행 중입니다. 잠시 후 다시 시도해주세요.';
+    } else if (message
+        .contains('FORESTRING_STUDENT_WITHDRAWAL_BEFORE_ENROLLMENT')) {
+      userMessage = '현재 재원 시작일 다음 날부터 퇴원일로 지정할 수 있습니다.';
+    } else if (message
+        .contains('FORESTRING_STUDENT_WITHDRAWAL_HISTORY_CONFLICT')) {
+      userMessage =
+          '선택한 퇴원일이 수업·취소·정산 또는 담당 배정·정규 일정 이력과 충돌합니다. 기존 기록을 확인한 뒤 퇴원일을 다시 선택해주세요.';
+      final summary = _withdrawalConflictSummary(details);
+      if (summary.isNotEmpty) userMessage = '$userMessage\n충돌 항목: $summary';
     } else if (message.contains('FORESTRING_STUDENT_WITHDRAWAL_FORBIDDEN') ||
         message.contains('FORESTRING_MANAGER_BRANCH_FORBIDDEN')) {
       userMessage = '이 수강생의 퇴원 처리 권한이 없습니다.';
@@ -637,17 +655,21 @@ class StudentManagementRepository {
       userMessage = '이미 퇴원했거나 현재 재원 상태가 아닌 수강생입니다.';
     } else if (message.contains('FORESTRING_STUDENT_WITHDRAWAL_NOT_READY')) {
       userMessage = '아직 퇴원 예정일이 되지 않았습니다.';
-    } else if (message.contains('FORESTRING_STUDENT_WITHDRAWAL_ALREADY_EFFECTIVE')) {
+    } else if (message
+        .contains('FORESTRING_STUDENT_WITHDRAWAL_ALREADY_EFFECTIVE')) {
       userMessage = '퇴원 예정일이 이미 도래했습니다. 퇴원 확정을 진행해주세요.';
-    } else if (message.contains('FORESTRING_STUDENT_WITHDRAWAL_DATE_REQUIRED')) {
+    } else if (message
+        .contains('FORESTRING_STUDENT_WITHDRAWAL_DATE_REQUIRED')) {
       userMessage = '퇴원일을 먼저 지정해주세요.';
-    } else if (message.contains('FORESTRING_STUDENT_WITHDRAWAL_INVALID_STATE')) {
+    } else if (message
+        .contains('FORESTRING_STUDENT_WITHDRAWAL_INVALID_STATE')) {
       userMessage = '현재 학생 상태에서는 퇴원을 확정할 수 없습니다. 학생 상태를 새로고침한 뒤 확인해주세요.';
     } else if (message.contains('FORESTRING_STUDENT_BRANCH_REQUIRED')) {
       userMessage = '학생의 지점 정보를 확인해주세요.';
     } else if (message.contains('FORESTRING_STUDENT_NOT_FOUND')) {
       userMessage = '수강생 정보를 찾지 못했습니다.';
-    } else if (message.contains('FORESTRING_WITHDRAWAL_LESSON_DELETE_COUNT_MISMATCH')) {
+    } else if (message
+        .contains('FORESTRING_WITHDRAWAL_LESSON_DELETE_COUNT_MISMATCH')) {
       userMessage = '퇴원 처리 중 예정 수업 정리가 완료되지 않았습니다. 다시 시도해주세요.';
     }
 
@@ -655,6 +677,32 @@ class StudentManagementRepository {
       userMessage ?? '퇴원 처리를 완료하지 못했습니다.',
       message,
     );
+  }
+
+  String _withdrawalConflictSummary(dynamic details) {
+    Object? data = details;
+    if (details is String) {
+      try {
+        data = jsonDecode(details);
+      } on FormatException {
+        return '';
+      }
+    }
+    if (data is! Map) return '';
+    const labels = {
+      'lessonCount': '수업·취소 기록',
+      'assignmentCount': '담당 배정',
+      'scheduleCount': '정규 일정',
+      'completedSemesterCount': '확정 학기',
+      'snapshotCount': '예약 정리 기록',
+      'manualRightCount': '수업권 기록',
+    };
+    return labels.entries.expand((entry) {
+      final count = data is Map ? data[entry.key] : null;
+      return count is num && count > 0
+          ? ['${entry.value} ${count.toInt()}건']
+          : <String>[];
+    }).join(' · ');
   }
 
   String _friendlyFlexRightCountMessage(String message) {
@@ -679,7 +727,8 @@ class StudentManagementRepository {
     } else if (message.contains('FORESTRING_MANAGER_BRANCH_FORBIDDEN') ||
         message.contains('FORESTRING_STAFF_REQUIRED')) {
       userMessage = '이 학생의 수업권을 변경할 권한이 없습니다.';
-    } else if (message.contains('FORESTRING_FLEX_RIGHT_COUNT_DECREASE_BLOCKED')) {
+    } else if (message
+        .contains('FORESTRING_FLEX_RIGHT_COUNT_DECREASE_BLOCKED')) {
       userMessage = '예약 중이거나 이미 완료된 수업이 많아 이 개수까지 줄일 수 없습니다. '
           '예정 수업을 관리자 취소한 뒤 다시 시도해주세요.';
     } else if (message.contains('FORESTRING_ACTIVE_PLAN_BRANCH_MISMATCH')) {
