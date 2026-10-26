@@ -1,0 +1,7 @@
+weekday,capacity_hours,scheduled_hours,canceled_hours,scheduled_utilization_pct,booked_utilization_pct
+Mon,24.00,11.50,0.50,47.92,50.00
+Tue,33.50,11.25,0.25,33.58,34.33
+Wed,18.00,8.75,0.75,48.61,52.78
+Thu,48.00,16.50,1.75,34.38,38.02
+Fri,23.50,14.50,0.50,61.70,63.83
+Sat,45.50,14.25,1.00,31.32,33.52
