@@ -36,7 +36,7 @@ class QaSemesterRepository extends SemesterRepository {
 }
 
 class QaLessonRepository extends LessonRepository {
-  QaLessonRepository(this.store);
+  QaLessonRepository(this.store, {super.client});
 
   final QaSandboxStore store;
 
@@ -129,10 +129,39 @@ class QaLessonRepository extends LessonRepository {
     required String studentId,
     required String semesterId,
     required int durationMinutes,
+    String? branchId,
   }) async {
     final student = store.studentById(studentId);
     if (student == null || !student.isActive) return 0;
+    if (branchId != null && student.branchId != branchId) return 0;
     return student.isFlex ? (student.flexBaseRightCount ?? 0) : 3;
+  }
+
+  @override
+  Future<MakeupLessonRightAvailability> fetchMakeupLessonRightAvailability({
+    required String studentId,
+    required String semesterId,
+    required String branchId,
+    required int durationMinutes,
+  }) async {
+    ManagedSemester? semester;
+    for (final candidate in store.semesters) {
+      if (candidate.id == semesterId) semester = candidate;
+    }
+    final count = await fetchAvailableLessonRightCount(
+      studentId: studentId,
+      semesterId: semesterId,
+      branchId: branchId,
+      durationMinutes: durationMinutes,
+    );
+    return MakeupLessonRightAvailability(
+      availableCount: count,
+      planStatus: semester == null
+          ? null
+          : semester.isPast
+              ? 'completed'
+              : 'active',
+    );
   }
 
   @override
@@ -353,7 +382,7 @@ class QaLessonRepository extends LessonRepository {
 }
 
 class QaStudentManagementRepository extends StudentManagementRepository {
-  QaStudentManagementRepository(this.store);
+  QaStudentManagementRepository(this.store, {super.client});
 
   final QaSandboxStore store;
 
@@ -475,6 +504,22 @@ class QaStudentManagementRepository extends StudentManagementRepository {
     required DateTime withdrawalDate,
   }) async {
     final student = _requireStudent(studentId);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(
+      withdrawalDate.year,
+      withdrawalDate.month,
+      withdrawalDate.day,
+    );
+    if (day.isBefore(today) &&
+        store.lessons.any((lesson) =>
+            lesson.studentId == studentId &&
+            !lesson.startsAt.isBefore(day) &&
+            !lesson.startsAt.isAfter(now))) {
+      throw const StudentManagementFailure(
+        '선택한 퇴원일 이후에 수업 또는 취소 이력이 있어 처리할 수 없습니다.',
+      );
+    }
     store.updateStudent(
       _copyStudent(
         student,
@@ -482,6 +527,9 @@ class QaStudentManagementRepository extends StudentManagementRepository {
         replaceWithdrawalDate: true,
       ),
     );
+    if (day.isBefore(today)) {
+      return finalizeWithdrawal(studentId: studentId);
+    }
     return StudentWithdrawalResult(
       withdrawalDate: withdrawalDate,
       finalized: false,

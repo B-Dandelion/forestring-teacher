@@ -37,7 +37,8 @@ class MakeupLessonCreatePage extends StatefulWidget {
   final LessonRepository? repository;
 
   @override
-  State<MakeupLessonCreatePage> createState() => _MakeupLessonCreatePageState();
+  State<MakeupLessonCreatePage> createState() =>
+      _MakeupLessonCreatePageState();
 }
 
 class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
@@ -600,47 +601,48 @@ class _MakeupLessonCreatePageState extends State<MakeupLessonCreatePage> {
                       ),
                     ),
                     child: SwitchListTile.adaptive(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 15,
-                      vertical: 3,
-                    ),
-                    secondary: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: const BoxDecoration(
-                        color: Color(0xffE8F0E4),
-                        shape: BoxShape.circle,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 15,
+                        vertical: 3,
                       ),
-                      child: const Icon(
-                        Icons.confirmation_number_outlined,
-                        color: primaryColor,
-                        size: 20,
+                      secondary: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          color: Color(0xffE8F0E4),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.confirmation_number_outlined,
+                          color: primaryColor,
+                          size: 20,
+                        ),
                       ),
-                    ),
-                    value: _deductLessonRight,
-                    onChanged: canDeduct
-                        ? (value) => setState(() => _deductLessonRight = value)
-                        : null,
-                    activeThumbColor: primaryColor,
-                    title: Text(
-                      '수업권 1회 사용',
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.black87,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                      value: _deductLessonRight,
+                      onChanged: canDeduct
+                          ? (value) =>
+                              setState(() => _deductLessonRight = value)
+                          : null,
+                      activeThumbColor: primaryColor,
+                      title: Text(
+                        '수업권 1회 사용',
+                        style: forestringTextStyle.copyWith(
+                          color: Colors.black87,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    subtitle: Text(
-                      _rightStatusText,
-                      style: forestringTextStyle.copyWith(
-                        color: Colors.black45,
-                        fontSize: 10.5,
-                        height: 1.35,
+                      subtitle: Text(
+                        _rightStatusText,
+                        style: forestringTextStyle.copyWith(
+                          color: Colors.black45,
+                          fontSize: 10.5,
+                          height: 1.35,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
                 const SizedBox(height: 20),
                 const RegistrationSectionHeader(
                   title: '메모',

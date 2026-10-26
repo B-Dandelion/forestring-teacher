@@ -57,3 +57,4 @@ ios/.symlinks/
 # Local environment config
 env/*.json
 !env/example.json
+supabase/functions/.env

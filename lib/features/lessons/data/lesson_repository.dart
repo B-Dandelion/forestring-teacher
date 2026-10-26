@@ -311,8 +311,8 @@ class LessonRepository {
               id: row['id'] as String,
               displayName: row['display_name'].toString(),
               branchId: row['branch_id'] as String?,
-              isActive:
-                  row['is_active'] == true && statusById[row['id']] == 'active',
+              isActive: row['is_active'] == true &&
+                  statusById[row['id']] == 'active',
             ),
           )
           .toList();
@@ -672,13 +672,11 @@ class LessonRepository {
       userMessage = '보강 수업은 자정을 넘길 수 없습니다.';
     } else if (message.contains('FORESTRING_MAKEUP_INPUT_REQUIRED')) {
       userMessage = '보강 수업의 학생, 선생님, 시간 정보를 확인해주세요.';
-    } else if (message
-        .contains('FORESTRING_MAKEUP_LESSON_NOT_FOUND_AFTER_CREATE')) {
+    } else if (message.contains('FORESTRING_MAKEUP_LESSON_NOT_FOUND_AFTER_CREATE')) {
       userMessage = '보강 수업은 생성되었지만 결과를 확인하지 못했습니다. 새로고침 후 확인해주세요.';
     } else if (message.contains('FORESTRING_SEMESTER_NOT_FOUND_FOR_DATE')) {
       userMessage = '선택한 날짜에 적용되는 학기가 없습니다.';
-    } else if (message
-        .contains('FORESTRING_NO_MATCHING_AVAILABLE_LESSON_RIGHT')) {
+    } else if (message.contains('FORESTRING_NO_MATCHING_AVAILABLE_LESSON_RIGHT')) {
       userMessage = '선택한 수업 길이와 같은 사용 가능한 수업권이 없습니다.';
     } else if (message.contains('FORESTRING_CLOSURE_CONFLICT')) {
       userMessage = '휴원 기간에는 보강 수업을 등록할 수 없습니다.';

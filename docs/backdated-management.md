@@ -68,21 +68,60 @@ remain under ignored `build/backdate_qa/`. Managed-role default privileges are
 omitted from the clone because the local postgres role cannot change those
 owners; existing object ACLs and postgres defaults are retained.
 
-The source branch was advanced to the locally known
-`origin/qa/staging-foundation` (`7727641`). Production has later migrations that
-are not all represented as local files. The relevant production function,
-trigger, and constraint definitions were inspected read-only, and the makeup RPC
-preserves the production 45-minute duration preset.
+For production release, the feature was moved onto the latest `origin/main`
+(`ffbfa7f`, version `3.3.1+64`). The release version is `3.3.2+65`. Existing
+production screens, notification/QA features, and the 45-minute duration preset
+are preserved. The QA sandbox implements the new availability query locally and
+never sends it to the production database. Relevant production function,
+trigger, and constraint definitions were inspected read-only again before rollout.
 
-Before production deployment, review the current live definitions again and
-approve the database change separately. Apply backend migrations before shipping
-the Flutter build. The Flutter client accepts the atomic `finalized` response for
-past withdrawal and keeps the legacy today-finalization fallback. An older
-backend rejects past writes safely. No production migration or data mutation was
-performed during implementation.
+Production backend rollout was approved by the user and completed on 2026-10-26:
 
-Implementation validation passed: all 20 Flutter tests, full-project Flutter
+- `20261026134010_support_backdated_student_withdrawal.sql`
+- `20261026134021_support_backdated_makeup_lessons.sql`
+
+The production migration ledger and local filenames match. Post-deployment
+read-only checks confirmed that only the three intended RPC definitions changed;
+the existing finalizer, preclear, enrollment, cancellation, and notification
+functions retain their previous hashes. Anonymous execution remains denied and
+authenticated/service-role access is preserved. No production student, lesson,
+cancellation, or lesson-right rows were directly edited or used for test writes.
+The previous function definitions are saved locally in ignored
+`build/backdate_release/production_before_functions.sql`.
+
+The Flutter client accepts the atomic `finalized` response for past withdrawal
+and keeps the legacy today-finalization fallback. Backend rollout is complete;
+the Android/iOS store release remains to be built and uploaded on the user's Mac.
+
+Implementation validation passed: all 23 Flutter tests, full-project Flutter
 analysis with no issues, both isolated SQL suites, and a separate two-session
 settlement-lock check. The latter verified that both new past-date paths return
 the retry error within a three-second statement timeout and leave student,
 lesson, audit, and right rows unchanged.
+
+## Continue on the Mac
+
+The release branch is `codex/backdate`, based on production `main`, with version
+`3.3.2+65`. Before uploading, compare this version/build with the latest entries
+in both store consoles; increase it if a later build has already been uploaded.
+From the existing Mac checkout, preserve any local work and then fetch/check out
+this branch (do not overwrite uncommitted work):
+
+```bash
+git fetch origin
+git switch codex/backdate
+git pull --ff-only origin codex/backdate
+flutter pub get
+flutter analyze
+flutter test
+flutter build appbundle --release --dart-define-from-file=env/dev.json
+flutter build ipa --release --dart-define-from-file=env/dev.json
+```
+
+Use the existing production `env/dev.json`, Android `android/key.properties`
+and keystore, and Xcode signing on the Mac. These files are intentionally not
+copied to this repository. Keep `MANAGER_QA_ENABLED` disabled for the store build.
+Verify that the app connects to the production project, then upload the AAB to
+Google Play Console and the iOS archive through Xcode Organizer/App Store Connect.
+The desktop did not build or upload either signed mobile artifact. Do not apply
+the two backend migrations again; they are already present in production.

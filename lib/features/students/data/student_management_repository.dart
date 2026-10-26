@@ -434,12 +434,14 @@ class StudentManagementRepository {
             (row['newBaseRightCount'] as num?)?.toInt() ?? newBaseRightCount,
         insertedCount: (row['insertedCount'] as num?)?.toInt() ?? 0,
         removedCount: (row['removedCount'] as num?)?.toInt() ?? 0,
-        newCancellationLimit: (row['newCancellationLimit'] as num?)?.toInt() ??
-            (row['cancellationLimit'] as num?)?.toInt() ??
-            0,
-        newCarryoverCap: (row['newCarryoverCap'] as num?)?.toInt() ??
-            (row['carryoverCap'] as num?)?.toInt() ??
-            0,
+        newCancellationLimit:
+            (row['newCancellationLimit'] as num?)?.toInt() ??
+                (row['cancellationLimit'] as num?)?.toInt() ??
+                0,
+        newCarryoverCap:
+            (row['newCarryoverCap'] as num?)?.toInt() ??
+                (row['carryoverCap'] as num?)?.toInt() ??
+                0,
       );
     } on StudentManagementFailure {
       rethrow;
@@ -655,21 +657,17 @@ class StudentManagementRepository {
       userMessage = '이미 퇴원했거나 현재 재원 상태가 아닌 수강생입니다.';
     } else if (message.contains('FORESTRING_STUDENT_WITHDRAWAL_NOT_READY')) {
       userMessage = '아직 퇴원 예정일이 되지 않았습니다.';
-    } else if (message
-        .contains('FORESTRING_STUDENT_WITHDRAWAL_ALREADY_EFFECTIVE')) {
+    } else if (message.contains('FORESTRING_STUDENT_WITHDRAWAL_ALREADY_EFFECTIVE')) {
       userMessage = '퇴원 예정일이 이미 도래했습니다. 퇴원 확정을 진행해주세요.';
-    } else if (message
-        .contains('FORESTRING_STUDENT_WITHDRAWAL_DATE_REQUIRED')) {
+    } else if (message.contains('FORESTRING_STUDENT_WITHDRAWAL_DATE_REQUIRED')) {
       userMessage = '퇴원일을 먼저 지정해주세요.';
-    } else if (message
-        .contains('FORESTRING_STUDENT_WITHDRAWAL_INVALID_STATE')) {
+    } else if (message.contains('FORESTRING_STUDENT_WITHDRAWAL_INVALID_STATE')) {
       userMessage = '현재 학생 상태에서는 퇴원을 확정할 수 없습니다. 학생 상태를 새로고침한 뒤 확인해주세요.';
     } else if (message.contains('FORESTRING_STUDENT_BRANCH_REQUIRED')) {
       userMessage = '학생의 지점 정보를 확인해주세요.';
     } else if (message.contains('FORESTRING_STUDENT_NOT_FOUND')) {
       userMessage = '수강생 정보를 찾지 못했습니다.';
-    } else if (message
-        .contains('FORESTRING_WITHDRAWAL_LESSON_DELETE_COUNT_MISMATCH')) {
+    } else if (message.contains('FORESTRING_WITHDRAWAL_LESSON_DELETE_COUNT_MISMATCH')) {
       userMessage = '퇴원 처리 중 예정 수업 정리가 완료되지 않았습니다. 다시 시도해주세요.';
     }
 
@@ -727,8 +725,7 @@ class StudentManagementRepository {
     } else if (message.contains('FORESTRING_MANAGER_BRANCH_FORBIDDEN') ||
         message.contains('FORESTRING_STAFF_REQUIRED')) {
       userMessage = '이 학생의 수업권을 변경할 권한이 없습니다.';
-    } else if (message
-        .contains('FORESTRING_FLEX_RIGHT_COUNT_DECREASE_BLOCKED')) {
+    } else if (message.contains('FORESTRING_FLEX_RIGHT_COUNT_DECREASE_BLOCKED')) {
       userMessage = '예약 중이거나 이미 완료된 수업이 많아 이 개수까지 줄일 수 없습니다. '
           '예정 수업을 관리자 취소한 뒤 다시 시도해주세요.';
     } else if (message.contains('FORESTRING_ACTIVE_PLAN_BRANCH_MISMATCH')) {

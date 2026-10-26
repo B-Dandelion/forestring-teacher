@@ -49,8 +49,8 @@ try {
     Invoke-Docker exec $Container psql -X -U postgres -d $QaDatabase -v ON_ERROR_STOP=1 -q -f "$ContainerDirectory/schema.sql"
 
     $SqlFiles = @(
-        "supabase/migrations/20261026130810_support_backdated_student_withdrawal.sql",
-        "supabase/migrations/20261026130814_support_backdated_makeup_lessons.sql",
+        "supabase/migrations/20261026134010_support_backdated_student_withdrawal.sql",
+        "supabase/migrations/20261026134021_support_backdated_makeup_lessons.sql",
         "supabase/tests/local/backdated_student_withdrawal.sql",
         "supabase/tests/local/backdated_makeup_lessons.sql"
     )
