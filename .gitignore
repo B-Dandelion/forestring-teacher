@@ -45,6 +45,13 @@ app.*.map.json
 # Firebase Admin local credential
 functions/serviceAccountKey.json
 
+# FCM / Firebase Admin server credentials for Supabase Edge Functions
+# Client config files (google-services.json / GoogleService-Info.plist) are
+# intentionally not ignored here because they are not service-account secrets.
+supabase/functions/**/service-account*.json
+supabase/functions/**/firebase-service-account*.json
+supabase/functions/**/firebase-admin*.json
+
 # Node dependencies
 node_modules/
 functions/node_modules/
