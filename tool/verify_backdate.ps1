@@ -52,8 +52,19 @@ try {
         "supabase/migrations/20261026134010_support_backdated_student_withdrawal.sql",
         "supabase/migrations/20261026134021_support_backdated_makeup_lessons.sql",
         "supabase/tests/local/backdated_student_withdrawal.sql",
+        "supabase/migrations/20261026231956_finalize_withdrawal_with_archived_history.sql",
+        "supabase/tests/local/terminal_student_withdrawal.sql",
         "supabase/tests/local/backdated_makeup_lessons.sql"
     )
+    $AlreadyTerminal = @(Invoke-Docker exec $Container psql -X -U postgres -d $QaDatabase -A -t -c "select to_regclass('private.student_withdrawal_finalization_archives') is not null;") -contains 't'
+    if ($AlreadyTerminal) {
+        # An up-to-date source schema must not be downgraded to the old veto
+        # policy, nor have its already-applied archive tables created twice.
+        $SqlFiles = @(
+            "supabase/tests/local/terminal_student_withdrawal.sql",
+            "supabase/tests/local/backdated_makeup_lessons.sql"
+        )
+    }
     foreach ($SqlFile in $SqlFiles) {
         $SourcePath = Join-Path $RepoRoot $SqlFile
         $TargetPath = "$ContainerDirectory/" + [System.IO.Path]::GetFileName($SqlFile)

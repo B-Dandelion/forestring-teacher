@@ -4,30 +4,42 @@ Branch: `codex/backdate`.
 
 ## Withdrawal behavior
 
-The existing `schedule_student_withdrawal` RPC gains a separate branch for a newly
-requested date before today in Asia/Seoul. It locks the student and checks the
-current enrollment period, actual lesson history (including canceled lessons),
-historical assignments/schedules, completed semester settlement, and any open
-withdrawal snapshots before changing the date.
+The user-approved terminal policy supersedes the original conservative history
+vetoes. For today/past dates, `schedule_student_withdrawal` records the selected
+date and finalizes atomically. Existing past scheduled/canceled lessons,
+assignments, regular-schedule versions, completed plans, and old pending
+withdrawal snapshots do not prevent withdrawal. Withdrawal day is the first day
+outside enrollment; the earliest permitted date remains one day after the latest
+enrollment period began. Current role/branch/enrollment validation remains.
 
-Conflicting history is rejected with `FORESTRING_STUDENT_WITHDRAWAL_HISTORY_CONFLICT`
-and counts in the error detail. Existing records are not edited to force a match.
-Withdrawal day remains the first day outside enrollment; the earliest permitted
-backdate is one day after the current enrollment period began.
+Finalization archives the original lesson rows on/after 00:00 Asia/Seoul on the
+selected date, then deletes them from the operational lesson table. Earlier
+lessons remain. The deletion therefore changes history/statistics computed from
+those lesson rows, including already-past lessons, as requested by the user.
 
-If validation succeeds, the RPC writes the date and calls the existing finalizer
-in the same transaction. It skips the reversible future-reservation preclear step.
-Future manual makeup reservations release their held rights before unused rights
-are revoked. Any failure rolls back the complete request.
+`private.student_withdrawal_finalization_archives` captures original student,
+rights, legacy credits, assignments, series, slots, and plan state. The existing
+private lesson-snapshot table holds each removed lesson and linked right state,
+associated through `finalization_id`. Open snapshots from prior withdrawal
+reservations are finalized without changing their lesson/right payloads or
+restoring old right states. Final archives and their lesson snapshots reject
+updates/deletes and are unavailable to client roles. Cancellation/audit ledgers
+remain intact. No general-purpose automatic undo is exposed.
 
-Today/future reservation, moving/canceling a future withdrawal, the existing
-finalizer, and delayed cron cleanup retain their existing behavior. Repeating the
-same effective date uses the finalizer's existing idempotent result. The new date
-cannot replace a different withdrawal date that has already become effective.
-New backdated paths acquire dependent rows without waiting. If settlement or
-another edit holds a conflicting lock, the whole request rolls back and returns
-`FORESTRING_STUDENT_SETTLEMENT_BUSY` so the user can retry. Existing lifecycle
-lock ordering and cron behavior are preserved.
+All available/reserved rights retire, including unused carryovers. A consumed
+right used only by a removed lesson/held reservation also retires; consumed rights
+still used by preserved earlier scheduled lessons retain their history. Remaining
+unused legacy credits expire. Completed semester plans stay completed and no
+replacement rights are issued. Reactivation does not restore finalized snapshots
+or revive revoked rights.
+
+Future reservations remain reversible: postponing/canceling them follows existing
+restore/credit behavior, with the account active until the effective date. Only
+finalization closes the account and zeros usable rights. Delayed cron uses the
+same archival finalizer. Repeating a finalized date is idempotent. Dependent row
+locks use NOWAIT and a retry error to avoid reversed lock-order deadlocks. Any
+failure rolls back archive creation, date/enrollment changes, lesson deletion,
+right retirement, and account deactivation together.
 
 ## Additional lesson behavior
 
@@ -61,7 +73,7 @@ flutter analyze --no-pub
 ```
 
 The SQL runner accepts only a local Docker context, clones schema and permissions
-without copying row data, applies the two migrations in a disposable database,
+without copying row data, applies the three migrations in a disposable database,
 and runs independent synthetic rollback fixtures. It preserves the source local
 database. The generated database is removed afterward; schema-only diagnostics
 remain under ignored `build/backdate_qa/`. Managed-role default privileges are
@@ -80,48 +92,37 @@ Production backend rollout was approved by the user and completed on 2026-10-26:
 - `20261026134010_support_backdated_student_withdrawal.sql`
 - `20261026134021_support_backdated_makeup_lessons.sql`
 
-The production migration ledger and local filenames match. Post-deployment
-read-only checks confirmed that only the three intended RPC definitions changed;
-the existing finalizer, preclear, enrollment, cancellation, and notification
-functions retain their previous hashes. Anonymous execution remains denied and
-authenticated/service-role access is preserved. No production student, lesson,
-cancellation, or lesson-right rows were directly edited or used for test writes.
-The previous function definitions are saved locally in ignored
-`build/backdate_release/production_before_functions.sql`.
+The user approved the terminal-policy relaxation on 2026-10-27 (Asia/Seoul).
+It is deployed as `20261026231956_finalize_withdrawal_with_archived_history.sql`
+(migration versions use UTC). Post-deployment metadata confirms that the
+history veto is absent, the archival finalizer is active, and private archive
+tables/helpers remain inaccessible to client roles. Future preclear/restore,
+withdrawal cancellation, reactivation, and the makeup RPCs were not replaced.
+The change defines future requests; no existing students were bulk-finalized.
 
-The Flutter client accepts the atomic `finalized` response for past withdrawal
-and keeps the legacy today-finalization fallback. Backend rollout is complete;
-the Android/iOS store release remains to be built and uploaded on the user's Mac.
+The production migration ledger and local filenames match. The original rollout
+changed three RPC definitions; the terminal-policy update changes only the
+scheduler/finalizer and adds private archival objects. Preclear/restore,
+cancellation, reactivation, and makeup definitions retain their prior hashes.
+Anonymous execution remains denied and authenticated/service-role RPC access is
+preserved. No production student, lesson, cancellation, or lesson-right rows were
+directly edited or used for test writes. The policy applies when the user submits
+a withdrawal, not as a bulk update. Previous function definitions are saved in
+ignored `build/terminal_withdrawal/production_before.sql` (and the original
+rollout backup in `build/backdate_release/production_before_functions.sql`).
 
-Implementation validation passed: all 23 Flutter tests, full-project Flutter
-analysis with no issues, both isolated SQL suites, and a separate two-session
-settlement-lock check. The latter verified that both new past-date paths return
-the retry error within a three-second statement timeout and leave student,
-lesson, audit, and right rows unchanged.
+The Flutter client accepts the atomic `finalized` response for past/today withdrawal
+and keeps the legacy today-finalization fallback. The already-deployed app can
+use the relaxed backend immediately. At the user's request, this policy update
+does not change Flutter source, QA sandbox behavior, Dart tests, or app version.
+Existing client explanatory text and sandbox behavior remain as released; the
+production policy is verified with SQL fixtures. No mobile release is required.
 
-## Continue on the Mac
-
-The release branch is `codex/backdate`, based on production `main`, with version
-`3.3.2+65`. Before uploading, compare this version/build with the latest entries
-in both store consoles; increase it if a later build has already been uploaded.
-From the existing Mac checkout, preserve any local work and then fetch/check out
-this branch (do not overwrite uncommitted work):
-
-```bash
-git fetch origin
-git switch codex/backdate
-git pull --ff-only origin codex/backdate
-flutter pub get
-flutter analyze
-flutter test
-flutter build appbundle --release --dart-define-from-file=env/dev.json
-flutter build ipa --release --dart-define-from-file=env/dev.json
-```
-
-Use the existing production `env/dev.json`, Android `android/key.properties`
-and keystore, and Xcode signing on the Mac. These files are intentionally not
-copied to this repository. Keep `MANAGER_QA_ENABLED` disabled for the store build.
-Verify that the app connects to the production project, then upload the AAB to
-Google Play Console and the iOS archive through Xcode Organizer/App Store Connect.
-The desktop did not build or upload either signed mobile artifact. Do not apply
-the two backend migrations again; they are already present in production.
+The isolated SQL runner passed the original conservative-withdrawal fixtures
+before applying the terminal-policy migration, then the terminal-withdrawal and
+makeup suites. Terminal cases cover scheduled/canceled lesson archival, completed
+plans, prior preclear snapshots, carryovers, legacy credits, future reservation
+restoration, idempotency, archive access/immutability, rollback, and cron execution.
+A separate two-session settlement-lock check passed in the original rollout.
+No production business rows were used for testing. Do not apply the migrations
+again; all three are already present in production.
